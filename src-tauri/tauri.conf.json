@@ -14,7 +14,9 @@
       {
         "title": "Parker",
         "width": 900,
-        "height": 700
+        "height": 700,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {
