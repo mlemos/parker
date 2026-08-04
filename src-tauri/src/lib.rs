@@ -168,7 +168,15 @@ fn save_session(session: Session) -> Result<(), String> {
 fn build_menu<R: tauri::Runtime>(
     handle: &tauri::AppHandle<R>,
 ) -> tauri::Result<tauri::menu::Menu<R>> {
-    use tauri::menu::{MenuBuilder, SubmenuBuilder};
+    use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+
+    // Custom Quit: instead of the predefined item (which hard-exits the app
+    // immediately), this one only *requests* the window to close, so quitting
+    // funnels through the same CloseRequested path as the red button and the
+    // frontend can flush every dirty buffer before we actually exit.
+    let quit = MenuItemBuilder::with_id("quit", "Quit Parker")
+        .accelerator("CmdOrCtrl+Q")
+        .build(handle)?;
 
     // App menu (About / Hide / Quit). Cmd+Q, Cmd+H come from here.
     let app_menu = SubmenuBuilder::new(handle, "Parker")
@@ -177,7 +185,7 @@ fn build_menu<R: tauri::Runtime>(
         .hide()
         .hide_others()
         .separator()
-        .quit()
+        .item(&quit)
         .build()?;
 
     // Standard Edit menu so Cmd+Z/X/C/V/A behave natively.
@@ -207,6 +215,16 @@ pub fn run() {
 
     builder
         .plugin(tauri_plugin_opener::init())
+        .on_menu_event(|app, event| {
+            // Route our custom Quit through window.close() so the frontend's
+            // onCloseRequested handler runs (flush) before the app exits.
+            if event.id().as_ref() == "quit" {
+                use tauri::Manager;
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.close();
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             notes_dir_path,
             list_notes,

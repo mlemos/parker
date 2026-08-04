@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import type { Extension } from "@uiw/react-codemirror";
 import { EditorView } from "@uiw/react-codemirror";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { api } from "./lib/api";
 import { languageForName } from "./lib/lang";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
@@ -68,6 +69,24 @@ export default function App() {
     },
     [flushSave]
   );
+
+  // Flush every dirty buffer and the session synchronously. Used right before
+  // the window closes so no keystroke is ever lost on quit.
+  const flushAll = useCallback(async () => {
+    const s = stateRef.current;
+    await Promise.all(
+      s.tabs
+        .filter((t) => t.dirty)
+        .map((t) => api.writeNote(t.name, t.content).catch(() => {}))
+    );
+    await api
+      .saveSession({
+        open: s.tabs.map((t) => t.name),
+        active: s.activeName,
+        theme: s.themeId,
+      })
+      .catch(() => {});
+  }, []);
 
   const scheduleSessionSave = useCallback(() => {
     if (sessionTimer.current) clearTimeout(sessionTimer.current);
@@ -270,6 +289,31 @@ export default function App() {
     window.addEventListener("blur", onBlur);
     return () => window.removeEventListener("blur", onBlur);
   }, [flushSave]);
+
+  // The guarantee: intercept window close (red button and Cmd+Q both route
+  // here), flush every dirty buffer, then actually destroy the window.
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+    const win = getCurrentWindow();
+    win
+      .onCloseRequested(async (e) => {
+        e.preventDefault();
+        try {
+          await flushAll();
+        } finally {
+          await win.destroy();
+        }
+      })
+      .then((u) => {
+        if (disposed) u();
+        else unlisten = u;
+      });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [flushAll]);
 
   // ---- Render --------------------------------------------------------------
 
