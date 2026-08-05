@@ -4,8 +4,11 @@ import type { Extension } from "@uiw/react-codemirror";
 import { EditorView } from "@uiw/react-codemirror";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { api } from "./lib/api";
+import type { NoteMeta } from "./lib/api";
 import { languageForName } from "./lib/lang";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
+import { RenameInput } from "./components/RenameInput";
+import { NotePicker } from "./components/NotePicker";
 import "./App.css";
 
 interface Tab {
@@ -24,6 +27,9 @@ export default function App() {
   const [notesDir, setNotesDir] = useState<string>("");
   const [langExt, setLangExt] = useState<Extension[]>([]);
   const [ready, setReady] = useState(false);
+  const [renamingName, setRenamingName] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerNotes, setPickerNotes] = useState<NoteMeta[]>([]);
 
   // Mirror state into refs so the global keydown handler is never stale.
   const stateRef = useRef({ tabs, activeName, themeId });
@@ -243,16 +249,83 @@ export default function App() {
     setThemeId((id) => nextThemeId(id));
   }, []);
 
+  // Open an existing note by name: focus it if already a tab, else load it.
+  const openNote = useCallback(async (name: string) => {
+    if (stateRef.current.tabs.some((t) => t.name === name)) {
+      setActiveName(name);
+      return;
+    }
+    try {
+      const content = await api.readNote(name);
+      setTabs((prev) => [...prev, { name, content, dirty: false }]);
+      setActiveName(name);
+    } catch (e) {
+      console.error("open failed", name, e);
+    }
+  }, []);
+
+  const openPicker = useCallback(async () => {
+    try {
+      setPickerNotes(await api.listNotes());
+    } catch (e) {
+      console.error("list notes failed", e);
+      setPickerNotes([]);
+    }
+    setPickerOpen(true);
+  }, []);
+
+  const startRename = useCallback((name?: string) => {
+    const n = name ?? stateRef.current.activeName;
+    if (n) setRenamingName(n);
+  }, []);
+
+  const commitRename = useCallback(
+    async (oldName: string, raw: string) => {
+      setRenamingName(null);
+      const newName = raw.trim();
+      if (!newName || newName === oldName) return;
+      try {
+        await flushSave(oldName); // make sure disk has the latest content
+        await api.renameNote(oldName, newName);
+        const timers = saveTimers.current;
+        const pending = timers.get(oldName);
+        if (pending) {
+          clearTimeout(pending);
+          timers.delete(oldName);
+        }
+        setTabs((prev) =>
+          prev.map((t) => (t.name === oldName ? { ...t, name: newName } : t))
+        );
+        setActiveName((a) => (a === oldName ? newName : a));
+      } catch (e) {
+        console.error("rename failed", e); // keep the old name on failure
+      }
+    },
+    [flushSave]
+  );
+
   // ---- Keyboard shortcuts --------------------------------------------------
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // F2 renames the active tab (no modifier).
+      if (e.key === "F2") {
+        e.preventDefault();
+        startRename();
+        return;
+      }
       if (!e.metaKey) return;
       const k = e.key.toLowerCase();
 
       if (k === "t" && e.shiftKey) {
         e.preventDefault();
         cycleTheme();
+      } else if (k === "r" && e.shiftKey) {
+        e.preventDefault();
+        startRename();
+      } else if (k === "o") {
+        e.preventDefault();
+        openPicker();
       } else if (k === "t") {
         e.preventDefault();
         newTab();
@@ -277,7 +350,16 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [newTab, closeTab, flushSave, cycleTheme, switchByOffset, switchToIndex]);
+  }, [
+    newTab,
+    closeTab,
+    flushSave,
+    cycleTheme,
+    switchByOffset,
+    switchToIndex,
+    startRename,
+    openPicker,
+  ]);
 
   // Insurance: flush everything when the window loses focus.
   useEffect(() => {
@@ -327,34 +409,52 @@ export default function App() {
     <div className="parker">
       <div className="tabbar" data-tauri-drag-region>
         <div className="tabs">
-          {tabs.map((t) => (
-            <button
-              key={t.name}
-              className={"tab" + (t.name === activeName ? " active" : "")}
-              onClick={() => setActiveName(t.name)}
-              title={t.name}
-            >
-              <span className="tab-name">{t.name}</span>
-              <span
-                className={"tab-dot" + (t.dirty ? " dirty" : "")}
-                aria-hidden
-              />
-              <span
-                className="tab-close"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeTab(t.name);
-                }}
-                title="Close (Cmd+W)"
+          {tabs.map((t) =>
+            renamingName === t.name ? (
+              <div key={t.name} className="tab active editing">
+                <RenameInput
+                  initial={t.name}
+                  onCommit={(v) => commitRename(t.name, v)}
+                  onCancel={() => setRenamingName(null)}
+                />
+              </div>
+            ) : (
+              <button
+                key={t.name}
+                className={"tab" + (t.name === activeName ? " active" : "")}
+                onClick={() => setActiveName(t.name)}
+                onDoubleClick={() => startRename(t.name)}
+                title={`${t.name}  —  double-click or F2 to rename`}
               >
-                ×
-              </span>
-            </button>
-          ))}
+                <span className="tab-name">{t.name}</span>
+                <span
+                  className={"tab-dot" + (t.dirty ? " dirty" : "")}
+                  aria-hidden
+                />
+                <span
+                  className="tab-close"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeTab(t.name);
+                  }}
+                  title="Close (Cmd+W)"
+                >
+                  ×
+                </span>
+              </button>
+            )
+          )}
           <button className="tab-new" onClick={newTab} title="New note (Cmd+T)">
             +
           </button>
         </div>
+        <button
+          className="open-btn"
+          onClick={openPicker}
+          title="Open note (Cmd+O)"
+        >
+          Open…
+        </button>
         <button
           className="theme-btn"
           onClick={cycleTheme}
@@ -395,6 +495,18 @@ export default function App() {
           {notesDir}
         </span>
       </div>
+
+      {pickerOpen && (
+        <NotePicker
+          notes={pickerNotes}
+          openNames={tabs.map((t) => t.name)}
+          onOpen={(name) => {
+            setPickerOpen(false);
+            openNote(name);
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }
