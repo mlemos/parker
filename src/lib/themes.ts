@@ -92,7 +92,15 @@ function monoStyles(p: SyntaxColors) {
       color: p.func,
     },
     {
-      tag: [t.variableName, t.propertyName, t.attributeName, t.attributeValue],
+      tag: [
+        t.variableName,
+        t.definition(t.variableName),
+        t.local(t.variableName),
+        t.propertyName,
+        t.definition(t.propertyName),
+        t.attributeName,
+        t.attributeValue,
+      ],
       color: p.plain,
     },
     {

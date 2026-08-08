@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import type { Extension } from "@uiw/react-codemirror";
 import { EditorView, Prec } from "@uiw/react-codemirror";
+import {
+  syntaxHighlighting,
+  defaultHighlightStyle,
+} from "@codemirror/language";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
@@ -461,10 +465,13 @@ export default function App() {
     return <div className="parker-loading">Parker</div>;
   }
 
-  // Prec.highest so our theme's syntax highlighting wins over basicSetup's
-  // default highlight for every tag (esp. markdown heading/link/marks).
+  // Our theme's highlight at highest precedence wins for every tag it defines;
+  // CodeMirror's default highlight is re-added only as a *fallback* for tags we
+  // don't cover. (basicSetup's own default is disabled below.) This is what
+  // makes markdown heading/link/marks use our colors, not CM's.
   const cmExtensions: Extension[] = [
     Prec.highest(theme.cm),
+    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     EditorView.lineWrapping,
     ...langExt,
   ];
@@ -608,6 +615,9 @@ export default function App() {
               highlightActiveLine: true,
               highlightActiveLineGutter: false,
               highlightSelectionMatches: false,
+              // Disable CM's built-in default highlight; we re-add it as a
+              // fallback (above) so our theme wins every tag it defines.
+              syntaxHighlighting: false,
             }}
           />
         )}
