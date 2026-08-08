@@ -166,7 +166,9 @@ body,
   border-radius: 6px;
   background: transparent;
   color: var(--secondary);
-  font-size: 13px;
+  font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  font-size: 12.5px;
   cursor: pointer;
   white-space: nowrap;
 }
