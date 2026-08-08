@@ -43,7 +43,10 @@ struct Settings {
 }
 
 /// The default global shortcut that summons/dismisses the window.
-const TOGGLE_SHORTCUT: &str = "Alt+Space";
+/// Ctrl+Alt+P (⌃⌥P): two modifiers so it won't clash with single-modifier app
+/// shortcuts, ⌃⌥ is rarely system-reserved, and it doesn't steal ⌥P's special
+/// character the way a single-⌥ shortcut would.
+const TOGGLE_SHORTCUT: &str = "Ctrl+Alt+P";
 
 /// The shortcut from settings, or the default.
 fn current_shortcut() -> String {
@@ -240,6 +243,7 @@ struct SettingsInfo {
     notes_dir: String,
     autostart: bool,
     shortcut: String,
+    default_shortcut: String,
 }
 
 #[tauri::command]
@@ -249,6 +253,7 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
         notes_dir: notes_dir().to_string_lossy().into_owned(),
         autostart,
         shortcut: current_shortcut(),
+        default_shortcut: TOGGLE_SHORTCUT.to_string(),
     }
 }
 
@@ -552,8 +557,9 @@ pub fn run() {
                 // Alt+Space default) — it toggles Parker from anywhere.
                 use std::str::FromStr;
                 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
-                let sc = Shortcut::from_str(&current_shortcut())
-                    .unwrap_or_else(|_| Shortcut::new(Some(Modifiers::ALT), Code::Space));
+                let sc = Shortcut::from_str(&current_shortcut()).unwrap_or_else(|_| {
+                    Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyP)
+                });
                 app.global_shortcut().register(sc)?;
             }
             Ok(())

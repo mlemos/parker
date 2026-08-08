@@ -136,6 +136,17 @@ export function Settings({
     }
   };
 
+  const resetShortcut = async () => {
+    if (!info || busy) return;
+    try {
+      await api.setShortcut(info.default_shortcut);
+      setInfo({ ...info, shortcut: info.default_shortcut });
+      setError(null);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
   const applyFolder = async (move: boolean) => {
     if (!pendingDir || !info) return;
     setBusy(true);
@@ -242,14 +253,25 @@ export function Settings({
                     : "Summon or dismiss Parker from any app."}
                 </div>
               </div>
-              <button
-                className={"kbd kbd-btn" + (recording ? " recording" : "")}
-                onClick={() => setRecording((r) => !r)}
-                disabled={busy}
-                title="Click, then press a new shortcut"
-              >
-                {recording ? "Recording…" : prettyShortcut(info.shortcut)}
-              </button>
+              <div className="settings-shortcut">
+                <button
+                  className={"kbd kbd-btn" + (recording ? " recording" : "")}
+                  onClick={() => setRecording((r) => !r)}
+                  disabled={busy}
+                  title="Click, then press a new shortcut"
+                >
+                  {recording ? "Recording…" : prettyShortcut(info.shortcut)}
+                </button>
+                {!recording && info.shortcut !== info.default_shortcut && (
+                  <button
+                    className="link-btn"
+                    onClick={resetShortcut}
+                    disabled={busy}
+                  >
+                    Reset to {prettyShortcut(info.default_shortcut)}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

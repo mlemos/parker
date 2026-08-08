@@ -450,6 +450,28 @@ body,
   cursor: default;
 }
 
+.settings-shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.link-btn:hover:not(:disabled) {
+  color: var(--accent);
+}
+.link-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .settings-error {
   padding: 10px 16px;
   border-top: 1px solid var(--border);

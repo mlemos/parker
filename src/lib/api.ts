@@ -16,6 +16,7 @@ export interface SettingsInfo {
   notes_dir: string;
   autostart: boolean;
   shortcut: string;
+  default_shortcut: string;
 }
 
 export const api = {
