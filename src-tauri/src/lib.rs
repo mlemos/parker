@@ -545,6 +545,25 @@ pub fn run() {
 
     builder
         .setup(|app| {
+            // Build the main window in code (not via config) so we can center
+            // the macOS traffic lights inside our 40px custom title bar.
+            {
+                use tauri::{WebviewUrl, WebviewWindowBuilder};
+                #[allow(unused_mut)]
+                let mut b = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+                    .title("Parker")
+                    .inner_size(900.0, 700.0)
+                    .min_inner_size(480.0, 360.0);
+                #[cfg(target_os = "macos")]
+                {
+                    b = b
+                        .title_bar_style(tauri::TitleBarStyle::Overlay)
+                        .hidden_title(true)
+                        .traffic_light_position(tauri::LogicalPosition::new(16.0, 14.0));
+                }
+                b.build()?;
+            }
+
             #[cfg(desktop)]
             {
                 // Menu bar only — hide the Dock icon.

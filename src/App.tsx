@@ -441,8 +441,8 @@ export default function App() {
   return (
     <div className="parker">
       <div className="titlebar" data-tauri-drag-region>
-        <div className="tb-left" />
-        <div className="tb-center">
+        <div className="tb-left" data-tauri-drag-region />
+        <div className="tb-center" data-tauri-drag-region>
           <button
             className="search-bar"
             onClick={openPicker}
@@ -468,7 +468,7 @@ export default function App() {
             <span className="search-kbd">⌘O</span>
           </button>
         </div>
-        <div className="tb-right">
+        <div className="tb-right" data-tauri-drag-region>
           <button
             className="theme-btn"
             onClick={cycleTheme}

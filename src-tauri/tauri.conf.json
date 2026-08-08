@@ -10,15 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [
-      {
-        "title": "Parker",
-        "width": 900,
-        "height": 700,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }
