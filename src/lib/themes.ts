@@ -7,6 +7,11 @@ import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
 import { tokyoNight } from "@uiw/codemirror-theme-tokyo-night";
 import type { Extension } from "@uiw/react-codemirror";
 
+// Content font for the Vercel themes — set on the theme itself so it beats the
+// proportional UI font (createTheme would otherwise inherit it).
+const MONO =
+  '"Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace';
+
 export interface ThemeChrome {
   bg: string;
   fg: string;
@@ -116,17 +121,17 @@ function monoStyles(p: Mono) {
 const vercelNight = createTheme({
   theme: "dark",
   settings: {
-    background: "#09090b",
-    // Pure white body text + caret — Vercel Night is deliberately high
-    // contrast: what you type reads bright white on near-black.
+    // Pure-black canvas, bright-white text — deliberately high contrast.
+    background: "#000000",
     foreground: "#ffffff",
     caret: "#ffffff",
     selection: "#27272a",
     selectionMatch: "#3f3f46",
-    lineHighlight: "#ffffff0a",
-    gutterBackground: "#09090b",
+    // Active line: a subtle translucent blue accent on the black.
+    lineHighlight: "rgba(0, 112, 243, 0.13)",
+    gutterBackground: "#000000",
     gutterForeground: "#52525b",
-    fontFamily: "inherit",
+    fontFamily: MONO,
   },
   styles: monoStyles({
     comment: "#52525b", // zinc-600
@@ -155,7 +160,7 @@ const vercelDay = createTheme({
     lineHighlight: "#00000008",
     gutterBackground: "#ffffff",
     gutterForeground: "#a1a1aa",
-    fontFamily: "inherit",
+    fontFamily: MONO,
   },
   styles: monoStyles({
     comment: "#a1a1aa", // zinc-400
@@ -180,11 +185,11 @@ export const THEMES: ThemeDef[] = [
     mode: "dark",
     cm: vercelNight,
     chrome: {
-      bg: "#09090b",
+      bg: "#000000",
       fg: "#e4e4e7",
       muted: "#71717a",
       border: "#27272a",
-      tabBg: "#09090b",
+      tabBg: "#0a0a0a",
       tabActiveBg: "#18181b",
       accent: "#fafafa",
     },

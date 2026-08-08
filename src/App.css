@@ -492,8 +492,11 @@ body,
   font-size: 14px;
 }
 .editor-wrap .cm-scroller {
+  /* !important beats the per-theme rule createTheme injects
+     (&.cm-editor .cm-scroller { font-family }), so the content is always
+     Geist Mono regardless of the active theme. */
   font-family: "Geist Mono Variable", "SF Mono", ui-monospace, SFMono-Regular,
-    Menlo, Consolas, monospace;
+    Menlo, Consolas, monospace !important;
   line-height: 1.6;
   padding: 8px 4px;
 }
