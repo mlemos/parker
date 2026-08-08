@@ -477,6 +477,8 @@ body,
   background: var(--tab-bg);
   border-top: 1px solid var(--border);
   color: var(--muted);
+  font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
   font-size: 12px;
 }
 .status-spacer {
