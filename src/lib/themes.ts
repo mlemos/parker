@@ -135,10 +135,13 @@ function monoStyles(p: SyntaxColors) {
     },
     { tag: [t.strong], color: p.heading, fontWeight: "700" },
     { tag: [t.emphasis], color: p.plain, fontStyle: "italic" },
-    { tag: [t.link, t.url], color: p.link },
+    { tag: [t.link, t.url], color: p.link, textDecoration: "underline" },
     { tag: [t.quote], color: p.string },
     { tag: [t.monospace], color: p.number },
-    { tag: [t.list, t.meta, t.processingInstruction], color: p.punct },
+    // NOTE: intentionally NO rule for processingInstruction/meta so markdown
+    // marks (#, [], (), **) inherit the color of what they mark (heading, link,
+    // strong) instead of a flat grey.
+    { tag: [t.list], color: p.punct },
     { tag: [t.invalid], color: p.invalid },
   ];
 }
