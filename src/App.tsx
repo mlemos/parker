@@ -608,6 +608,9 @@ export default function App() {
               highlightActiveLine: true,
               highlightActiveLineGutter: false,
               highlightSelectionMatches: false,
+              // Our theme owns all syntax colors; disable CodeMirror's default
+              // highlight so uncovered tags fall back to plain text, not blue.
+              syntaxHighlighting: false,
             }}
           />
         )}
