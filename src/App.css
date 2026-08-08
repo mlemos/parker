@@ -506,6 +506,12 @@ body,
   outline: none;
 }
 
+/* Neon glow — Vercel Night editor content. currentColor is inherited, so each
+   token glows in its own color (pink keyword, green string, …). */
+html[data-theme="vercel-night"] .editor-wrap .cm-content {
+  text-shadow: 0 0 7px color-mix(in srgb, currentColor 45%, transparent);
+}
+
 /* ---- Status bar --------------------------------------------------------- */
 
 .statusbar {

@@ -210,6 +210,7 @@ export default function App() {
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
+    root.dataset.theme = theme.id;
   }, [theme]);
 
   // ---- Actions -------------------------------------------------------------
