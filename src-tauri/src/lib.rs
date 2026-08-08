@@ -42,11 +42,28 @@ struct Settings {
     shortcut: Option<String>,
 }
 
-/// The default global shortcut that summons/dismisses the window.
-/// Ctrl+Alt+P (⌃⌥P): two modifiers so it won't clash with single-modifier app
-/// shortcuts, ⌃⌥ is rarely system-reserved, and it doesn't steal ⌥P's special
-/// character the way a single-⌥ shortcut would.
-const TOGGLE_SHORTCUT: &str = "Ctrl+Alt+P";
+/// Dev vs release identity. `debug_assertions` is on for `tauri dev` and off
+/// for `tauri build`, so a dev instance runs alongside the installed
+/// Parker.app without fighting over its data, tray, session or global hotkey.
+#[cfg(debug_assertions)]
+mod variant {
+    pub const CONFIG_DIR: &str = "Parker-dev"; // ~/Library/Application Support
+    pub const NOTES_DIR: &str = "Parker (Dev)"; // ~/Documents
+    pub const TITLE: &str = "Parker Dev";
+    pub const SHORTCUT: &str = "Ctrl+Alt+Shift+P"; // ⌃⌥⇧P
+}
+#[cfg(not(debug_assertions))]
+mod variant {
+    pub const CONFIG_DIR: &str = "Parker";
+    pub const NOTES_DIR: &str = "Parker";
+    pub const TITLE: &str = "Parker";
+    pub const SHORTCUT: &str = "Ctrl+Alt+P"; // ⌃⌥P
+}
+
+/// The default global shortcut that summons/dismisses the window. Two
+/// modifiers so it won't clash with single-modifier app shortcuts; ⌃⌥ is
+/// rarely system-reserved and doesn't steal ⌥P's special character.
+const TOGGLE_SHORTCUT: &str = variant::SHORTCUT;
 
 /// The shortcut from settings, or the default.
 fn current_shortcut() -> String {
@@ -63,7 +80,7 @@ fn config_dir() -> PathBuf {
     let base = dirs::config_dir()
         .or_else(dirs::home_dir)
         .unwrap_or_else(|| PathBuf::from("."));
-    let dir = base.join("Parker");
+    let dir = base.join(variant::CONFIG_DIR);
     let _ = fs::create_dir_all(&dir);
     dir
 }
@@ -96,7 +113,7 @@ fn default_notes_dir() -> PathBuf {
     let base = dirs::document_dir()
         .or_else(dirs::home_dir)
         .unwrap_or_else(|| PathBuf::from("."));
-    base.join("Parker")
+    base.join(variant::NOTES_DIR)
 }
 
 /// The resolved notes directory (from settings, or the default), created if
@@ -441,7 +458,7 @@ fn build_menu<R: tauri::Runtime>(
         .accelerator("CmdOrCtrl+,")
         .build(handle)?;
 
-    let app_menu = SubmenuBuilder::new(handle, "Parker")
+    let app_menu = SubmenuBuilder::new(handle, variant::TITLE)
         .about(None)
         .separator()
         .item(&settings)
@@ -493,7 +510,7 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
     TrayIconBuilder::with_id("main-tray")
         .icon(icon)
         .icon_as_template(true)
-        .tooltip("Parker")
+        .tooltip(variant::TITLE)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -551,7 +568,7 @@ pub fn run() {
                 use tauri::{WebviewUrl, WebviewWindowBuilder};
                 #[allow(unused_mut)]
                 let mut b = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-                    .title("Parker")
+                    .title(variant::TITLE)
                     .inner_size(900.0, 700.0)
                     .min_inner_size(480.0, 360.0);
                 #[cfg(target_os = "macos")]
