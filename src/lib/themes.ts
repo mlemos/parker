@@ -202,29 +202,30 @@ const vercelDayUI: ThemeUI = {
   danger: tw.red[600],
 };
 
+// Vivid / neon content palette — the chrome stays monochrome, the writing pops.
 const nightSyntax: SyntaxColors = {
-  plain: tw.white,
-  heading: tw.white,
-  keyword: tw.white,
-  string: tw.zinc[400],
-  number: tw.zinc[300],
-  func: tw.zinc[100],
-  comment: tw.zinc[600],
-  punct: tw.zinc[500],
-  link: tw.zinc[300],
+  plain: tw.zinc[100], // near-white body
+  heading: tw.violet[400],
+  keyword: tw.pink[400],
+  string: tw.green[400],
+  number: tw.orange[400],
+  func: tw.cyan[400],
+  comment: tw.zinc[500],
+  punct: tw.zinc[400],
+  link: tw.sky[400],
   invalid: tw.red[400],
 };
 
 const daySyntax: SyntaxColors = {
   plain: tw.zinc[900],
-  heading: tw.zinc[950],
-  keyword: tw.zinc[950],
-  string: tw.zinc[600],
-  number: tw.zinc[700],
-  func: tw.zinc[800],
+  heading: tw.violet[600],
+  keyword: tw.pink[600],
+  string: tw.green[600],
+  number: tw.orange[600],
+  func: tw.cyan[600],
   comment: tw.zinc[400],
   punct: tw.zinc[500],
-  link: tw.zinc[600],
+  link: tw.sky[600],
   invalid: tw.red[600],
 };
 
