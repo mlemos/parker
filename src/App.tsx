@@ -437,7 +437,54 @@ export default function App() {
 
   return (
     <div className="parker">
-      <div className="tabbar" data-tauri-drag-region>
+      <div className="titlebar" data-tauri-drag-region>
+        <div className="tb-left" />
+        <div className="tb-center">
+          <button
+            className="search-bar"
+            onClick={openPicker}
+            title="Search notes (Cmd+O)"
+          >
+            <svg
+              className="search-icon"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span className="search-text">
+              {activeTab?.name ?? "Search notes…"}
+            </span>
+            <span className="search-kbd">⌘O</span>
+          </button>
+        </div>
+        <div className="tb-right">
+          <button
+            className="theme-btn"
+            onClick={cycleTheme}
+            title="Cycle theme (Cmd+Shift+T)"
+          >
+            {theme.label}
+          </button>
+          <button
+            className="settings-gear"
+            onClick={() => setSettingsOpen(true)}
+            title="Settings (Cmd+,)"
+            aria-label="Settings"
+          >
+            ⚙
+          </button>
+        </div>
+      </div>
+
+      <div className="tabstrip">
         <div className="tabs">
           {tabs.map((t) =>
             renamingName === t.name ? (
@@ -478,28 +525,6 @@ export default function App() {
             +
           </button>
         </div>
-        <button
-          className="open-btn"
-          onClick={openPicker}
-          title="Open note (Cmd+O)"
-        >
-          Open…
-        </button>
-        <button
-          className="theme-btn"
-          onClick={cycleTheme}
-          title="Cycle theme (Cmd+Shift+T)"
-        >
-          {theme.label}
-        </button>
-        <button
-          className="settings-gear"
-          onClick={() => setSettingsOpen(true)}
-          title="Settings (Cmd+,)"
-          aria-label="Settings"
-        >
-          ⚙
-        </button>
       </div>
 
       <div className="editor-wrap">
