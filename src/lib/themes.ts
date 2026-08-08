@@ -188,7 +188,7 @@ const vercelDayUI: ThemeUI = {
   statusBg: tw.zinc[100],
   popoverBg: tw.white,
   text: tw.zinc[900],
-  muted: tw.zinc[500],
+  muted: tw.zinc[600],
   border: tw.zinc[200],
   accent: tw.emerald[600],
   onAccent: tw.white,
