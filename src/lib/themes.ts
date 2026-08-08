@@ -55,7 +55,11 @@ const MONO =
 // (brightness/weight, not hue) built on Tailwind's zinc scale.
 export interface SyntaxColors {
   plain: string; // body text / identifiers
-  heading: string; // markdown headings & strong
+  heading: string; // markdown headings
+  bold: string; // **bold** (bold-italic uses this color too)
+  italic: string; // *italic*
+  list: string; // list markers (*, -, 1.)
+  inlineCode: string; // `inline code` / plain code fences
   keyword: string; // keywords, tags
   string: string; // strings, regex
   number: string; // numbers, booleans, constants
@@ -133,15 +137,17 @@ function monoStyles(p: SyntaxColors) {
       color: p.heading,
       fontWeight: "700",
     },
-    { tag: [t.strong], color: p.heading, fontWeight: "700" },
-    { tag: [t.emphasis], color: p.plain, fontStyle: "italic" },
+    // emphasis before strong so a bold-italic node (both classes) resolves to
+    // strong's color — bold-italic = bold color + italic.
+    { tag: [t.emphasis], color: p.italic, fontStyle: "italic" },
+    { tag: [t.strong], color: p.bold, fontWeight: "700" },
     { tag: [t.link, t.url], color: p.link, textDecoration: "underline" },
     { tag: [t.quote], color: p.string },
-    { tag: [t.monospace], color: p.number },
+    { tag: [t.monospace], color: p.inlineCode },
     // NOTE: intentionally NO rule for processingInstruction/meta so markdown
     // marks (#, [], (), **) inherit the color of what they mark (heading, link,
     // strong) instead of a flat grey.
-    { tag: [t.list], color: p.punct },
+    { tag: [t.list], color: p.list },
     { tag: [t.invalid], color: p.invalid },
   ];
 }
@@ -217,6 +223,10 @@ const vercelDayUI: ThemeUI = {
 const nightSyntax: SyntaxColors = {
   plain: tw.zinc[100], // near-white body
   heading: tw.violet[400],
+  bold: tw.amber[400],
+  italic: tw.emerald[300],
+  list: tw.cyan[400],
+  inlineCode: tw.fuchsia[400],
   keyword: tw.pink[400],
   string: tw.green[400],
   number: tw.orange[400],
@@ -230,6 +240,10 @@ const nightSyntax: SyntaxColors = {
 const daySyntax: SyntaxColors = {
   plain: tw.zinc[900],
   heading: tw.violet[600],
+  bold: tw.amber[600],
+  italic: tw.emerald[600],
+  list: tw.cyan[600],
+  inlineCode: tw.fuchsia[600],
   keyword: tw.pink[600],
   string: tw.green[600],
   number: tw.orange[600],
@@ -287,6 +301,10 @@ const githubDarkUI: ThemeUI = {
 const githubLightSyntax: SyntaxColors = {
   plain: "#24292f",
   heading: "#0550ae",
+  bold: "#24292f",
+  italic: "#24292f",
+  list: "#6e7781",
+  inlineCode: "#0a3069",
   keyword: "#cf222e",
   string: "#0a3069",
   number: "#0550ae",
@@ -300,6 +318,10 @@ const githubLightSyntax: SyntaxColors = {
 const githubDarkSyntax: SyntaxColors = {
   plain: "#c9d1d9",
   heading: "#79c0ff",
+  bold: "#c9d1d9",
+  italic: "#c9d1d9",
+  list: "#8b949e",
+  inlineCode: "#a5d6ff",
   keyword: "#ff7b72",
   string: "#a5d6ff",
   number: "#79c0ff",
