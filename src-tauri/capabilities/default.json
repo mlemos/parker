@@ -5,6 +5,14 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-close",
+    "core:window:allow-set-focus",
+    "core:window:allow-is-visible",
+    "core:window:allow-is-focused",
+    "core:event:allow-listen",
+    "core:event:allow-emit",
     "opener:default"
   ]
 }

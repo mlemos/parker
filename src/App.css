@@ -165,6 +165,207 @@ body,
   border-color: var(--accent);
 }
 
+.settings-gear {
+  align-self: center;
+  margin-left: 6px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.settings-gear:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+
+/* ---- Settings panel ----------------------------------------------------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, #000 32%, transparent);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  z-index: 100;
+}
+
+.settings {
+  width: min(520px, 88vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.settings-x {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.settings-x:hover {
+  color: var(--fg);
+}
+
+.settings-loading {
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.settings-body {
+  padding: 6px 16px 14px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row:last-child {
+  border-bottom: none;
+}
+.settings-label {
+  flex: 1;
+  min-width: 0;
+}
+.settings-title {
+  font-size: 14px;
+  color: var(--fg);
+}
+.settings-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.settings-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-btn {
+  flex: none;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.settings-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.settings-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.settings-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.settings-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  margin: 4px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.settings-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Toggle switch */
+.switch {
+  flex: none;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 25%, transparent);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+.switch.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.switch:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg);
+  transition: transform 0.15s ease;
+}
+.switch.on .switch-knob {
+  transform: translateX(16px);
+}
+
+.kbd {
+  flex: none;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  color: var(--fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+.settings-error {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  color: #ef4444;
+  font-size: 12px;
+}
+
 /* ---- Editor ------------------------------------------------------------- */
 
 .editor-wrap {

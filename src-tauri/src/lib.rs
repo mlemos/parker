@@ -1,12 +1,15 @@
-// Parker backend — file & session commands.
+// Parker backend — file, session & settings commands, plus the menu-bar app
+// wiring (tray icon, accessory activation, global shortcut, quit/hide).
 //
 // Design notes:
-// - The frontend never passes absolute paths. It passes a note *name* (a bare
-//   filename). The backend joins it to the notes directory and rejects anything
-//   containing a path separator or "..". This makes path traversal from the
-//   webview impossible.
+// - The frontend never passes absolute paths for notes. It passes a note *name*
+//   (a bare filename). The backend joins it to the notes directory and rejects
+//   anything with a path separator or "..". Path traversal from the webview is
+//   impossible.
 // - Writes are atomic: content goes to a temp file which is then renamed over
 //   the target. A crash mid-write can never leave a half-written note.
+// - The notes directory is configurable (Settings), defaulting to
+//   ~/Documents/Parker.
 
 use std::fs;
 use std::path::PathBuf;
@@ -29,9 +32,21 @@ struct Session {
     theme: Option<String>,
 }
 
-/// ~/Documents/Parker — created if missing. Falls back to the home dir.
-fn notes_dir() -> PathBuf {
-    let base = dirs::document_dir()
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct Settings {
+    /// Absolute path to the notes folder. None → default (~/Documents/Parker).
+    #[serde(default)]
+    notes_dir: Option<String>,
+}
+
+/// The global shortcut that summons/dismisses the window.
+const TOGGLE_SHORTCUT: &str = "Alt+Space";
+
+// ---- Paths ----------------------------------------------------------------
+
+/// ~/Library/Application Support/Parker — created if missing.
+fn config_dir() -> PathBuf {
+    let base = dirs::config_dir()
         .or_else(dirs::home_dir)
         .unwrap_or_else(|| PathBuf::from("."));
     let dir = base.join("Parker");
@@ -39,14 +54,46 @@ fn notes_dir() -> PathBuf {
     dir
 }
 
-/// ~/Library/Application Support/Parker/session.json (created lazily).
 fn session_path() -> PathBuf {
-    let base = dirs::config_dir()
+    config_dir().join("session.json")
+}
+
+fn settings_path() -> PathBuf {
+    config_dir().join("settings.json")
+}
+
+fn load_settings() -> Settings {
+    fs::read_to_string(settings_path())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn write_settings(s: &Settings) -> Result<(), String> {
+    let json = serde_json::to_string_pretty(s).map_err(|e| e.to_string())?;
+    let path = settings_path();
+    let tmp = path.with_extension("json.tmp");
+    fs::write(&tmp, json).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn default_notes_dir() -> PathBuf {
+    let base = dirs::document_dir()
         .or_else(dirs::home_dir)
         .unwrap_or_else(|| PathBuf::from("."));
-    let dir = base.join("Parker");
+    base.join("Parker")
+}
+
+/// The resolved notes directory (from settings, or the default), created if
+/// missing.
+fn notes_dir() -> PathBuf {
+    let dir = match load_settings().notes_dir {
+        Some(p) if !p.trim().is_empty() => PathBuf::from(p),
+        _ => default_notes_dir(),
+    };
     let _ = fs::create_dir_all(&dir);
-    dir.join("session.json")
+    dir
 }
 
 /// Reject anything that isn't a plain filename living directly in notes_dir.
@@ -69,6 +116,8 @@ fn atomic_write(path: &PathBuf, content: &str) -> Result<(), String> {
     fs::rename(&tmp, path).map_err(|e| e.to_string())?;
     Ok(())
 }
+
+// ---- Note & session commands ---------------------------------------------
 
 #[tauri::command]
 fn notes_dir_path() -> String {
@@ -164,23 +213,188 @@ fn save_session(session: Session) -> Result<(), String> {
     Ok(())
 }
 
+// ---- Settings commands ----------------------------------------------------
+
+#[derive(Serialize)]
+struct SettingsInfo {
+    notes_dir: String,
+    autostart: bool,
+    shortcut: String,
+}
+
+#[tauri::command]
+fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
+    let autostart = autostart_enabled(&app);
+    SettingsInfo {
+        notes_dir: notes_dir().to_string_lossy().into_owned(),
+        autostart,
+        shortcut: TOGGLE_SHORTCUT.to_string(),
+    }
+}
+
+#[tauri::command]
+fn set_autostart(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_autostart::ManagerExt;
+        let m = app.autolaunch();
+        return if enabled {
+            m.enable().map_err(|e| e.to_string())
+        } else {
+            m.disable().map_err(|e| e.to_string())
+        };
+    }
+    #[cfg(not(desktop))]
+    {
+        let _ = (app, enabled);
+        Ok(())
+    }
+}
+
+/// Open a native folder picker; returns the chosen absolute path (or None if
+/// the user cancels). Async so the blocking dialog runs off the main thread.
+#[tauri::command]
+async fn pick_notes_dir(app: tauri::AppHandle) -> Option<String> {
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_dialog::DialogExt;
+        return app
+            .dialog()
+            .file()
+            .blocking_pick_folder()
+            .and_then(|p| p.into_path().ok())
+            .map(|pb| pb.to_string_lossy().into_owned());
+    }
+    #[cfg(not(desktop))]
+    {
+        let _ = app;
+        None
+    }
+}
+
+/// Point Parker at a new notes folder. When `move_existing` is true, existing
+/// notes are moved into the new folder first (never clobbering files already
+/// there). Returns the resolved absolute path.
+#[tauri::command]
+fn set_notes_dir(path: String, move_existing: bool) -> Result<String, String> {
+    let new_dir = PathBuf::from(path.trim());
+    if new_dir.as_os_str().is_empty() {
+        return Err("empty folder path".into());
+    }
+    fs::create_dir_all(&new_dir).map_err(|e| e.to_string())?;
+
+    if move_existing {
+        let old = notes_dir();
+        let old = old.canonicalize().unwrap_or(old);
+        let target = new_dir.canonicalize().unwrap_or_else(|_| new_dir.clone());
+        if old != target {
+            for entry in fs::read_dir(&old).map_err(|e| e.to_string())?.flatten() {
+                let p = entry.path();
+                if !p.is_file() {
+                    continue;
+                }
+                let name = match p.file_name().and_then(|n| n.to_str()) {
+                    Some(n) => n.to_string(),
+                    None => continue,
+                };
+                if name.starts_with('.') || name.ends_with(".parker-tmp") {
+                    continue;
+                }
+                let dest = target.join(&name);
+                if dest.exists() {
+                    continue; // don't overwrite a note already in the new folder
+                }
+                // Prefer a rename; fall back to copy+remove across filesystems.
+                if fs::rename(&p, &dest).is_err() {
+                    fs::copy(&p, &dest).map_err(|e| e.to_string())?;
+                    let _ = fs::remove_file(&p);
+                }
+            }
+        }
+    }
+
+    let mut s = load_settings();
+    s.notes_dir = Some(new_dir.to_string_lossy().into_owned());
+    write_settings(&s)?;
+    Ok(notes_dir().to_string_lossy().into_owned())
+}
+
+/// Flush is done on the frontend before this fires; here we simply exit.
+#[tauri::command]
+fn quit(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+// ---- Menu-bar app wiring --------------------------------------------------
+
+fn autostart_enabled(_app: &tauri::AppHandle) -> bool {
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_autostart::ManagerExt;
+        return _app.autolaunch().is_enabled().unwrap_or(false);
+    }
+    #[cfg(not(desktop))]
+    {
+        false
+    }
+}
+
+/// Bring the main window to the front (showing it if hidden).
+fn show_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::Manager;
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
+}
+
+/// Toggle: if the window is visible and focused, hide it; otherwise summon it.
+fn toggle_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::Manager;
+    if let Some(w) = app.get_webview_window("main") {
+        let visible = w.is_visible().unwrap_or(false);
+        let focused = w.is_focused().unwrap_or(false);
+        if visible && focused {
+            let _ = w.hide();
+        } else {
+            let _ = w.show();
+            let _ = w.unminimize();
+            let _ = w.set_focus();
+        }
+    }
+}
+
+/// Ask the frontend to flush and then quit. If there's no window to flush
+/// through, exit immediately.
+fn request_quit<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::{Emitter, Manager};
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.emit("parker://quit", ());
+    } else {
+        app.exit(0);
+    }
+}
+
 #[cfg(desktop)]
 fn build_menu<R: tauri::Runtime>(
     handle: &tauri::AppHandle<R>,
 ) -> tauri::Result<tauri::menu::Menu<R>> {
     use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
-    // Custom Quit: instead of the predefined item (which hard-exits the app
-    // immediately), this one only *requests* the window to close, so quitting
-    // funnels through the same CloseRequested path as the red button and the
-    // frontend can flush every dirty buffer before we actually exit.
+    // Custom Quit: routes through request_quit so the frontend flushes first.
     let quit = MenuItemBuilder::with_id("quit", "Quit Parker")
         .accelerator("CmdOrCtrl+Q")
         .build(handle)?;
+    // Settings opens the in-app panel (Cmd+, is the macOS convention).
+    let settings = MenuItemBuilder::with_id("settings", "Settings…")
+        .accelerator("CmdOrCtrl+,")
+        .build(handle)?;
 
-    // App menu (About / Hide / Quit). Cmd+Q, Cmd+H come from here.
     let app_menu = SubmenuBuilder::new(handle, "Parker")
         .about(None)
+        .separator()
+        .item(&settings)
         .separator()
         .hide()
         .hide_others()
@@ -188,7 +402,6 @@ fn build_menu<R: tauri::Runtime>(
         .item(&quit)
         .build()?;
 
-    // Standard Edit menu so Cmd+Z/X/C/V/A behave natively.
     let edit_menu = SubmenuBuilder::new(handle, "Edit")
         .undo()
         .redo()
@@ -206,24 +419,101 @@ fn build_menu<R: tauri::Runtime>(
         .build()
 }
 
+#[cfg(desktop)]
+fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+    use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+    use tauri::Emitter;
+
+    let show = MenuItemBuilder::with_id("tray_show", "Show Parker").build(app)?;
+    let settings = MenuItemBuilder::with_id("tray_settings", "Settings…").build(app)?;
+    let quit = MenuItemBuilder::with_id("tray_quit", "Quit Parker").build(app)?;
+    let menu = MenuBuilder::new(app)
+        .items(&[&show, &settings])
+        .separator()
+        .item(&quit)
+        .build()?;
+
+    let mut builder = TrayIconBuilder::with_id("main-tray")
+        .tooltip("Parker")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "tray_show" => show_window(app),
+            "tray_settings" => {
+                show_window(app);
+                let _ = app.emit("parker://open-settings", ());
+            }
+            "tray_quit" => request_quit(app),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                toggle_window(tray.app_handle());
+            }
+        });
+
+    if let Some(icon) = app.default_window_icon() {
+        builder = builder.icon(icon.clone());
+    }
+    builder.build(app)?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default();
+    let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
 
     #[cfg(desktop)]
-    let builder = builder.menu(|handle| build_menu(handle));
+    let builder = builder
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .plugin(
+            // Only Alt+Space is ever registered, so any Pressed event is ours.
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    use tauri_plugin_global_shortcut::ShortcutState;
+                    if event.state() == ShortcutState::Pressed {
+                        toggle_window(app);
+                    }
+                })
+                .build(),
+        )
+        .menu(|handle| build_menu(handle));
 
     builder
-        .plugin(tauri_plugin_opener::init())
-        .on_menu_event(|app, event| {
-            // Route our custom Quit through window.close() so the frontend's
-            // onCloseRequested handler runs (flush) before the app exits.
-            if event.id().as_ref() == "quit" {
-                use tauri::Manager;
-                if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.close();
-                }
+        .setup(|app| {
+            #[cfg(desktop)]
+            {
+                // Menu bar only — hide the Dock icon.
+                #[cfg(target_os = "macos")]
+                app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+                build_tray(app.handle())?;
+
+                // Alt+Space summons/dismisses Parker from anywhere.
+                use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+                app.global_shortcut()
+                    .register(Shortcut::new(Some(Modifiers::ALT), Code::Space))?;
             }
+            Ok(())
+        })
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            // Real quit — flush on the frontend, then exit.
+            "quit" => request_quit(app),
+            "settings" => {
+                use tauri::Emitter;
+                let _ = app.emit("parker://open-settings", ());
+            }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             notes_dir_path,
@@ -234,6 +524,11 @@ pub fn run() {
             rename_note,
             load_session,
             save_session,
+            get_settings,
+            set_autostart,
+            pick_notes_dir,
+            set_notes_dir,
+            quit,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

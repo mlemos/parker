@@ -12,6 +12,12 @@ export interface Session {
   theme: string | null;
 }
 
+export interface SettingsInfo {
+  notes_dir: string;
+  autostart: boolean;
+  shortcut: string;
+}
+
 export const api = {
   notesDirPath: () => invoke<string>("notes_dir_path"),
   listNotes: () => invoke<NoteMeta[]>("list_notes"),
@@ -23,4 +29,12 @@ export const api = {
     invoke<void>("rename_note", { from, to }),
   loadSession: () => invoke<Session>("load_session"),
   saveSession: (session: Session) => invoke<void>("save_session", { session }),
+
+  getSettings: () => invoke<SettingsInfo>("get_settings"),
+  setAutostart: (enabled: boolean) =>
+    invoke<void>("set_autostart", { enabled }),
+  pickNotesDir: () => invoke<string | null>("pick_notes_dir"),
+  setNotesDir: (path: string, moveExisting: boolean) =>
+    invoke<string>("set_notes_dir", { path, moveExisting }),
+  quit: () => invoke<void>("quit"),
 };

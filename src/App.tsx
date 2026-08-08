@@ -3,12 +3,14 @@ import CodeMirror from "@uiw/react-codemirror";
 import type { Extension } from "@uiw/react-codemirror";
 import { EditorView } from "@uiw/react-codemirror";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
 import type { NoteMeta } from "./lib/api";
 import { languageForName } from "./lib/lang";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import { RenameInput } from "./components/RenameInput";
 import { NotePicker } from "./components/NotePicker";
+import { Settings } from "./components/Settings";
 import "./App.css";
 
 interface Tab {
@@ -30,6 +32,7 @@ export default function App() {
   const [renamingName, setRenamingName] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerNotes, setPickerNotes] = useState<NoteMeta[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Mirror state into refs so the global keydown handler is never stale.
   const stateRef = useRef({ tabs, activeName, themeId });
@@ -317,7 +320,10 @@ export default function App() {
       if (!e.metaKey) return;
       const k = e.key.toLowerCase();
 
-      if (k === "t" && e.shiftKey) {
+      if (k === ",") {
+        e.preventDefault();
+        setSettingsOpen((v) => !v);
+      } else if (k === "t" && e.shiftKey) {
         e.preventDefault();
         cycleTheme();
       } else if (k === "r" && e.shiftKey) {
@@ -372,8 +378,8 @@ export default function App() {
     return () => window.removeEventListener("blur", onBlur);
   }, [flushSave]);
 
-  // The guarantee: intercept window close (red button and Cmd+Q both route
-  // here), flush every dirty buffer, then actually destroy the window.
+  // Menu-bar app: closing the window (red button) does NOT quit — it flushes
+  // and hides Parker back to the menu bar, so it stays instantly available.
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     let disposed = false;
@@ -384,7 +390,7 @@ export default function App() {
         try {
           await flushAll();
         } finally {
-          await win.destroy();
+          await win.hide();
         }
       })
       .then((u) => {
@@ -396,6 +402,30 @@ export default function App() {
       unlisten?.();
     };
   }, [flushAll]);
+
+  // Real quit (tray / app menu / Cmd+Q) routes here: flush everything, then
+  // ask the backend to exit — so nothing is lost even when quitting from the
+  // menu bar while the window is hidden.
+  useEffect(() => {
+    const p = listen("parker://quit", async () => {
+      try {
+        await flushAll();
+      } finally {
+        await api.quit().catch(() => {});
+      }
+    });
+    return () => {
+      p.then((un) => un());
+    };
+  }, [flushAll]);
+
+  // Open Settings when asked from the tray or the native menu (Cmd+,).
+  useEffect(() => {
+    const p = listen("parker://open-settings", () => setSettingsOpen(true));
+    return () => {
+      p.then((un) => un());
+    };
+  }, []);
 
   // ---- Render --------------------------------------------------------------
 
@@ -462,6 +492,14 @@ export default function App() {
         >
           {theme.label}
         </button>
+        <button
+          className="settings-gear"
+          onClick={() => setSettingsOpen(true)}
+          title="Settings (Cmd+,)"
+          aria-label="Settings"
+        >
+          ⚙
+        </button>
       </div>
 
       <div className="editor-wrap">
@@ -505,6 +543,13 @@ export default function App() {
             openNote(name);
           }}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {settingsOpen && (
+        <Settings
+          onClose={() => setSettingsOpen(false)}
+          onNotesDirChange={(dir) => setNotesDir(dir)}
         />
       )}
     </div>
