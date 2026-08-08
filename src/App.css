@@ -7,8 +7,8 @@
   --tab-active-bg: #ffffff;
   --accent: #0969da;
 
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter,
-    system-ui, sans-serif;
+  font-family: "Geist Variable", -apple-system, BlinkMacSystemFont,
+    "SF Pro Text", Inter, system-ui, sans-serif;
   font-size: 14px;
   color: var(--fg);
   -webkit-font-smoothing: antialiased;
@@ -339,7 +339,8 @@ body,
   margin-top: 3px;
 }
 .settings-path {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -427,7 +428,8 @@ body,
   border-radius: 6px;
   background: color-mix(in srgb, var(--muted) 12%, transparent);
   color: var(--fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
   font-size: 13px;
 }
 
@@ -451,8 +453,8 @@ body,
   font-size: 14px;
 }
 .editor-wrap .cm-scroller {
-  font-family: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
-    monospace;
+  font-family: "Geist Mono Variable", "SF Mono", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, monospace;
   line-height: 1.6;
   padding: 8px 4px;
 }
