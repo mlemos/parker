@@ -43,7 +43,7 @@
   <h1>Parker — Theme System</h1>
   <p class="sub">Two layers: a <b>Tailwind CSS</b> base palette, and <b>named roles</b> for every
   app area. Each card shows the theme as a live mock, then a table mapping <b>area → Tailwind color → value</b>.
-  Parker's own themes are built on Tailwind (zinc + emerald/green); GitHub keeps its guest palette.</p>
+  Parker's own themes are built on Tailwind (zinc + emerald/green); GitHub keeps its guest palette. <b>Note:</b> code colors (keyword/string/number) only appear in code — a code file or a ``` fenced block; plain markdown prose stays plain.</p>
   <div class="row">
     <section class="card">
       <header class="card-head">
@@ -70,10 +70,11 @@
         </div>
         <div class="m-editor" style="background:#000000;color:#f4f4f5;text-shadow:0 0 7px color-mix(in srgb, currentColor 45%, transparent);">
           <div class="ln" style="color:#a78bfa;font-weight:700"># Parker</div>
-          <div class="ln active" style="background:rgba(34,197,94,0.2)"><span style="color:#f472b6;font-weight:600">const</span> note = <span style="color:#4ade80">"draft"</span></div>
-          <div class="ln">count = <span style="color:#fb923c">42</span> <span style="color:#a1a1aa">|</span> <span class="sel" style="background:rgba(34,197,94,0.33)">selected</span></div>
-          <div class="ln" style="color:#71717a">// a comment</div>
-          <div class="ln"><span style="color:#38bdf8;text-decoration:underline">[link]</span> · <span style="color:#f87171">error</span></div>
+          <div class="ln">A <span style="color:#a78bfa;font-weight:700">**draft**</span> note · <span style="color:#38bdf8;text-decoration:underline">[link]</span></div>
+          <div class="ln" style="color:#71717a">```js</div>
+          <div class="ln active" style="background:rgba(34,197,94,0.2)"><span style="color:#f472b6;font-weight:600">const</span> x = <span style="color:#4ade80">"hi"</span></div>
+          <div class="ln">count = <span style="color:#fb923c">42</span> <span class="sel" style="background:rgba(34,197,94,0.33)">sel</span></div>
+          <div class="ln" style="color:#71717a">```</div>
         </div>
         <div class="m-status" style="background:#18181b;border-color:#27272a;color:#a1a1aa"><span>Untitled-1.md</span><span>42 chars</span></div>
       </div>
@@ -105,10 +106,11 @@
         </div>
         <div class="m-editor" style="background:#ffffff;color:#18181b;">
           <div class="ln" style="color:#7c3aed;font-weight:700"># Parker</div>
-          <div class="ln active" style="background:rgba(16,185,129,0.1)"><span style="color:#db2777;font-weight:600">const</span> note = <span style="color:#16a34a">"draft"</span></div>
-          <div class="ln">count = <span style="color:#ea580c">42</span> <span style="color:#71717a">|</span> <span class="sel" style="background:rgba(16,185,129,0.2)">selected</span></div>
-          <div class="ln" style="color:#a1a1aa">// a comment</div>
-          <div class="ln"><span style="color:#0284c7;text-decoration:underline">[link]</span> · <span style="color:#dc2626">error</span></div>
+          <div class="ln">A <span style="color:#7c3aed;font-weight:700">**draft**</span> note · <span style="color:#0284c7;text-decoration:underline">[link]</span></div>
+          <div class="ln" style="color:#a1a1aa">```js</div>
+          <div class="ln active" style="background:rgba(16,185,129,0.1)"><span style="color:#db2777;font-weight:600">const</span> x = <span style="color:#16a34a">"hi"</span></div>
+          <div class="ln">count = <span style="color:#ea580c">42</span> <span class="sel" style="background:rgba(16,185,129,0.2)">sel</span></div>
+          <div class="ln" style="color:#a1a1aa">```</div>
         </div>
         <div class="m-status" style="background:#f4f4f5;border-color:#e4e4e7;color:#52525b"><span>Untitled-1.md</span><span>42 chars</span></div>
       </div>
@@ -140,10 +142,11 @@
         </div>
         <div class="m-editor" style="background:#ffffff;color:#24292f;">
           <div class="ln" style="color:#0550ae;font-weight:700"># Parker</div>
-          <div class="ln active" style="background:rgba(9,105,218,0.06)"><span style="color:#cf222e;font-weight:600">const</span> note = <span style="color:#0a3069">"draft"</span></div>
-          <div class="ln">count = <span style="color:#0550ae">42</span> <span style="color:#24292f">|</span> <span class="sel" style="background:rgba(9,105,218,0.15)">selected</span></div>
-          <div class="ln" style="color:#6e7781">// a comment</div>
-          <div class="ln"><span style="color:#0969da;text-decoration:underline">[link]</span> · <span style="color:#cf222e">error</span></div>
+          <div class="ln">A <span style="color:#0550ae;font-weight:700">**draft**</span> note · <span style="color:#0969da;text-decoration:underline">[link]</span></div>
+          <div class="ln" style="color:#6e7781">```js</div>
+          <div class="ln active" style="background:rgba(9,105,218,0.06)"><span style="color:#cf222e;font-weight:600">const</span> x = <span style="color:#0a3069">"hi"</span></div>
+          <div class="ln">count = <span style="color:#0550ae">42</span> <span class="sel" style="background:rgba(9,105,218,0.15)">sel</span></div>
+          <div class="ln" style="color:#6e7781">```</div>
         </div>
         <div class="m-status" style="background:#eaeef2;border-color:#d0d7de;color:#57606a"><span>Untitled-1.md</span><span>42 chars</span></div>
       </div>
@@ -175,10 +178,11 @@
         </div>
         <div class="m-editor" style="background:#0d1117;color:#c9d1d9;">
           <div class="ln" style="color:#79c0ff;font-weight:700"># Parker</div>
-          <div class="ln active" style="background:rgba(88,166,255,0.1)"><span style="color:#ff7b72;font-weight:600">const</span> note = <span style="color:#a5d6ff">"draft"</span></div>
-          <div class="ln">count = <span style="color:#79c0ff">42</span> <span style="color:#c9d1d9">|</span> <span class="sel" style="background:rgba(88,166,255,0.3)">selected</span></div>
-          <div class="ln" style="color:#8b949e">// a comment</div>
-          <div class="ln"><span style="color:#58a6ff;text-decoration:underline">[link]</span> · <span style="color:#f85149">error</span></div>
+          <div class="ln">A <span style="color:#79c0ff;font-weight:700">**draft**</span> note · <span style="color:#58a6ff;text-decoration:underline">[link]</span></div>
+          <div class="ln" style="color:#8b949e">```js</div>
+          <div class="ln active" style="background:rgba(88,166,255,0.1)"><span style="color:#ff7b72;font-weight:600">const</span> x = <span style="color:#a5d6ff">"hi"</span></div>
+          <div class="ln">count = <span style="color:#79c0ff">42</span> <span class="sel" style="background:rgba(88,166,255,0.3)">sel</span></div>
+          <div class="ln" style="color:#8b949e">```</div>
         </div>
         <div class="m-status" style="background:#161b22;border-color:#30363d;color:#8b949e"><span>Untitled-1.md</span><span>42 chars</span></div>
       </div>
