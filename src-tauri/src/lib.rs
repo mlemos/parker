@@ -13,6 +13,7 @@
 
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 
@@ -40,6 +41,9 @@ struct Settings {
     /// Global shortcut accelerator (Tauri format). None → default.
     #[serde(default)]
     shortcut: Option<String>,
+    /// Auto commit+push the notes repo when quitting.
+    #[serde(default)]
+    git_auto_sync: bool,
 }
 
 /// Dev vs release identity. `debug_assertions` is on for `tauri dev` and off
@@ -319,17 +323,177 @@ struct SettingsInfo {
     autostart: bool,
     shortcut: String,
     default_shortcut: String,
+    git_auto_sync: bool,
 }
 
 #[tauri::command]
 fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
     let autostart = autostart_enabled(&app);
+    let s = load_settings();
     SettingsInfo {
         notes_dir: notes_dir().to_string_lossy().into_owned(),
         autostart,
         shortcut: current_shortcut(),
         default_shortcut: TOGGLE_SHORTCUT.to_string(),
+        git_auto_sync: s.git_auto_sync,
     }
+}
+
+#[tauri::command]
+fn set_git_auto_sync(enabled: bool) -> Result<(), String> {
+    let mut s = load_settings();
+    s.git_auto_sync = enabled;
+    write_settings(&s)
+}
+
+// ---- Git sync -------------------------------------------------------------
+// Parker never runs `git init` or touches credentials — it drives an existing
+// repo the user set up in their notes folder, doing only add + commit + push.
+
+fn run_git(args: &[&str]) -> Result<std::process::Output, String> {
+    Command::new("git")
+        .args(args)
+        .current_dir(notes_dir())
+        .output()
+        .map_err(|e| format!("git not available: {e}"))
+}
+
+fn git_is_repo() -> bool {
+    run_git(&["rev-parse", "--is-inside-work-tree"])
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+#[derive(Serialize)]
+struct GitStatus {
+    is_repo: bool,
+    has_remote: bool,
+    branch: Option<String>,
+    dirty: bool,     // uncommitted changes present
+    ahead: u32,      // commits not yet pushed
+}
+
+#[tauri::command]
+fn git_status() -> GitStatus {
+    if !git_is_repo() {
+        return GitStatus {
+            is_repo: false,
+            has_remote: false,
+            branch: None,
+            dirty: false,
+            ahead: 0,
+        };
+    }
+    let has_remote = run_git(&["remote"])
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false);
+    let branch = run_git(&["rev-parse", "--abbrev-ref", "HEAD"])
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+    let dirty = run_git(&["status", "--porcelain"])
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false);
+    // Commits on HEAD not on its upstream (0 if no upstream configured).
+    let ahead = run_git(&["rev-list", "--count", "@{u}..HEAD"])
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| String::from_utf8_lossy(&o.stdout).trim().parse().ok())
+        .unwrap_or(0);
+    GitStatus {
+        is_repo: true,
+        has_remote,
+        branch,
+        dirty,
+        ahead,
+    }
+}
+
+#[derive(Serialize)]
+struct GitSyncResult {
+    ok: bool,
+    committed: bool,
+    pushed: bool,
+    message: String,
+}
+
+#[tauri::command]
+fn git_sync(message: Option<String>) -> Result<GitSyncResult, String> {
+    if !git_is_repo() {
+        return Ok(GitSyncResult {
+            ok: false,
+            committed: false,
+            pushed: false,
+            message: "Not a git repository — run `git init` in your notes folder first.".into(),
+        });
+    }
+    // Stage everything.
+    let add = run_git(&["add", "-A"])?;
+    if !add.status.success() {
+        return Ok(GitSyncResult {
+            ok: false,
+            committed: false,
+            pushed: false,
+            message: String::from_utf8_lossy(&add.stderr).trim().to_string(),
+        });
+    }
+    let dirty = run_git(&["status", "--porcelain"])
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false);
+    let mut committed = false;
+    if dirty {
+        let msg = message
+            .map(|m| m.trim().to_string())
+            .filter(|m| !m.is_empty())
+            .unwrap_or_else(|| "Parker sync".to_string());
+        let commit = run_git(&["commit", "-m", &msg])?;
+        if !commit.status.success() {
+            return Ok(GitSyncResult {
+                ok: false,
+                committed: false,
+                pushed: false,
+                message: String::from_utf8_lossy(&commit.stderr).trim().to_string(),
+            });
+        }
+        committed = true;
+    }
+    // Push only if a remote exists.
+    let has_remote = run_git(&["remote"])
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false);
+    let mut pushed = false;
+    let mut note = if committed {
+        "Committed".to_string()
+    } else {
+        "Nothing to commit".to_string()
+    };
+    if has_remote {
+        let push = run_git(&["push"])?;
+        if push.status.success() {
+            pushed = true;
+            note = if committed {
+                "Committed & pushed".into()
+            } else {
+                "Already up to date".into()
+            };
+        } else {
+            return Ok(GitSyncResult {
+                ok: false,
+                committed,
+                pushed: false,
+                message: format!(
+                    "Push failed: {}",
+                    String::from_utf8_lossy(&push.stderr).trim()
+                ),
+            });
+        }
+    }
+    Ok(GitSyncResult {
+        ok: true,
+        committed,
+        pushed,
+        message: note,
+    })
 }
 
 /// Re-register the global summon/dismiss shortcut and persist it.
@@ -444,9 +608,13 @@ fn set_notes_dir(path: String, move_existing: bool) -> Result<String, String> {
     Ok(notes_dir().to_string_lossy().into_owned())
 }
 
-/// Flush is done on the frontend before this fires; here we simply exit.
+/// Flush is done on the frontend before this fires. If auto-sync is on and the
+/// notes folder is a git repo, commit & push before exiting (best-effort).
 #[tauri::command]
 fn quit(app: tauri::AppHandle) {
+    if load_settings().git_auto_sync && git_is_repo() {
+        let _ = git_sync(Some("Parker auto-sync on quit".to_string()));
+    }
     app.exit(0);
 }
 
@@ -636,14 +804,17 @@ pub fn run() {
                         .hidden_title(true)
                         .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
                 }
-                b.build()?;
+                let win = b.build()?;
+                // Follow the user across Spaces so the summon shortcut always
+                // brings Parker to the *current* desktop, not its origin space.
+                let _ = win.set_visible_on_all_workspaces(true);
             }
 
             #[cfg(desktop)]
             {
-                // Menu bar only — hide the Dock icon.
+                // Regular activation: Parker shows in the Dock and Cmd-Tab.
                 #[cfg(target_os = "macos")]
-                app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                app.set_activation_policy(tauri::ActivationPolicy::Regular);
 
                 build_tray(app.handle())?;
 
@@ -681,6 +852,9 @@ pub fn run() {
             get_settings,
             set_shortcut,
             set_autostart,
+            set_git_auto_sync,
+            git_status,
+            git_sync,
             pick_notes_dir,
             set_notes_dir,
             quit,
