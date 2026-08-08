@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import type { Extension } from "@uiw/react-codemirror";
-import { EditorView } from "@uiw/react-codemirror";
+import { EditorView, Prec } from "@uiw/react-codemirror";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
@@ -461,7 +461,13 @@ export default function App() {
     return <div className="parker-loading">Parker</div>;
   }
 
-  const cmExtensions: Extension[] = [theme.cm, EditorView.lineWrapping, ...langExt];
+  // Prec.highest so our theme's syntax highlighting wins over basicSetup's
+  // default highlight for every tag (esp. markdown heading/link/marks).
+  const cmExtensions: Extension[] = [
+    Prec.highest(theme.cm),
+    EditorView.lineWrapping,
+    ...langExt,
+  ];
 
   return (
     <div className="parker">
