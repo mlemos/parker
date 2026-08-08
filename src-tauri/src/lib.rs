@@ -443,7 +443,15 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
         .item(&quit)
         .build()?;
 
-    let mut builder = TrayIconBuilder::with_id("main-tray")
+    // Monochrome "pk" template glyph — macOS recolors it for the light/dark
+    // menu bar automatically. Embedded at compile time.
+    let icon = tauri::image::Image::from_bytes(include_bytes!(
+        "../icons/menubar-template.png"
+    ))?;
+
+    TrayIconBuilder::with_id("main-tray")
+        .icon(icon)
+        .icon_as_template(true)
         .tooltip("Parker")
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -465,12 +473,8 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
             {
                 toggle_window(tray.app_handle());
             }
-        });
-
-    if let Some(icon) = app.default_window_icon() {
-        builder = builder.icon(icon.clone());
-    }
-    builder.build(app)?;
+        })
+        .build(app)?;
     Ok(())
 }
 
