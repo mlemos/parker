@@ -1,31 +1,40 @@
-// Theme registry. Each theme bundles the CodeMirror theme extension plus the
-// matching "chrome" colors for the app shell (tab bar, borders, status bar),
-// so the whole window feels like one coherent surface.
+// Theme registry. Two layers:
+//   1. Base palette  → Tailwind color scales (see palette.ts).
+//   2. Named UI roles → every themeable AREA of the app (ThemeUI), each mapped
+//      onto a palette color. So a theme reads area-by-area ("header = zinc-900,
+//      active tab = zinc-800, accent = emerald-500").
+// The editor (CodeMirror) content theme is derived from the same tokens for
+// Parker's native themes, so chrome and content stay in sync.
 import { createTheme } from "@uiw/codemirror-themes";
 import { tags as t } from "@lezer/highlight";
 import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
-import { tokyoNight } from "@uiw/codemirror-theme-tokyo-night";
 import type { Extension } from "@uiw/react-codemirror";
+import { tw, alpha } from "./palette";
 
-// Content font for the Vercel themes — set on the theme itself so it beats the
-// proportional UI font (createTheme would otherwise inherit it).
-const MONO =
-  '"Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace';
-
-// The "mini theme" for everything that is NOT editor content. A canvas tone
-// (matches the editor bg) plus three chrome surfaces by elevation, and the key
-// semantic colors.
-export interface ThemeChrome {
-  canvas: string; // content surface — matches the editor background
-  surface1: string; // chrome base — tab strip
-  surface2: string; // chrome bars — header, status bar
-  surface3: string; // elevated — active tab, popovers, hover
+// Every themeable area of Parker, by name.
+export interface ThemeUI {
+  // Editor — the content surface
+  editorBg: string; // editor background (the writing canvas)
+  editorFg: string; // editor text
+  currentLine: string; // active-line highlight
+  selection: string; // text selection
+  // Title bar
+  headerBg: string; // the top bar (distinct tone)
+  fieldBg: string; // the search field inside the header
+  // Tabs
+  tabbarBg: string; // the tab strip
+  tabActiveBg: string; // the active tab
+  // Status bar
+  statusBg: string; // the bottom bar
+  // Floating surfaces
+  popoverBg: string; // ⌘O picker & Settings panel
+  // Shared roles
   text: string; // primary chrome text
-  textMuted: string; // secondary text / icons
+  muted: string; // secondary text / icons
   border: string; // hairlines
-  accent: string; // interactive / brand accent
+  accent: string; // current line, selection, dirty dot, focus, primary button
   onAccent: string; // text/icon over an accent fill
-  danger: string; // destructive / errors
+  danger: string; // errors / destructive
 }
 
 export interface ThemeDef {
@@ -33,12 +42,13 @@ export interface ThemeDef {
   label: string;
   mode: "light" | "dark";
   cm: Extension;
-  chrome: ThemeChrome;
+  ui: ThemeUI;
 }
 
-// ---- Vercel-inspired monochrome themes -----------------------------------
-// Syntax is differentiated by brightness and weight, never by hue — the whole
-// spectrum runs black→white through Tailwind's Zinc scale.
+const MONO =
+  '"Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace';
+
+// ---- Monochrome syntax (brightness/weight, not hue) ----------------------
 
 interface Mono {
   comment: string;
@@ -124,167 +134,175 @@ function monoStyles(p: Mono) {
   ];
 }
 
-const vercelNight = createTheme({
-  theme: "dark",
-  settings: {
-    // Pure-black canvas, bright-white text — deliberately high contrast.
-    background: "#000000",
-    foreground: "#ffffff",
-    caret: "#ffffff",
-    // Selection & active line share a translucent green accent (no grey);
-    // the current line is a touch more visible.
-    selection: "rgba(16, 185, 129, 0.32)",
-    selectionMatch: "rgba(16, 185, 129, 0.22)",
-    lineHighlight: "rgba(16, 185, 129, 0.16)",
-    gutterBackground: "#000000",
-    gutterForeground: "#52525b",
-    fontFamily: MONO,
-  },
-  styles: monoStyles({
-    comment: "#52525b", // zinc-600
-    keyword: "#ffffff", // white
-    string: "#a1a1aa", // zinc-400
-    number: "#d4d4d8", // zinc-300
-    func: "#f4f4f5", // zinc-100
-    variable: "#ffffff", // white — plain text / identifiers you write
-    type: "#ffffff",
-    punct: "#71717a", // zinc-500
-    heading: "#ffffff",
-    emphasis: "#d4d4d8",
-    link: "#a1a1aa",
-    invalid: "#f87171",
-  }),
-});
+// Build a CodeMirror theme from a theme's UI tokens + a mono syntax palette.
+function editorTheme(ui: ThemeUI, mode: "light" | "dark", mono: Mono): Extension {
+  return createTheme({
+    theme: mode,
+    settings: {
+      background: ui.editorBg,
+      foreground: ui.editorFg,
+      caret: ui.editorFg,
+      selection: ui.selection,
+      selectionMatch: ui.selection,
+      lineHighlight: ui.currentLine,
+      gutterBackground: ui.editorBg,
+      gutterForeground: ui.muted,
+      fontFamily: MONO,
+    },
+    styles: monoStyles(mono),
+  });
+}
 
-const vercelDay = createTheme({
-  theme: "light",
-  settings: {
-    background: "#ffffff",
-    foreground: "#18181b",
-    caret: "#18181b",
-    selection: "#e4e4e7",
-    selectionMatch: "#d4d4d8",
-    lineHighlight: "#00000008",
-    gutterBackground: "#ffffff",
-    gutterForeground: "#a1a1aa",
-    fontFamily: MONO,
-  },
-  styles: monoStyles({
-    comment: "#a1a1aa", // zinc-400
-    keyword: "#09090b", // zinc-950
-    string: "#52525b", // zinc-600
-    number: "#3f3f46", // zinc-700
-    func: "#18181b", // zinc-900
-    variable: "#27272a", // zinc-800
-    type: "#09090b",
-    punct: "#a1a1aa",
-    heading: "#09090b",
-    emphasis: "#3f3f46",
-    link: "#52525b",
-    invalid: "#dc2626",
-  }),
-});
+// ---- Themes --------------------------------------------------------------
+
+// Vercel Night — zinc scale + emerald accent, pure-black editor.
+const vercelNightUI: ThemeUI = {
+  editorBg: tw.black,
+  editorFg: tw.white,
+  currentLine: alpha(tw.emerald[500], 0.16),
+  selection: alpha(tw.emerald[500], 0.32),
+  headerBg: tw.zinc[900],
+  fieldBg: tw.zinc[950],
+  tabbarBg: tw.zinc[950],
+  tabActiveBg: tw.zinc[800],
+  statusBg: tw.zinc[900],
+  popoverBg: tw.zinc[900],
+  text: tw.zinc[100],
+  muted: tw.zinc[500],
+  border: tw.zinc[800],
+  accent: tw.emerald[500],
+  onAccent: tw.emerald[950],
+  danger: tw.red[400],
+};
+
+// Vercel Day — zinc scale + emerald accent, white editor.
+const vercelDayUI: ThemeUI = {
+  editorBg: tw.white,
+  editorFg: tw.zinc[900],
+  currentLine: alpha(tw.emerald[500], 0.1),
+  selection: alpha(tw.emerald[500], 0.2),
+  headerBg: tw.zinc[100],
+  fieldBg: tw.white,
+  tabbarBg: tw.zinc[50],
+  tabActiveBg: tw.white,
+  statusBg: tw.zinc[100],
+  popoverBg: tw.white,
+  text: tw.zinc[900],
+  muted: tw.zinc[500],
+  border: tw.zinc[200],
+  accent: tw.emerald[600],
+  onAccent: tw.white,
+  danger: tw.red[600],
+};
+
+const nightMono: Mono = {
+  comment: tw.zinc[600],
+  keyword: tw.white,
+  string: tw.zinc[400],
+  number: tw.zinc[300],
+  func: tw.zinc[100],
+  variable: tw.white,
+  type: tw.white,
+  punct: tw.zinc[500],
+  heading: tw.white,
+  emphasis: tw.zinc[300],
+  link: tw.zinc[400],
+  invalid: tw.red[400],
+};
+
+const dayMono: Mono = {
+  comment: tw.zinc[400],
+  keyword: tw.zinc[950],
+  string: tw.zinc[600],
+  number: tw.zinc[700],
+  func: tw.zinc[900],
+  variable: tw.zinc[900],
+  type: tw.zinc[950],
+  punct: tw.zinc[400],
+  heading: tw.zinc[950],
+  emphasis: tw.zinc[700],
+  link: tw.zinc[600],
+  invalid: tw.red[600],
+};
+
+// GitHub & Tokyo — "guest" themes: their own palettes (not Tailwind), kept for
+// their editor syntax highlighting, expressed through the same named roles.
+const githubLightUI: ThemeUI = {
+  editorBg: "#ffffff",
+  editorFg: "#24292f",
+  currentLine: "rgba(9, 105, 218, 0.06)",
+  selection: "rgba(9, 105, 218, 0.15)",
+  headerBg: "#eaeef2",
+  fieldBg: "#ffffff",
+  tabbarBg: "#f6f8fa",
+  tabActiveBg: "#ffffff",
+  statusBg: "#eaeef2",
+  popoverBg: "#ffffff",
+  text: "#24292f",
+  muted: "#57606a",
+  border: "#d0d7de",
+  accent: "#0969da",
+  onAccent: "#ffffff",
+  danger: "#cf222e",
+};
+
+const githubDarkUI: ThemeUI = {
+  editorBg: "#0d1117",
+  editorFg: "#c9d1d9",
+  currentLine: "rgba(56, 139, 253, 0.1)",
+  selection: "rgba(56, 139, 253, 0.3)",
+  headerBg: "#161b22",
+  fieldBg: "#0d1117",
+  tabbarBg: "#0d1117",
+  tabActiveBg: "#21262d",
+  statusBg: "#161b22",
+  popoverBg: "#161b22",
+  text: "#c9d1d9",
+  muted: "#8b949e",
+  border: "#30363d",
+  accent: "#58a6ff",
+  onAccent: "#0d1117",
+  danger: "#f85149",
+};
 
 export const THEMES: ThemeDef[] = [
   {
     id: "vercel-night",
     label: "Vercel Night",
     mode: "dark",
-    cm: vercelNight,
-    chrome: {
-      canvas: "#000000",
-      surface1: "#0a0a0a",
-      surface2: "#151517",
-      surface3: "#202023",
-      text: "#ededed",
-      textMuted: "#7d7d85",
-      border: "#26262a",
-      accent: "#10b981",
-      onAccent: "#03130c",
-      danger: "#f87171",
-    },
+    cm: editorTheme(vercelNightUI, "dark", nightMono),
+    ui: vercelNightUI,
   },
   {
     id: "vercel-day",
     label: "Vercel Day",
     mode: "light",
-    cm: vercelDay,
-    chrome: {
-      canvas: "#ffffff",
-      surface1: "#f6f6f7",
-      surface2: "#ededee",
-      surface3: "#ffffff",
-      text: "#18181b",
-      textMuted: "#6b6b70",
-      border: "#e4e4e7",
-      accent: "#10b981",
-      onAccent: "#ffffff",
-      danger: "#dc2626",
-    },
+    cm: editorTheme(vercelDayUI, "light", dayMono),
+    ui: vercelDayUI,
   },
   {
     id: "light",
     label: "GitHub Light",
     mode: "light",
     cm: githubLight,
-    chrome: {
-      canvas: "#ffffff",
-      surface1: "#f6f8fa",
-      surface2: "#eaeef2",
-      surface3: "#ffffff",
-      text: "#24292f",
-      textMuted: "#57606a",
-      border: "#d0d7de",
-      accent: "#0969da",
-      onAccent: "#ffffff",
-      danger: "#cf222e",
-    },
+    ui: githubLightUI,
   },
   {
     id: "dark",
     label: "GitHub Dark",
     mode: "dark",
     cm: githubDark,
-    chrome: {
-      canvas: "#0d1117",
-      surface1: "#0d1117",
-      surface2: "#161b22",
-      surface3: "#21262d",
-      text: "#c9d1d9",
-      textMuted: "#8b949e",
-      border: "#30363d",
-      accent: "#58a6ff",
-      onAccent: "#0d1117",
-      danger: "#f85149",
-    },
-  },
-  {
-    id: "tokyo",
-    label: "Tokyo Night",
-    mode: "dark",
-    cm: tokyoNight,
-    chrome: {
-      canvas: "#1a1b26",
-      surface1: "#16161e",
-      surface2: "#1e2030",
-      surface3: "#292e42",
-      text: "#a9b1d6",
-      textMuted: "#565f89",
-      border: "#292e42",
-      accent: "#7aa2f7",
-      onAccent: "#1a1b26",
-      danger: "#f7768e",
-    },
+    ui: githubDarkUI,
   },
 ];
 
 export const DEFAULT_THEME_ID = "vercel-night";
 
 export function themeById(id?: string | null): ThemeDef {
-  return THEMES.find((t) => t.id === id) ?? THEMES[0];
+  return THEMES.find((th) => th.id === id) ?? THEMES[0];
 }
 
 export function nextThemeId(id: string): string {
-  const i = THEMES.findIndex((t) => t.id === id);
+  const i = THEMES.findIndex((th) => th.id === id);
   return THEMES[(i + 1) % THEMES.length].id;
 }

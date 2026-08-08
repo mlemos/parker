@@ -65,7 +65,7 @@ body,
   height: 40px;
   min-height: 40px;
   padding: 0 10px;
-  background: var(--surface-2);
+  background: var(--header-bg);
   border-bottom: 1px solid var(--border);
 }
 
@@ -102,8 +102,8 @@ body,
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--surface-1);
-  color: var(--text-muted);
+  background: var(--field-bg);
+  color: var(--muted);
   font-size: 12px;
   font-family: inherit;
   cursor: pointer;
@@ -138,7 +138,7 @@ body,
   height: 36px;
   min-height: 36px;
   padding: 0 8px;
-  background: var(--surface-1);
+  background: var(--tabbar-bg);
   border-bottom: 1px solid var(--border);
 }
 
@@ -173,7 +173,7 @@ body,
   background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 .tab.active {
-  background: var(--surface-3);
+  background: var(--tab-active-bg);
   color: var(--text);
   box-shadow: inset 0 0 0 1px var(--border);
 }
@@ -271,7 +271,7 @@ body,
   width: min(520px, 88vw);
   display: flex;
   flex-direction: column;
-  background: var(--surface-3);
+  background: var(--popover-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
@@ -487,7 +487,7 @@ body,
   font-size: 14px;
   /* Single source of truth for the writing surface: always the canvas tone
      (#000 in Vercel Night), never a stray theme grey. */
-  background-color: var(--canvas) !important;
+  background-color: var(--editor-bg) !important;
 }
 .editor-wrap .cm-scroller {
   /* !important beats the per-theme rule createTheme injects
@@ -514,9 +514,9 @@ body,
   height: 30px;
   min-height: 30px;
   padding: 0 14px;
-  background: var(--surface-2);
+  background: var(--status-bg);
   border-top: 1px solid var(--border);
-  color: var(--text-muted);
+  color: var(--muted);
   font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo,
     monospace;
   font-size: 12px;
@@ -584,7 +584,7 @@ body,
   max-height: 64vh;
   display: flex;
   flex-direction: column;
-  background: var(--surface-3);
+  background: var(--popover-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);

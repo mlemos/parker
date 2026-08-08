@@ -174,27 +174,38 @@ export default function App() {
     if (ready) scheduleSessionSave();
   }, [openKey, activeName, themeId, ready, scheduleSessionSave]);
 
-  // Reflect the chrome "mini theme" as CSS variables on the root element.
+  // Reflect the theme's named UI roles as CSS variables on the root element.
   useEffect(() => {
     const root = document.documentElement;
-    const c = theme.chrome;
+    const u = theme.ui;
     const vars: Record<string, string> = {
-      "--canvas": c.canvas,
-      "--surface-1": c.surface1,
-      "--surface-2": c.surface2,
-      "--surface-3": c.surface3,
-      "--text": c.text,
-      "--text-muted": c.textMuted,
-      "--border": c.border,
-      "--accent": c.accent,
-      "--on-accent": c.onAccent,
-      "--danger": c.danger,
+      // named app areas
+      "--editor-bg": u.editorBg,
+      "--editor-fg": u.editorFg,
+      "--current-line": u.currentLine,
+      "--selection": u.selection,
+      "--header-bg": u.headerBg,
+      "--field-bg": u.fieldBg,
+      "--tabbar-bg": u.tabbarBg,
+      "--tab-active-bg": u.tabActiveBg,
+      "--status-bg": u.statusBg,
+      "--popover-bg": u.popoverBg,
+      // shared roles
+      "--text": u.text,
+      "--muted": u.muted,
+      "--border": u.border,
+      "--accent": u.accent,
+      "--on-accent": u.onAccent,
+      "--danger": u.danger,
       // legacy aliases so any unmigrated rule still resolves
-      "--bg": c.canvas,
-      "--fg": c.text,
-      "--muted": c.textMuted,
-      "--tab-bg": c.surface2,
-      "--tab-active-bg": c.surface3,
+      "--canvas": u.editorBg,
+      "--surface-1": u.tabbarBg,
+      "--surface-2": u.headerBg,
+      "--surface-3": u.tabActiveBg,
+      "--bg": u.editorBg,
+      "--fg": u.text,
+      "--text-muted": u.muted,
+      "--tab-bg": u.headerBg,
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
