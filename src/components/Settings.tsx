@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import type { SettingsInfo } from "../lib/api";
+import { prettyPath } from "../lib/path";
 
 // Render "Alt+Space" as "⌥Space", "CmdOrCtrl+," as "⌘,", etc.
 function prettyShortcut(s: string): string {
@@ -13,9 +14,11 @@ function prettyShortcut(s: string): string {
 }
 
 export function Settings({
+  homeDir,
   onClose,
   onNotesDirChange,
 }: {
+  homeDir: string;
   onClose: () => void;
   onNotesDirChange: (dir: string) => void;
 }) {
@@ -122,7 +125,7 @@ export function Settings({
               <div className="settings-label">
                 <div className="settings-title">Notes folder</div>
                 <div className="settings-sub settings-path" title={info.notes_dir}>
-                  {info.notes_dir}
+                  {prettyPath(info.notes_dir, homeDir)}
                 </div>
               </div>
               <button
@@ -139,7 +142,10 @@ export function Settings({
                 <div className="settings-sub">
                   Move your existing notes into
                   <br />
-                  <span className="settings-path">{pendingDir}</span>?
+                  <span className="settings-path">
+                    {prettyPath(pendingDir, homeDir)}
+                  </span>
+                  ?
                 </div>
                 <div className="settings-confirm-actions">
                   <button

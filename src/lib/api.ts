@@ -20,6 +20,7 @@ export interface SettingsInfo {
 
 export const api = {
   notesDirPath: () => invoke<string>("notes_dir_path"),
+  homeDirPath: () => invoke<string>("home_dir_path"),
   listNotes: () => invoke<NoteMeta[]>("list_notes"),
   readNote: (name: string) => invoke<string>("read_note", { name }),
   writeNote: (name: string, content: string) =>

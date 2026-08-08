@@ -124,6 +124,15 @@ fn notes_dir_path() -> String {
     notes_dir().to_string_lossy().into_owned()
 }
 
+/// The user's home directory — used by the frontend to abbreviate paths to
+/// the "~/…" form for display.
+#[tauri::command]
+fn home_dir_path() -> String {
+    dirs::home_dir()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
 #[tauri::command]
 fn list_notes() -> Result<Vec<NoteMeta>, String> {
     let dir = notes_dir();
@@ -517,6 +526,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             notes_dir_path,
+            home_dir_path,
             list_notes,
             read_note,
             write_note,

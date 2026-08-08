@@ -7,6 +7,7 @@ import { listen } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
 import type { NoteMeta } from "./lib/api";
 import { languageForName } from "./lib/lang";
+import { prettyPath } from "./lib/path";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import { RenameInput } from "./components/RenameInput";
 import { NotePicker } from "./components/NotePicker";
@@ -27,6 +28,7 @@ export default function App() {
   const [activeName, setActiveName] = useState<string | null>(null);
   const [themeId, setThemeId] = useState<string>(DEFAULT_THEME_ID);
   const [notesDir, setNotesDir] = useState<string>("");
+  const [homeDir, setHomeDir] = useState<string>("");
   const [langExt, setLangExt] = useState<Extension[]>([]);
   const [ready, setReady] = useState(false);
   const [renamingName, setRenamingName] = useState<string | null>(null);
@@ -118,6 +120,7 @@ export default function App() {
     didInit.current = true;
     (async () => {
       try {
+        setHomeDir(await api.homeDirPath());
         setNotesDir(await api.notesDirPath());
         const session = await api.loadSession();
 
@@ -555,7 +558,7 @@ export default function App() {
           {activeTab ? `${activeTab.content.length} chars` : ""}
         </span>
         <span className="status-dir" title={notesDir}>
-          {notesDir}
+          {prettyPath(notesDir, homeDir)}
         </span>
       </div>
 
@@ -573,6 +576,7 @@ export default function App() {
 
       {settingsOpen && (
         <Settings
+          homeDir={homeDir}
           onClose={() => setSettingsOpen(false)}
           onNotesDirChange={(dir) => setNotesDir(dir)}
         />
