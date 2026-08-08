@@ -117,8 +117,10 @@ const vercelNight = createTheme({
   theme: "dark",
   settings: {
     background: "#09090b",
-    foreground: "#e4e4e7",
-    caret: "#fafafa",
+    // Pure white body text + caret — Vercel Night is deliberately high
+    // contrast: what you type reads bright white on near-black.
+    foreground: "#ffffff",
+    caret: "#ffffff",
     selection: "#27272a",
     selectionMatch: "#3f3f46",
     lineHighlight: "#ffffff0a",
@@ -128,14 +130,14 @@ const vercelNight = createTheme({
   },
   styles: monoStyles({
     comment: "#52525b", // zinc-600
-    keyword: "#fafafa", // zinc-50
+    keyword: "#ffffff", // white
     string: "#a1a1aa", // zinc-400
     number: "#d4d4d8", // zinc-300
     func: "#f4f4f5", // zinc-100
-    variable: "#e4e4e7", // zinc-200
-    type: "#fafafa",
+    variable: "#ffffff", // white — plain text / identifiers you write
+    type: "#ffffff",
     punct: "#71717a", // zinc-500
-    heading: "#fafafa",
+    heading: "#ffffff",
     emphasis: "#d4d4d8",
     link: "#a1a1aa",
     invalid: "#f87171",
