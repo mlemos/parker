@@ -125,10 +125,11 @@ const vercelNight = createTheme({
     background: "#000000",
     foreground: "#ffffff",
     caret: "#ffffff",
-    // Selection & active line share a translucent blue accent (no grey).
-    selection: "rgba(0, 112, 243, 0.35)",
-    selectionMatch: "rgba(0, 112, 243, 0.22)",
-    lineHighlight: "rgba(0, 112, 243, 0.13)",
+    // Selection & active line share a translucent green accent (no grey);
+    // the current line is a touch more visible.
+    selection: "rgba(16, 185, 129, 0.32)",
+    selectionMatch: "rgba(16, 185, 129, 0.22)",
+    lineHighlight: "rgba(16, 185, 129, 0.16)",
     gutterBackground: "#000000",
     gutterForeground: "#52525b",
     fontFamily: MONO,
