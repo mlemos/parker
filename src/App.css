@@ -256,6 +256,10 @@ body,
 .icon-btn:active {
   background: color-mix(in srgb, var(--text) 14%, transparent);
 }
+.icon-btn.on {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
 
 /* ---- Settings panel ----------------------------------------------------- */
 
@@ -483,11 +487,20 @@ body,
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+}
+/* The react-codemirror wrapper must fill the height, otherwise cm-editor's
+   height:100% resolves against an auto-height box and content is clipped
+   (no scroll) instead of scrolling. */
+.editor-wrap > * {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
 
 .editor-wrap .cm-editor {
   height: 100%;
-  font-size: 14px;
+  font-size: var(--editor-font-size, 14px);
   /* Single source of truth for the writing surface: always the canvas tone
      (#000 in Vercel Night), never a stray theme grey. */
   background-color: var(--editor-bg) !important;
@@ -512,6 +525,30 @@ body,
    token glows in its own color (pink keyword, green string, …). */
 html[data-theme="vercel-night"] .editor-wrap .cm-content {
   text-shadow: 0 0 7px color-mix(in srgb, currentColor 45%, transparent);
+}
+
+/* ---- To-do keywords (TODO / DONE / FAIL) -------------------------------- */
+
+.cm-todo {
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.cm-todo-todo {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+.cm-todo-fail {
+  color: var(--on-accent, #fff);
+  background: var(--danger);
+}
+.cm-todo-done {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 22%, transparent);
+}
+/* Don't let the neon glow smear the little keyword chips. */
+html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
+  text-shadow: none;
 }
 
 /* ---- Status bar --------------------------------------------------------- */
@@ -539,6 +576,42 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
   text-overflow: ellipsis;
   white-space: nowrap;
   opacity: 0.85;
+}
+.status-count {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.status-git {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--secondary);
+  font: inherit;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.status-git:hover:not(:disabled) {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+.status-git:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+.status-git.dirty {
+  color: var(--accent);
+}
+.git-icon.spin {
+  animation: parker-spin 0.8s linear infinite;
+}
+@keyframes parker-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ---- Rename (inline in tab) --------------------------------------------- */

@@ -5,7 +5,9 @@ import { EditorView, Prec } from "@uiw/react-codemirror";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
+import type { GitStatus } from "./lib/api";
 import { languageForName } from "./lib/lang";
+import { todoHighlighter } from "./lib/todo";
 import { prettyPath } from "./lib/path";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import { RenameInput } from "./components/RenameInput";
@@ -33,6 +35,16 @@ export default function App() {
   const [renamingName, setRenamingName] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fontSize, setFontSize] = useState<number>(() => {
+    const v = Number(localStorage.getItem("parker.fontSize"));
+    return v >= 9 && v <= 40 ? v : 14;
+  });
+  const [gutterOn, setGutterOn] = useState<boolean>(
+    () => localStorage.getItem("parker.gutter") === "1"
+  );
+  const [git, setGit] = useState<GitStatus | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [gitMsg, setGitMsg] = useState<string>("");
 
   // Mirror state into refs so the global keydown handler is never stale.
   const stateRef = useRef({ tabs, activeName, themeId });
@@ -211,6 +223,48 @@ export default function App() {
     root.dataset.theme = theme.id;
   }, [theme]);
 
+  // Editor font size — persist and publish as a CSS var the .cm-editor reads.
+  useEffect(() => {
+    localStorage.setItem("parker.fontSize", String(fontSize));
+    document.documentElement.style.setProperty(
+      "--editor-font-size",
+      `${fontSize}px`
+    );
+  }, [fontSize]);
+
+  useEffect(() => {
+    localStorage.setItem("parker.gutter", gutterOn ? "1" : "0");
+  }, [gutterOn]);
+
+  // ---- Git sync ------------------------------------------------------------
+
+  const refreshGit = useCallback(() => {
+    api
+      .gitStatus()
+      .then(setGit)
+      .catch(() => setGit(null));
+  }, []);
+
+  useEffect(() => {
+    if (ready) refreshGit();
+  }, [ready, refreshGit]);
+
+  const doGitSync = useCallback(async () => {
+    setSyncing(true);
+    setGitMsg("");
+    try {
+      await flushAll(); // commit the very latest keystrokes
+      const r = await api.gitSync();
+      setGitMsg(r.message);
+    } catch (e) {
+      setGitMsg(String(e));
+    } finally {
+      setSyncing(false);
+      refreshGit();
+      window.setTimeout(() => setGitMsg(""), 4000);
+    }
+  }, [flushAll, refreshGit]);
+
   // ---- Actions -------------------------------------------------------------
 
   const onChange = useCallback(
@@ -348,6 +402,21 @@ export default function App() {
       } else if (k === "r" && e.shiftKey) {
         e.preventDefault();
         startRename();
+      } else if (k === "l" && e.shiftKey) {
+        e.preventDefault();
+        setGutterOn((v) => !v);
+      } else if (k === "s" && e.shiftKey) {
+        e.preventDefault();
+        doGitSync();
+      } else if (k === "=" || k === "+") {
+        e.preventDefault();
+        setFontSize((f) => Math.min(40, f + 1));
+      } else if (k === "-" || k === "_") {
+        e.preventDefault();
+        setFontSize((f) => Math.max(9, f - 1));
+      } else if (k === "0") {
+        e.preventDefault();
+        setFontSize(14);
       } else if (k === "o") {
         e.preventDefault();
         openPicker();
@@ -384,6 +453,7 @@ export default function App() {
     switchToIndex,
     startRename,
     openPicker,
+    doGitSync,
   ]);
 
   // Insurance: flush everything when the window loses focus.
@@ -396,6 +466,14 @@ export default function App() {
     window.addEventListener("blur", onBlur);
     return () => window.removeEventListener("blur", onBlur);
   }, [flushSave]);
+
+  // Refresh the git indicator when Parker regains focus (someone may have
+  // committed elsewhere, or files changed while it was hidden).
+  useEffect(() => {
+    const onFocus = () => refreshGit();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshGit]);
 
   // Menu-bar app: closing the window (red button) does NOT quit — it flushes
   // and hides Parker back to the menu bar, so it stays instantly available.
@@ -458,6 +536,7 @@ export default function App() {
   const cmExtensions: Extension[] = [
     Prec.highest(theme.cm),
     EditorView.lineWrapping,
+    todoHighlighter,
     ...langExt,
   ];
 
@@ -492,6 +571,32 @@ export default function App() {
           </button>
         </div>
         <div className="tb-right" data-tauri-drag-region>
+          <button
+            className={"icon-btn" + (gutterOn ? " on" : "")}
+            onClick={() => setGutterOn((v) => !v)}
+            title="Line numbers (Cmd+Shift+L)"
+            aria-label="Toggle line numbers"
+            aria-pressed={gutterOn}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="3" y1="6" x2="3" y2="6" />
+              <line x1="3" y1="12" x2="3" y2="12" />
+              <line x1="3" y1="18" x2="3" y2="18" />
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
           <button
             className="icon-btn"
             onClick={cycleTheme}
@@ -595,13 +700,13 @@ export default function App() {
             height="100%"
             autoFocus
             basicSetup={{
-              lineNumbers: false,
+              lineNumbers: gutterOn,
               foldGutter: false,
               highlightActiveLine: true,
-              highlightActiveLineGutter: false,
+              highlightActiveLineGutter: gutterOn,
               highlightSelectionMatches: false,
-              // Disable CM's built-in default highlight; we re-add it as a
-              // fallback (above) so our theme wins every tag it defines.
+              // Our theme is the SOLE syntax highlighter — disable CM's default
+              // so nothing competes for markdown link/mark colors.
               syntaxHighlighting: false,
             }}
           />
@@ -610,9 +715,57 @@ export default function App() {
 
       <div className="statusbar">
         <span className="status-file">{activeTab?.name ?? ""}</span>
+        {git?.is_repo && (
+          <button
+            className={"status-git" + (git.dirty ? " dirty" : "")}
+            onClick={doGitSync}
+            disabled={syncing}
+            title={
+              gitMsg ||
+              (git.has_remote
+                ? "Commit & push (Cmd+Shift+S)"
+                : "Commit (no remote configured) — Cmd+Shift+S")
+            }
+          >
+            <svg
+              className={"git-icon" + (syncing ? " spin" : "")}
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              {syncing ? (
+                <path d="M21 12a9 9 0 1 1-6.2-8.5" />
+              ) : (
+                <>
+                  <circle cx="18" cy="18" r="3" />
+                  <circle cx="6" cy="6" r="3" />
+                  <path d="M6 9v6a3 3 0 0 0 3 3h6" />
+                </>
+              )}
+            </svg>
+            <span className="git-label">
+              {syncing
+                ? "syncing…"
+                : gitMsg ||
+                  `${git.branch ?? "git"}${
+                    git.dirty ? " ●" : git.ahead > 0 ? ` ↑${git.ahead}` : ""
+                  }`}
+            </span>
+          </button>
+        )}
         <span className="status-spacer" />
         <span className="status-count">
-          {activeTab ? `${activeTab.content.length} chars` : ""}
+          {activeTab
+            ? `${activeTab.content.split("\n").length} lines · ${
+                activeTab.content.length
+              } chars`
+            : ""}
         </span>
         <span className="status-dir" title={notesDir}>
           {prettyPath(notesDir, homeDir)}

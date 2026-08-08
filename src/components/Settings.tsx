@@ -123,6 +123,21 @@ export function Settings({
     }
   };
 
+  const toggleGitAutoSync = async () => {
+    if (!info || busy) return;
+    setBusy(true);
+    setError(null);
+    const next = !info.git_auto_sync;
+    try {
+      await api.setGitAutoSync(next);
+      setInfo({ ...info, git_auto_sync: next });
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const chooseFolder = async () => {
     if (busy) return;
     setError(null);
@@ -272,6 +287,27 @@ export function Settings({
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Git auto-sync — commit & push the notes folder on quit */}
+            <div className="settings-row">
+              <div className="settings-label">
+                <div className="settings-title">Sync on quit (Git)</div>
+                <div className="settings-sub">
+                  Commit &amp; push your notes when you quit Parker. Needs a git
+                  repo in your notes folder. Sync anytime with ⌘⇧S.
+                </div>
+              </div>
+              <button
+                className={"switch" + (info.git_auto_sync ? " on" : "")}
+                onClick={toggleGitAutoSync}
+                disabled={busy}
+                role="switch"
+                aria-checked={info.git_auto_sync}
+                title="Toggle commit & push on quit"
+              >
+                <span className="switch-knob" />
+              </button>
             </div>
           </div>
         )}

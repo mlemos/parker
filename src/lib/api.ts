@@ -24,6 +24,22 @@ export interface SettingsInfo {
   autostart: boolean;
   shortcut: string;
   default_shortcut: string;
+  git_auto_sync: boolean;
+}
+
+export interface GitStatus {
+  is_repo: boolean;
+  has_remote: boolean;
+  branch: string | null;
+  dirty: boolean;
+  ahead: number;
+}
+
+export interface GitSyncResult {
+  ok: boolean;
+  committed: boolean;
+  pushed: boolean;
+  message: string;
 }
 
 export const api = {
@@ -45,6 +61,10 @@ export const api = {
     invoke<void>("set_shortcut", { accelerator }),
   setAutostart: (enabled: boolean) =>
     invoke<void>("set_autostart", { enabled }),
+  setGitAutoSync: (enabled: boolean) =>
+    invoke<void>("set_git_auto_sync", { enabled }),
+  gitStatus: () => invoke<GitStatus>("git_status"),
+  gitSync: (message?: string) => invoke<GitSyncResult>("git_sync", { message }),
   pickNotesDir: () => invoke<string | null>("pick_notes_dir"),
   setNotesDir: (path: string, moveExisting: boolean) =>
     invoke<string>("set_notes_dir", { path, moveExisting }),
