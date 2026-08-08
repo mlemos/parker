@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { NoteMeta } from "../lib/api";
+import { useEffect, useRef, useState } from "react";
+import { api } from "../lib/api";
+import type { NoteHit } from "../lib/api";
 
 function relTime(secs: number): string {
   if (!secs) return "";
@@ -10,35 +11,60 @@ function relTime(secs: number): string {
   return `${Math.floor(d / 86400)}d ago`;
 }
 
-// A command-palette-style overlay that lists every note in the folder —
-// open or closed — with type-to-filter and full keyboard navigation.
+// Highlight the first case-insensitive occurrence of `query` in `text`.
+function Highlight({ text, query }: { text: string; query: string }) {
+  const q = query.trim();
+  const idx = q ? text.toLowerCase().indexOf(q.toLowerCase()) : -1;
+  if (idx < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="picker-mark">{text.slice(idx, idx + q.length)}</mark>
+      {text.slice(idx + q.length)}
+    </>
+  );
+}
+
+// Command-palette overlay: search every note by filename AND content, with a
+// snippet for content matches, type-to-filter and full keyboard navigation.
 export function NotePicker({
-  notes,
   openNames,
   onOpen,
   onClose,
 }: {
-  notes: NoteMeta[];
   openNames: string[];
   onOpen: (name: string) => void;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<NoteHit[]>([]);
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const selRef = useRef<HTMLDivElement>(null);
+  const reqId = useRef(0);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? notes.filter((n) => n.name.toLowerCase().includes(q)) : notes;
-  }, [notes, query]);
-
+  // Debounced backend search (matches name + content). Guard against races.
   useEffect(() => {
-    setSel(0);
+    const id = ++reqId.current;
+    const t = setTimeout(
+      () => {
+        api
+          .searchNotes(query)
+          .then((hits) => {
+            if (reqId.current === id) {
+              setResults(hits);
+              setSel(0);
+            }
+          })
+          .catch(() => {});
+      },
+      query ? 110 : 0
+    );
+    return () => clearTimeout(t);
   }, [query]);
 
   useEffect(() => {
@@ -46,7 +72,7 @@ export function NotePicker({
   }, [sel]);
 
   const choose = (i: number) => {
-    const n = filtered[i];
+    const n = results[i];
     if (n) onOpen(n.name);
   };
 
@@ -56,7 +82,7 @@ export function NotePicker({
         <input
           ref={inputRef}
           className="picker-input"
-          placeholder="Open note…  type to filter"
+          placeholder="Search notes…  name or text"
           value={query}
           spellCheck={false}
           onChange={(e) => setQuery(e.target.value)}
@@ -64,7 +90,7 @@ export function NotePicker({
             e.stopPropagation();
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              setSel((s) => Math.min(s + 1, filtered.length - 1));
+              setSel((s) => Math.min(s + 1, results.length - 1));
             } else if (e.key === "ArrowUp") {
               e.preventDefault();
               setSel((s) => Math.max(s - 1, 0));
@@ -78,8 +104,10 @@ export function NotePicker({
           }}
         />
         <div className="picker-list">
-          {filtered.length === 0 && <div className="picker-empty">No notes</div>}
-          {filtered.map((n, i) => (
+          {results.length === 0 && (
+            <div className="picker-empty">No matches</div>
+          )}
+          {results.map((n, i) => (
             <div
               key={n.name}
               ref={i === sel ? selRef : undefined}
@@ -90,7 +118,16 @@ export function NotePicker({
                 onOpen(n.name);
               }}
             >
-              <span className="picker-name">{n.name}</span>
+              <div className="picker-main">
+                <span className="picker-name">
+                  <Highlight text={n.name} query={query} />
+                </span>
+                {n.snippet && (
+                  <span className="picker-snippet">
+                    <Highlight text={n.snippet} query={query} />
+                  </span>
+                )}
+              </div>
               {openNames.includes(n.name) && (
                 <span className="picker-open">open</span>
               )}
@@ -98,7 +135,9 @@ export function NotePicker({
             </div>
           ))}
         </div>
-        <div className="picker-hint">↑↓ navigate · ↵ open · esc close</div>
+        <div className="picker-hint">
+          ↑↓ navigate · ↵ open · esc close · matches name &amp; text
+        </div>
       </div>
     </div>
   );

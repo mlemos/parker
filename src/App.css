@@ -628,12 +628,32 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
 .picker-item.sel {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
-.picker-name {
+.picker-main {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.picker-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  font-size: 13.5px;
+}
+.picker-snippet {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.picker-mark {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: inherit;
+  border-radius: 2px;
 }
 .picker-open {
   font-size: 10px;

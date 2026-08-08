@@ -6,6 +6,13 @@ export interface NoteMeta {
   modified: number;
 }
 
+export interface NoteHit {
+  name: string;
+  modified: number;
+  in_name: boolean; // matched by filename
+  snippet: string | null; // matching content line
+}
+
 export interface Session {
   open: string[];
   active: string | null;
@@ -23,6 +30,7 @@ export const api = {
   notesDirPath: () => invoke<string>("notes_dir_path"),
   homeDirPath: () => invoke<string>("home_dir_path"),
   listNotes: () => invoke<NoteMeta[]>("list_notes"),
+  searchNotes: (query: string) => invoke<NoteHit[]>("search_notes", { query }),
   readNote: (name: string) => invoke<string>("read_note", { name }),
   writeNote: (name: string, content: string) =>
     invoke<void>("write_note", { name, content }),

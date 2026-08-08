@@ -5,7 +5,6 @@ import { EditorView, Prec } from "@uiw/react-codemirror";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
-import type { NoteMeta } from "./lib/api";
 import { languageForName } from "./lib/lang";
 import { prettyPath } from "./lib/path";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
@@ -33,7 +32,6 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [renamingName, setRenamingName] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerNotes, setPickerNotes] = useState<NoteMeta[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Mirror state into refs so the global keydown handler is never stale.
@@ -295,15 +293,8 @@ export default function App() {
     }
   }, []);
 
-  const openPicker = useCallback(async () => {
-    try {
-      setPickerNotes(await api.listNotes());
-    } catch (e) {
-      console.error("list notes failed", e);
-      setPickerNotes([]);
-    }
-    setPickerOpen(true);
-  }, []);
+  // The picker searches (name + content) on its own; just open it.
+  const openPicker = useCallback(() => setPickerOpen(true), []);
 
   const startRename = useCallback((name?: string) => {
     const n = name ?? stateRef.current.activeName;
@@ -630,7 +621,6 @@ export default function App() {
 
       {pickerOpen && (
         <NotePicker
-          notes={pickerNotes}
           openNames={tabs.map((t) => t.name)}
           onOpen={(name) => {
             setPickerOpen(false);

@@ -194,6 +194,64 @@ fn list_notes() -> Result<Vec<NoteMeta>, String> {
     Ok(notes)
 }
 
+#[derive(Serialize)]
+struct NoteHit {
+    name: String,
+    modified: u64,
+    in_name: bool,           // matched by filename
+    snippet: Option<String>, // first matching content line (content matches)
+}
+
+/// Search notes by filename AND content. Empty query returns all notes.
+/// Filename matches rank first; content matches carry a snippet of the line.
+#[tauri::command]
+fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
+    let q = query.trim().to_lowercase();
+    let dir = notes_dir();
+    let mut hits = Vec::new();
+    for entry in fs::read_dir(&dir).map_err(|e| e.to_string())?.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let name = match path.file_name().and_then(|n| n.to_str()) {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+        if name.starts_with('.') || name.ends_with(".parker-tmp") {
+            continue;
+        }
+        let modified = entry
+            .metadata()
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+
+        if q.is_empty() {
+            hits.push(NoteHit { name, modified, in_name: true, snippet: None });
+            continue;
+        }
+
+        let in_name = name.to_lowercase().contains(&q);
+        // Look for the first content line containing the query (for a snippet).
+        let snippet = fs::read_to_string(&path).ok().and_then(|content| {
+            content
+                .lines()
+                .find(|line| line.to_lowercase().contains(&q))
+                .map(|line| line.trim().chars().take(140).collect::<String>())
+        });
+
+        if in_name || snippet.is_some() {
+            hits.push(NoteHit { name, modified, in_name, snippet });
+        }
+    }
+    // Filename matches first, then most-recently-modified.
+    hits.sort_by(|a, b| b.in_name.cmp(&a.in_name).then(b.modified.cmp(&a.modified)));
+    Ok(hits)
+}
+
 #[tauri::command]
 fn read_note(name: String) -> Result<String, String> {
     let path = safe_note_path(&name)?;
@@ -613,6 +671,7 @@ pub fn run() {
             notes_dir_path,
             home_dir_path,
             list_notes,
+            search_notes,
             read_note,
             write_note,
             create_note,
