@@ -490,6 +490,9 @@ body,
 .editor-wrap .cm-editor {
   height: 100%;
   font-size: 14px;
+  /* Single source of truth for the writing surface: always the chrome bg
+     (#000 in Vercel Night), never a stray theme grey. */
+  background-color: var(--bg) !important;
 }
 .editor-wrap .cm-scroller {
   /* !important beats the per-theme rule createTheme injects
