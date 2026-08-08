@@ -12,14 +12,20 @@ import type { Extension } from "@uiw/react-codemirror";
 const MONO =
   '"Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace';
 
+// The "mini theme" for everything that is NOT editor content. A canvas tone
+// (matches the editor bg) plus three chrome surfaces by elevation, and the key
+// semantic colors.
 export interface ThemeChrome {
-  bg: string;
-  fg: string;
-  muted: string;
-  border: string;
-  tabBg: string;
-  tabActiveBg: string;
-  accent: string;
+  canvas: string; // content surface — matches the editor background
+  surface1: string; // chrome base — tab strip
+  surface2: string; // chrome bars — header, status bar
+  surface3: string; // elevated — active tab, popovers, hover
+  text: string; // primary chrome text
+  textMuted: string; // secondary text / icons
+  border: string; // hairlines
+  accent: string; // interactive / brand accent
+  onAccent: string; // text/icon over an accent fill
+  danger: string; // destructive / errors
 }
 
 export interface ThemeDef {
@@ -186,13 +192,16 @@ export const THEMES: ThemeDef[] = [
     mode: "dark",
     cm: vercelNight,
     chrome: {
-      bg: "#000000",
-      fg: "#e4e4e7",
-      muted: "#71717a",
-      border: "#27272a",
-      tabBg: "#0a0a0a",
-      tabActiveBg: "#18181b",
-      accent: "#fafafa",
+      canvas: "#000000",
+      surface1: "#0a0a0a",
+      surface2: "#151517",
+      surface3: "#202023",
+      text: "#ededed",
+      textMuted: "#7d7d85",
+      border: "#26262a",
+      accent: "#10b981",
+      onAccent: "#03130c",
+      danger: "#f87171",
     },
   },
   {
@@ -201,13 +210,16 @@ export const THEMES: ThemeDef[] = [
     mode: "light",
     cm: vercelDay,
     chrome: {
-      bg: "#ffffff",
-      fg: "#18181b",
-      muted: "#71717a",
+      canvas: "#ffffff",
+      surface1: "#f6f6f7",
+      surface2: "#ededee",
+      surface3: "#ffffff",
+      text: "#18181b",
+      textMuted: "#6b6b70",
       border: "#e4e4e7",
-      tabBg: "#fafafa",
-      tabActiveBg: "#ffffff",
-      accent: "#18181b",
+      accent: "#10b981",
+      onAccent: "#ffffff",
+      danger: "#dc2626",
     },
   },
   {
@@ -216,13 +228,16 @@ export const THEMES: ThemeDef[] = [
     mode: "light",
     cm: githubLight,
     chrome: {
-      bg: "#ffffff",
-      fg: "#24292f",
-      muted: "#57606a",
+      canvas: "#ffffff",
+      surface1: "#f6f8fa",
+      surface2: "#eaeef2",
+      surface3: "#ffffff",
+      text: "#24292f",
+      textMuted: "#57606a",
       border: "#d0d7de",
-      tabBg: "#f6f8fa",
-      tabActiveBg: "#ffffff",
       accent: "#0969da",
+      onAccent: "#ffffff",
+      danger: "#cf222e",
     },
   },
   {
@@ -231,13 +246,16 @@ export const THEMES: ThemeDef[] = [
     mode: "dark",
     cm: githubDark,
     chrome: {
-      bg: "#0d1117",
-      fg: "#c9d1d9",
-      muted: "#8b949e",
+      canvas: "#0d1117",
+      surface1: "#0d1117",
+      surface2: "#161b22",
+      surface3: "#21262d",
+      text: "#c9d1d9",
+      textMuted: "#8b949e",
       border: "#30363d",
-      tabBg: "#161b22",
-      tabActiveBg: "#0d1117",
       accent: "#58a6ff",
+      onAccent: "#0d1117",
+      danger: "#f85149",
     },
   },
   {
@@ -246,13 +264,16 @@ export const THEMES: ThemeDef[] = [
     mode: "dark",
     cm: tokyoNight,
     chrome: {
-      bg: "#1a1b26",
-      fg: "#a9b1d6",
-      muted: "#565f89",
+      canvas: "#1a1b26",
+      surface1: "#16161e",
+      surface2: "#1e2030",
+      surface3: "#292e42",
+      text: "#a9b1d6",
+      textMuted: "#565f89",
       border: "#292e42",
-      tabBg: "#16161e",
-      tabActiveBg: "#1a1b26",
       accent: "#7aa2f7",
+      onAccent: "#1a1b26",
+      danger: "#f7768e",
     },
   },
 ];

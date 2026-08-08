@@ -174,17 +174,29 @@ export default function App() {
     if (ready) scheduleSessionSave();
   }, [openKey, activeName, themeId, ready, scheduleSessionSave]);
 
-  // Reflect chrome colors as CSS variables on the root element.
+  // Reflect the chrome "mini theme" as CSS variables on the root element.
   useEffect(() => {
     const root = document.documentElement;
     const c = theme.chrome;
-    root.style.setProperty("--bg", c.bg);
-    root.style.setProperty("--fg", c.fg);
-    root.style.setProperty("--muted", c.muted);
-    root.style.setProperty("--border", c.border);
-    root.style.setProperty("--tab-bg", c.tabBg);
-    root.style.setProperty("--tab-active-bg", c.tabActiveBg);
-    root.style.setProperty("--accent", c.accent);
+    const vars: Record<string, string> = {
+      "--canvas": c.canvas,
+      "--surface-1": c.surface1,
+      "--surface-2": c.surface2,
+      "--surface-3": c.surface3,
+      "--text": c.text,
+      "--text-muted": c.textMuted,
+      "--border": c.border,
+      "--accent": c.accent,
+      "--on-accent": c.onAccent,
+      "--danger": c.danger,
+      // legacy aliases so any unmigrated rule still resolves
+      "--bg": c.canvas,
+      "--fg": c.text,
+      "--muted": c.textMuted,
+      "--tab-bg": c.surface2,
+      "--tab-active-bg": c.surface3,
+    };
+    for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
   }, [theme]);
 
@@ -470,19 +482,50 @@ export default function App() {
         </div>
         <div className="tb-right" data-tauri-drag-region>
           <button
-            className="theme-btn"
+            className="icon-btn"
             onClick={cycleTheme}
-            title="Cycle theme (Cmd+Shift+T)"
+            title={`Theme: ${theme.label} — cycle (Cmd+Shift+T)`}
+            aria-label="Cycle theme"
           >
-            {theme.label}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path
+                d="M12 3 a9 9 0 0 0 0 18 z"
+                fill="currentColor"
+                stroke="none"
+              />
+            </svg>
           </button>
           <button
-            className="settings-gear"
+            className="icon-btn"
             onClick={() => setSettingsOpen(true)}
             title="Settings (Cmd+,)"
             aria-label="Settings"
           >
-            ⚙
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
           </button>
         </div>
       </div>
