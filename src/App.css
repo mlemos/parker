@@ -432,6 +432,23 @@ body,
     monospace;
   font-size: 13px;
 }
+.kbd-btn {
+  cursor: pointer;
+  min-width: 84px;
+  text-align: center;
+}
+.kbd-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.kbd-btn.recording {
+  border-color: var(--accent);
+  color: var(--accent);
+  border-style: dashed;
+}
+.kbd-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 .settings-error {
   padding: 10px 16px;

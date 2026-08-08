@@ -13,6 +13,50 @@ function prettyShortcut(s: string): string {
     .replace(/\+/g, "");
 }
 
+// Build a Tauri accelerator string (e.g. "CmdOrCtrl+Shift+P") from a keydown.
+// Returns null for modifier-only presses or combos without a modifier.
+const CODE_MAP: Record<string, string> = {
+  Space: "Space",
+  Enter: "Enter",
+  Tab: "Tab",
+  Backspace: "Backspace",
+  Delete: "Delete",
+  ArrowUp: "Up",
+  ArrowDown: "Down",
+  ArrowLeft: "Left",
+  ArrowRight: "Right",
+  Minus: "-",
+  Equal: "=",
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
+  Backslash: "\\",
+  Semicolon: ";",
+  Quote: "'",
+  BracketLeft: "[",
+  BracketRight: "]",
+  Backquote: "`",
+};
+
+function accelFromEvent(e: KeyboardEvent): string | null {
+  const mods: string[] = [];
+  if (e.metaKey) mods.push("CmdOrCtrl");
+  if (e.ctrlKey) mods.push("Ctrl");
+  if (e.altKey) mods.push("Alt");
+  if (e.shiftKey) mods.push("Shift");
+
+  const code = e.code;
+  let key: string | null = null;
+  if (code.startsWith("Key")) key = code.slice(3);
+  else if (code.startsWith("Digit")) key = code.slice(5);
+  else if (/^F\d{1,2}$/.test(code)) key = code;
+  else key = CODE_MAP[code] ?? null;
+
+  // Need a real (non-modifier) key AND at least one modifier.
+  if (!key || mods.length === 0) return null;
+  return [...mods, key].join("+");
+}
+
 export function Settings({
   homeDir,
   onClose,
@@ -25,14 +69,36 @@ export function Settings({
   const [info, setInfo] = useState<SettingsInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [pendingDir, setPendingDir] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.getSettings().then(setInfo).catch((e) => setError(String(e)));
   }, []);
 
+  // One keyboard handler: while recording a shortcut it captures the combo;
+  // otherwise Esc closes the panel.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (recording) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.key === "Escape") {
+          setRecording(false);
+          return;
+        }
+        const accel = accelFromEvent(e);
+        if (!accel) return; // wait for a full modifier+key combo
+        setRecording(false);
+        api
+          .setShortcut(accel)
+          .then(() => {
+            setInfo((cur) => (cur ? { ...cur, shortcut: accel } : cur));
+            setError(null);
+          })
+          .catch((err) => setError(String(err)));
+        return;
+      }
       if (e.key === "Escape") {
         e.preventDefault();
         onClose();
@@ -40,7 +106,7 @@ export function Settings({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [onClose]);
+  }, [recording, onClose]);
 
   const toggleAutostart = async () => {
     if (!info || busy) return;
@@ -166,15 +232,24 @@ export function Settings({
               </div>
             )}
 
-            {/* Global shortcut (read-only for now) */}
+            {/* Global shortcut — click to record a new combo */}
             <div className="settings-row">
               <div className="settings-label">
                 <div className="settings-title">Global shortcut</div>
                 <div className="settings-sub">
-                  Summon or dismiss Parker from any app.
+                  {recording
+                    ? "Press the new shortcut… (Esc to cancel)"
+                    : "Summon or dismiss Parker from any app."}
                 </div>
               </div>
-              <kbd className="kbd">{prettyShortcut(info.shortcut)}</kbd>
+              <button
+                className={"kbd kbd-btn" + (recording ? " recording" : "")}
+                onClick={() => setRecording((r) => !r)}
+                disabled={busy}
+                title="Click, then press a new shortcut"
+              >
+                {recording ? "Recording…" : prettyShortcut(info.shortcut)}
+              </button>
             </div>
           </div>
         )}

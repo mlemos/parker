@@ -37,10 +37,21 @@ struct Settings {
     /// Absolute path to the notes folder. None → default (~/Documents/Parker).
     #[serde(default)]
     notes_dir: Option<String>,
+    /// Global shortcut accelerator (Tauri format). None → default.
+    #[serde(default)]
+    shortcut: Option<String>,
 }
 
-/// The global shortcut that summons/dismisses the window.
+/// The default global shortcut that summons/dismisses the window.
 const TOGGLE_SHORTCUT: &str = "Alt+Space";
+
+/// The shortcut from settings, or the default.
+fn current_shortcut() -> String {
+    load_settings()
+        .shortcut
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| TOGGLE_SHORTCUT.to_string())
+}
 
 // ---- Paths ----------------------------------------------------------------
 
@@ -237,7 +248,32 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
     SettingsInfo {
         notes_dir: notes_dir().to_string_lossy().into_owned(),
         autostart,
-        shortcut: TOGGLE_SHORTCUT.to_string(),
+        shortcut: current_shortcut(),
+    }
+}
+
+/// Re-register the global summon/dismiss shortcut and persist it.
+#[tauri::command]
+fn set_shortcut(app: tauri::AppHandle, accelerator: String) -> Result<(), String> {
+    #[cfg(desktop)]
+    {
+        use std::str::FromStr;
+        use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
+        let accel = accelerator.trim().to_string();
+        let sc = Shortcut::from_str(&accel)
+            .map_err(|_| format!("invalid shortcut: {accel}"))?;
+        let gs = app.global_shortcut();
+        let _ = gs.unregister_all();
+        gs.register(sc).map_err(|e| e.to_string())?;
+        let mut s = load_settings();
+        s.shortcut = Some(accel);
+        write_settings(&s)?;
+        return Ok(());
+    }
+    #[cfg(not(desktop))]
+    {
+        let _ = (app, accelerator);
+        Ok(())
     }
 }
 
@@ -512,10 +548,13 @@ pub fn run() {
 
                 build_tray(app.handle())?;
 
-                // Alt+Space summons/dismisses Parker from anywhere.
+                // Register the summon/dismiss shortcut (from settings, or the
+                // Alt+Space default) — it toggles Parker from anywhere.
+                use std::str::FromStr;
                 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
-                app.global_shortcut()
-                    .register(Shortcut::new(Some(Modifiers::ALT), Code::Space))?;
+                let sc = Shortcut::from_str(&current_shortcut())
+                    .unwrap_or_else(|_| Shortcut::new(Some(Modifiers::ALT), Code::Space));
+                app.global_shortcut().register(sc)?;
             }
             Ok(())
         })
@@ -539,6 +578,7 @@ pub fn run() {
             load_session,
             save_session,
             get_settings,
+            set_shortcut,
             set_autostart,
             pick_notes_dir,
             set_notes_dir,

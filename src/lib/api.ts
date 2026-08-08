@@ -32,6 +32,8 @@ export const api = {
   saveSession: (session: Session) => invoke<void>("save_session", { session }),
 
   getSettings: () => invoke<SettingsInfo>("get_settings"),
+  setShortcut: (accelerator: string) =>
+    invoke<void>("set_shortcut", { accelerator }),
   setAutostart: (enabled: boolean) =>
     invoke<void>("set_autostart", { enabled }),
   pickNotesDir: () => invoke<string | null>("pick_notes_dir"),
