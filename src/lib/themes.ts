@@ -28,9 +28,10 @@ export interface ThemeUI {
   statusBg: string; // the bottom bar
   // Floating surfaces
   popoverBg: string; // ⌘O picker & Settings panel
-  // Shared roles
-  text: string; // primary chrome text
-  muted: string; // secondary text / icons
+  // Shared roles — three text/icon tiers by legibility
+  text: string; // primary text (active tab, titles)
+  secondary: string; // readable chrome fg: icons, status text, inactive tabs, field
+  muted: string; // faint text: hints, subtitles, folder path, placeholder
   border: string; // hairlines
   accent: string; // current line, selection, dirty dot, focus, primary button
   onAccent: string; // text/icon over an accent fill
@@ -168,6 +169,7 @@ const vercelNightUI: ThemeUI = {
   statusBg: tw.zinc[900],
   popoverBg: tw.zinc[900],
   text: tw.zinc[100],
+  secondary: tw.zinc[400],
   muted: tw.zinc[500],
   border: tw.zinc[800],
   accent: tw.emerald[500],
@@ -188,7 +190,8 @@ const vercelDayUI: ThemeUI = {
   statusBg: tw.zinc[100],
   popoverBg: tw.white,
   text: tw.zinc[900],
-  muted: tw.zinc[600],
+  secondary: tw.zinc[600],
+  muted: tw.zinc[400],
   border: tw.zinc[200],
   accent: tw.emerald[600],
   onAccent: tw.white,
@@ -239,7 +242,8 @@ const githubLightUI: ThemeUI = {
   statusBg: "#eaeef2",
   popoverBg: "#ffffff",
   text: "#24292f",
-  muted: "#57606a",
+  secondary: "#57606a",
+  muted: "#8b949e",
   border: "#d0d7de",
   accent: "#0969da",
   onAccent: "#ffffff",
@@ -258,7 +262,8 @@ const githubDarkUI: ThemeUI = {
   statusBg: "#161b22",
   popoverBg: "#161b22",
   text: "#c9d1d9",
-  muted: "#8b949e",
+  secondary: "#8b949e",
+  muted: "#6e7681",
   border: "#30363d",
   accent: "#58a6ff",
   onAccent: "#0d1117",

@@ -192,6 +192,7 @@ export default function App() {
       "--popover-bg": u.popoverBg,
       // shared roles
       "--text": u.text,
+      "--secondary": u.secondary,
       "--muted": u.muted,
       "--border": u.border,
       "--accent": u.accent,
