@@ -43,30 +43,30 @@ export interface ThemeDef {
   label: string;
   mode: "light" | "dark";
   cm: Extension;
-  ui: ThemeUI;
+  ui: ThemeUI; // chrome roles
+  syntax: SyntaxColors; // editor content roles
 }
 
 const MONO =
   '"Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace';
 
-// ---- Monochrome syntax (brightness/weight, not hue) ----------------------
-
-interface Mono {
-  comment: string;
-  keyword: string;
-  string: string;
-  number: string;
-  func: string;
-  variable: string;
-  type: string;
-  punct: string;
-  heading: string;
-  emphasis: string;
-  link: string;
-  invalid: string;
+// ---- Editor content colors (syntax) --------------------------------------
+// Named roles for what you write. Parker's own themes are monochrome
+// (brightness/weight, not hue) built on Tailwind's zinc scale.
+export interface SyntaxColors {
+  plain: string; // body text / identifiers
+  heading: string; // markdown headings & strong
+  keyword: string; // keywords, tags
+  string: string; // strings, regex
+  number: string; // numbers, booleans, constants
+  func: string; // function / type / class names
+  comment: string; // comments, block quotes
+  punct: string; // operators, punctuation, brackets
+  link: string; // links / urls
+  invalid: string; // errors
 }
 
-function monoStyles(p: Mono) {
+function monoStyles(p: SyntaxColors) {
   return [
     {
       tag: [t.comment, t.lineComment, t.blockComment, t.docComment],
@@ -93,11 +93,11 @@ function monoStyles(p: Mono) {
     },
     {
       tag: [t.variableName, t.propertyName, t.attributeName, t.attributeValue],
-      color: p.variable,
+      color: p.plain,
     },
     {
       tag: [t.typeName, t.className, t.namespace, t.tagName],
-      color: p.type,
+      color: p.func,
       fontWeight: "600",
     },
     {
@@ -126,7 +126,7 @@ function monoStyles(p: Mono) {
       fontWeight: "700",
     },
     { tag: [t.strong], color: p.heading, fontWeight: "700" },
-    { tag: [t.emphasis], color: p.emphasis, fontStyle: "italic" },
+    { tag: [t.emphasis], color: p.plain, fontStyle: "italic" },
     { tag: [t.link, t.url], color: p.link, textDecoration: "underline" },
     { tag: [t.quote], color: p.string },
     { tag: [t.monospace], color: p.number },
@@ -136,7 +136,11 @@ function monoStyles(p: Mono) {
 }
 
 // Build a CodeMirror theme from a theme's UI tokens + a mono syntax palette.
-function editorTheme(ui: ThemeUI, mode: "light" | "dark", mono: Mono): Extension {
+function editorTheme(
+  ui: ThemeUI,
+  mode: "light" | "dark",
+  syntax: SyntaxColors
+): Extension {
   return createTheme({
     theme: mode,
     settings: {
@@ -150,7 +154,7 @@ function editorTheme(ui: ThemeUI, mode: "light" | "dark", mono: Mono): Extension
       gutterForeground: ui.muted,
       fontFamily: MONO,
     },
-    styles: monoStyles(mono),
+    styles: monoStyles(syntax),
   });
 }
 
@@ -198,32 +202,28 @@ const vercelDayUI: ThemeUI = {
   danger: tw.red[600],
 };
 
-const nightMono: Mono = {
-  comment: tw.zinc[600],
+const nightSyntax: SyntaxColors = {
+  plain: tw.white,
+  heading: tw.white,
   keyword: tw.white,
   string: tw.zinc[400],
   number: tw.zinc[300],
   func: tw.zinc[100],
-  variable: tw.white,
-  type: tw.white,
+  comment: tw.zinc[600],
   punct: tw.zinc[500],
-  heading: tw.white,
-  emphasis: tw.zinc[300],
-  link: tw.zinc[400],
+  link: tw.zinc[300],
   invalid: tw.red[400],
 };
 
-const dayMono: Mono = {
-  comment: tw.zinc[400],
+const daySyntax: SyntaxColors = {
+  plain: tw.zinc[900],
+  heading: tw.zinc[950],
   keyword: tw.zinc[950],
   string: tw.zinc[600],
   number: tw.zinc[700],
-  func: tw.zinc[900],
-  variable: tw.zinc[900],
-  type: tw.zinc[950],
-  punct: tw.zinc[400],
-  heading: tw.zinc[950],
-  emphasis: tw.zinc[700],
+  func: tw.zinc[800],
+  comment: tw.zinc[400],
+  punct: tw.zinc[500],
   link: tw.zinc[600],
   invalid: tw.red[600],
 };
@@ -270,20 +270,50 @@ const githubDarkUI: ThemeUI = {
   danger: "#f85149",
 };
 
+// GitHub content colors (their own palette) — documentation for the preview;
+// the actual editor syntax comes from the @uiw github theme packages.
+const githubLightSyntax: SyntaxColors = {
+  plain: "#24292f",
+  heading: "#0550ae",
+  keyword: "#cf222e",
+  string: "#0a3069",
+  number: "#0550ae",
+  func: "#8250df",
+  comment: "#6e7781",
+  punct: "#24292f",
+  link: "#0969da",
+  invalid: "#cf222e",
+};
+
+const githubDarkSyntax: SyntaxColors = {
+  plain: "#c9d1d9",
+  heading: "#79c0ff",
+  keyword: "#ff7b72",
+  string: "#a5d6ff",
+  number: "#79c0ff",
+  func: "#d2a8ff",
+  comment: "#8b949e",
+  punct: "#c9d1d9",
+  link: "#58a6ff",
+  invalid: "#f85149",
+};
+
 export const THEMES: ThemeDef[] = [
   {
     id: "vercel-night",
     label: "Vercel Night",
     mode: "dark",
-    cm: editorTheme(vercelNightUI, "dark", nightMono),
+    cm: editorTheme(vercelNightUI, "dark", nightSyntax),
     ui: vercelNightUI,
+    syntax: nightSyntax,
   },
   {
     id: "vercel-day",
     label: "Vercel Day",
     mode: "light",
-    cm: editorTheme(vercelDayUI, "light", dayMono),
+    cm: editorTheme(vercelDayUI, "light", daySyntax),
     ui: vercelDayUI,
+    syntax: daySyntax,
   },
   {
     id: "light",
@@ -291,6 +321,7 @@ export const THEMES: ThemeDef[] = [
     mode: "light",
     cm: githubLight,
     ui: githubLightUI,
+    syntax: githubLightSyntax,
   },
   {
     id: "dark",
@@ -298,6 +329,7 @@ export const THEMES: ThemeDef[] = [
     mode: "dark",
     cm: githubDark,
     ui: githubDarkUI,
+    syntax: githubDarkSyntax,
   },
 ];
 
