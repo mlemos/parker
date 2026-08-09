@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>parker — a fast, minimal editor for notes, code &amp; markdown</title>
+  <meta name="description" content="parker is a fast, minimal Mac editor for notes, code and markdown — a serious scratchpad for working with AI. Keyboard-first, lightweight, and your data stays in plain files you own. Free and open source." />
+
+  <!-- No-flash theme: set before first paint -->
+  <script>
+    (function () {
+      try {
+        var q = new URLSearchParams(location.search).get("theme");
+        var saved = localStorage.getItem("parker-theme");
+        var sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = (q === "light" || q === "dark") ? q : saved || (sysDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://getparker.dev" />
+  <meta property="og:title" content="parker — a fast, minimal editor for notes, code &amp; markdown" />
+  <meta property="og:description" content="A serious scratchpad for working with AI. Keyboard-first, lightweight, and your data stays in plain files you own. Free and open source." />
+  <meta property="og:image" content="https://getparker.dev/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
+  <link rel="icon" href="/favicon.png" sizes="256x256" type="image/png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- ambient glow -->
+  <div class="ambient" aria-hidden="true"></div>
+
+  <!-- ───────────────────── Nav ───────────────────── -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="parker home">
+        <span class="mark-head" aria-hidden="true"></span>
+        <span class="brand-name">parker</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#philosophy">Your data</a>
+        <a href="https://github.com/mlemos/parker" rel="noopener">GitHub</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle color theme" title="Toggle theme">
+          <svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+          <svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        </button>
+        <a class="btn btn-primary btn-sm" href="#download">Download</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ───────────────────── Hero ───────────────────── -->
+    <section class="hero">
+      <a class="pill reveal" href="https://github.com/mlemos/parker" rel="noopener">
+        <span class="pill-dot"></span> Free &amp; open source
+        <span class="pill-arrow">→</span>
+      </a>
+
+      <h1 class="reveal" aria-label="The scratchpad for vibe coding, vibe writing, vibe everything.">The scratchpad<br />for vibe <span class="typer" aria-hidden="true"><span class="typer-text">coding</span><span class="typer-caret"></span></span></h1>
+
+      <p class="lede reveal">
+        parker is a fast, minimal Mac editor for <strong>notes, code and markdown</strong> —
+        the scratchpad you keep open while working with AI: long prompts, plans and quick
+        snippets, without the weight of Notes, VS Code and friends.
+      </p>
+
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="#download">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.12 3.02-.76.9-2 1.6-3.03 1.51-.13-1.1.42-2.28 1.06-3.02.72-.85 2.03-1.5 3.09-1.51zM20.5 17.4c-.55 1.27-.82 1.83-1.53 2.95-1 1.57-2.4 3.52-4.15 3.53-1.55.02-1.95-1.01-4.06-1-2.1.01-2.54 1.02-4.1 1-1.74-.02-3.07-1.78-4.06-3.34-2.79-4.4-3.08-9.56-1.36-12.31 1.22-1.95 3.15-3.1 4.96-3.1 1.85 0 3 .99 4.53.99 1.48 0 2.38-.99 4.52-.99 1.62 0 3.33.88 4.55 2.4-4 2.19-3.35 7.89.7 9.87z"/></svg>
+          Download for macOS
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/mlemos/parker" rel="noopener">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.26 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>
+          Star on GitHub
+        </a>
+      </div>
+
+      <p class="cta-note reveal">macOS 12+ · Apple Silicon &amp; Intel · ~10&nbsp;MB</p>
+
+      <!-- ── Real app screenshot (theme-adaptive): editor + live preview + git backup ── -->
+      <div class="hero-shot reveal" role="img"
+           aria-label="Parker: a Markdown scratchpad open beside its live preview, with git version history.">
+        <picture class="shot shot--dark">
+          <source srcset="/brand/parker-app.webp" type="image/webp" />
+          <img src="/brand/parker-app.png" width="1800" height="1018" decoding="async" alt="" />
+        </picture>
+        <picture class="shot shot--light">
+          <source srcset="/brand/parker-app-light.webp" type="image/webp" />
+          <img src="/brand/parker-app-light.png" width="1800" height="1018" decoding="async" loading="lazy" alt="" />
+        </picture>
+      </div>
+    </section>
+
+    <!-- ───────────────────── Features ───────────────────── -->
+    <section id="features" class="section">
+      <div class="section-head reveal">
+        <h2>Built to get out of your way.</h2>
+        <p>No ribbon of icons. No formatting toolbar. No “syncing…”. Just you and the text.</p>
+      </div>
+
+      <div class="grid">
+        <article class="card reveal">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>
+          </div>
+          <h3>Instant &amp; fast</h3>
+          <p>Opens in a blink, zero lag while typing. No splash screen, no spinners, no waiting.</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
+          </div>
+          <h3>Keyboard-first</h3>
+          <p>Summon it anywhere with ⌥Space. Almost everything is reachable without touching the mouse.</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-8-8"/><path d="M12 8v4l2.5 2.5"/></svg>
+          </div>
+          <h3>Lightweight</h3>
+          <p>A tiny native shell built on Tauri — around 10&nbsp;MB. All the editor, none of the bloat.</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <h3>Never lose data</h3>
+          <p>Aggressive auto-save, always on. Optional git history quietly keeps every version as a safety net.</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="13" r="2.5"/><circle cx="8.5" cy="16.5" r="2.5"/><path d="M12 2a10 10 0 1 0 0 20 4 4 0 0 0 0-8 3 3 0 0 1 0-6 3 3 0 0 0 0-6z"/></svg>
+          </div>
+          <h3>Genuinely themeable</h3>
+          <p>Vercel Night, Vercel Day, GitHub light &amp; dark — with monochrome chrome and vivid, readable syntax.</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V7a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg>
+          </div>
+          <h3>Your data, your rules</h3>
+          <p>Plain files in a folder you own. Sync with iCloud, Dropbox or git — your choice. No servers of ours, ever.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ───────────────────── Philosophy strip ───────────────────── -->
+    <section id="philosophy" class="section">
+      <div class="strip reveal">
+        <div class="strip-text">
+          <span class="eyebrow">Your data, your rules</span>
+          <h2>Just a folder of plain files.</h2>
+          <p>
+            parker <strong>always writes straight to disk</strong> — <code>.md</code>,
+            <code>.txt</code> and code, in a folder you own. Never a database, never a cloud
+            you don’t control. Sync it however you like — iCloud, Dropbox, whatever — parker
+            stays completely sync-agnostic.
+          </p>
+          <p class="git-note">
+            Want it all in git? <strong>It’s built in.</strong> Flip on git backup and every
+            save is committed and pushed — fully versioned, with a history you can roll back.
+            A safety net <em>on top of</em> your files, never where they live.
+          </p>
+          <ul class="checks">
+            <li>Always on disk — open your notes in any editor, anytime</li>
+            <li>No account, no lock-in, no telemetry</li>
+            <li>Optional git backup: versioned, integrated, one switch</li>
+          </ul>
+        </div>
+        <div class="strip-visual" aria-hidden="true">
+          <div class="tree">
+            <div class="tree-row muted">~/Documents/Parker</div>
+            <div class="tree-row"><span class="tw-accent">├─</span> launch-prompt.md</div>
+            <div class="tree-row"><span class="tw-accent">├─</span> todo.txt</div>
+            <div class="tree-row"><span class="tw-accent">├─</span> snippets.ts</div>
+            <div class="tree-row"><span class="tw-accent">├─</span> ideas/</div>
+            <div class="tree-row indent"><span class="tw-accent">│&nbsp;&nbsp;└─</span> parker-launch.md</div>
+            <div class="tree-row"><span class="tw-accent">└─</span> .git/ <span class="muted">← history</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────────────── Download / CTA ───────────────────── -->
+    <section id="download" class="section">
+      <div class="final reveal">
+        <span class="brand-figure" aria-hidden="true"></span>
+        <h2>Free. Open source. Yours.</h2>
+        <p>parker is a free, open-source Mac app. Grab it, star it, or read every line.</p>
+        <div class="cta-row center">
+          <a class="btn btn-primary" href="https://github.com/mlemos/parker/releases" rel="noopener">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.12 3.02-.76.9-2 1.6-3.03 1.51-.13-1.1.42-2.28 1.06-3.02.72-.85 2.03-1.5 3.09-1.51zM20.5 17.4c-.55 1.27-.82 1.83-1.53 2.95-1 1.57-2.4 3.52-4.15 3.53-1.55.02-1.95-1.01-4.06-1-2.1.01-2.54 1.02-4.1 1-1.74-.02-3.07-1.78-4.06-3.34-2.79-4.4-3.08-9.56-1.36-12.31 1.22-1.95 3.15-3.1 4.96-3.1 1.85 0 3 .99 4.53.99 1.48 0 2.38-.99 4.52-.99 1.62 0 3.33.88 4.55 2.4-4 2.19-3.35 7.89.7 9.87z"/></svg>
+            Download for macOS
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/mlemos/parker" rel="noopener">View source</a>
+        </div>
+        <p class="cta-note">macOS 12+ · Apple Silicon &amp; Intel</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ───────────────────── Footer ───────────────────── -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="brand">
+        <span class="mark-head" aria-hidden="true"></span>
+        <span class="brand-name">parker</span>
+      </div>
+      <p class="footer-tag">A serious scratchpad for working with AI.</p>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://github.com/mlemos/parker" rel="noopener">GitHub</a>
+        <a href="https://github.com/mlemos/parker/releases" rel="noopener">Releases</a>
+        <a href="#features">Features</a>
+      </nav>
+      <p class="footer-copy">© 2026 Parker · getparker.dev · MIT-licensed &amp; open source</p>
+    </div>
+  </footer>
+
+  <script src="/script.js" defer></script>
+</body>
+</html>
