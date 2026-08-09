@@ -956,9 +956,11 @@ fn build_menu<R: tauri::Runtime>(
     let settings = MenuItemBuilder::with_id("settings", "Settings…")
         .accelerator("CmdOrCtrl+,")
         .build(handle)?;
+    // Our own About panel (with the beta disclaimer) instead of the OS default.
+    let about = MenuItemBuilder::with_id("about", "About Parker").build(handle)?;
 
     let app_menu = SubmenuBuilder::new(handle, variant::TITLE)
-        .about(None)
+        .item(&about)
         .separator()
         .item(&settings)
         .separator()
@@ -993,9 +995,10 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
 
     let show = MenuItemBuilder::with_id("tray_show", "Show Parker").build(app)?;
     let settings = MenuItemBuilder::with_id("tray_settings", "Settings…").build(app)?;
+    let about = MenuItemBuilder::with_id("tray_about", "About Parker").build(app)?;
     let quit = MenuItemBuilder::with_id("tray_quit", "Quit Parker").build(app)?;
     let menu = MenuBuilder::new(app)
-        .items(&[&show, &settings])
+        .items(&[&show, &settings, &about])
         .separator()
         .item(&quit)
         .build()?;
@@ -1017,6 +1020,10 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
             "tray_settings" => {
                 show_window(app);
                 let _ = app.emit("parker://open-settings", ());
+            }
+            "tray_about" => {
+                show_window(app);
+                let _ = app.emit("parker://open-about", ());
             }
             "tray_quit" => request_quit(app),
             _ => {}
@@ -1180,6 +1187,10 @@ pub fn run() {
             "settings" => {
                 use tauri::Emitter;
                 let _ = app.emit("parker://open-settings", ());
+            }
+            "about" => {
+                use tauri::Emitter;
+                let _ = app.emit("parker://open-about", ());
             }
             _ => {}
         })

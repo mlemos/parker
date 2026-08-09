@@ -782,6 +782,99 @@ body.resizing {
   background: color-mix(in srgb, var(--text) 9%, transparent);
 }
 
+/* ---- About panel -------------------------------------------------------- */
+
+.about {
+  position: relative;
+  width: 380px;
+  max-width: calc(100vw - 2rem);
+  padding: 30px 28px 22px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--popover-bg);
+  color: var(--text);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+.about-x {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.about-x:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+.about-mark {
+  font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.about-version {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.about-tagline {
+  margin: 14px auto 0;
+  max-width: 300px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--secondary);
+}
+.about-note {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: left;
+}
+.about-note strong {
+  color: var(--danger);
+  font-weight: 600;
+}
+.about-links {
+  margin-top: 18px;
+  font-size: 13px;
+}
+.about-links a {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+.about-links a:hover {
+  text-decoration: underline;
+}
+.about-sep {
+  margin: 0 8px;
+  color: var(--muted);
+}
+.about-foot {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 /* ---- Editor ------------------------------------------------------------- */
 
 .editor-wrap {

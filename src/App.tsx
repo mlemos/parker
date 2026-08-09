@@ -31,6 +31,7 @@ import { isMarkdown } from "./lib/markdown";
 import { NotePicker } from "./components/NotePicker";
 import { GitMenu } from "./components/GitMenu";
 import { Settings } from "./components/Settings";
+import { About } from "./components/About";
 import { LayoutView } from "./components/LayoutView";
 import type { LayoutHandlers } from "./components/LayoutView";
 import "./App.css";
@@ -49,6 +50,7 @@ export default function App() {
   const [renamingName, setRenamingName] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [fontSize, setFontSize] = useState<number>(() => {
     const v = Number(localStorage.getItem("parker.fontSize"));
     return v >= 9 && v <= 40 ? v : 14;
@@ -795,6 +797,13 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const p = listen("parker://open-about", () => setAboutOpen(true));
+    return () => {
+      p.then((un) => un());
+    };
+  }, []);
+
   // External-change reload — reload an open buffer when its file changes on
   // disk, but never over unsaved edits, and skip our own autosave writes.
   useEffect(() => {
@@ -966,6 +975,8 @@ export default function App() {
           onNotesDirChange={(dir) => setNotesDir(dir)}
         />
       )}
+
+      {aboutOpen && <About onClose={() => setAboutOpen(false)} />}
     </div>
   );
 }
