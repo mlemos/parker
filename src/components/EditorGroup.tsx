@@ -250,7 +250,7 @@ export function EditorGroup({
           {/* Close — click closes the pane, ⌥ merges it into a neighbour. */}
           {canClose && (
             <button
-              className={"group-btn" + (altHeld ? " merge" : "")}
+              className="group-btn"
               onClick={(e) => (e.altKey ? cb.onMerge() : cb.onCloseGroup())}
               title={
                 altHeld
@@ -260,10 +260,10 @@ export function EditorGroup({
               aria-label={altHeld ? "Merge pane" : "Close pane"}
             >
               {altHeld ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="3" y="4" width="18" height="16" rx="1.5" />
-                  <path d="M14 9l-3 3 3 3" />
-                  <path d="M8 9l3 3-3 3" />
+                // Two arrows collapsing toward the centre = merge.
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 12h8M8 9l3 3-3 3" />
+                  <path d="M21 12h-8M16 9l-3 3 3 3" />
                 </svg>
               ) : (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">

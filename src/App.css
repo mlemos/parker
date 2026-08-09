@@ -779,12 +779,6 @@ body.resizing {
   color: var(--text);
   background: color-mix(in srgb, var(--text) 9%, transparent);
 }
-.group-btn.merge {
-  color: var(--accent);
-}
-.group-btn.merge:hover {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-}
 
 /* ---- Editor ------------------------------------------------------------- */
 
