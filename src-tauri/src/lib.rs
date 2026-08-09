@@ -932,7 +932,7 @@ fn show_about_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     #[allow(unused_mut)]
     let mut b = WebviewWindowBuilder::new(app, "about", WebviewUrl::App(url.into()))
         .title("About Parker")
-        .inner_size(360.0, 452.0)
+        .inner_size(440.0, 440.0)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)
