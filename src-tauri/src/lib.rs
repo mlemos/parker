@@ -802,7 +802,11 @@ async fn pick_notes_dir(app: tauri::AppHandle) -> Option<String> {
 /// notes are moved into the new folder first (never clobbering files already
 /// there). Returns the resolved absolute path.
 #[tauri::command]
-fn set_notes_dir(path: String, move_existing: bool) -> Result<String, String> {
+fn set_notes_dir(
+    #[allow(unused_variables)] app: tauri::AppHandle,
+    path: String,
+    move_existing: bool,
+) -> Result<String, String> {
     let new_dir = PathBuf::from(path.trim());
     if new_dir.as_os_str().is_empty() {
         return Err("empty folder path".into());
@@ -842,6 +846,11 @@ fn set_notes_dir(path: String, move_existing: bool) -> Result<String, String> {
     let mut s = load_settings();
     s.notes_dir = Some(new_dir.to_string_lossy().into_owned());
     write_settings(&s)?;
+
+    // Point the file watcher at the new folder (no restart needed).
+    #[cfg(desktop)]
+    rewatch_notes(&app);
+
     Ok(notes_dir().to_string_lossy().into_owned())
 }
 
@@ -1020,43 +1029,65 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
     Ok(())
 }
 
-/// Holds the notes-folder watcher for the app's lifetime — a `notify` watcher
-/// stops firing the moment it's dropped, so we stash it in Tauri state.
+/// Holds the notes-folder watcher in mutable Tauri state — a `notify` watcher
+/// stops firing the moment it's dropped, so we keep it alive here and swap it
+/// when the notes folder changes.
 #[cfg(desktop)]
-struct NotesWatcher(#[allow(dead_code)] notify::RecommendedWatcher);
+struct NotesWatcher(std::sync::Mutex<Option<notify::RecommendedWatcher>>);
 
-/// Watch the notes folder (non-recursive) and emit `parker://note-changed`
-/// with the file's basename whenever a note is created, modified, or removed.
+/// Build a watcher over the *current* notes folder (non-recursive) that emits
+/// `parker://note-changed` with the file's basename on create/modify/remove.
 #[cfg(desktop)]
-fn start_notes_watcher(app: &tauri::AppHandle) {
+fn build_notes_watcher(app: &tauri::AppHandle) -> Option<notify::RecommendedWatcher> {
     use notify::{EventKind, RecursiveMode, Watcher};
-    use tauri::{Emitter, Manager};
+    use tauri::Emitter;
 
     let handle = app.clone();
-    let watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
-        let Ok(event) = res else { return };
-        if !matches!(
-            event.kind,
-            EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_)
-        ) {
-            return;
-        }
-        for path in event.paths {
-            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                let _ = handle.emit("parker://note-changed", name.to_string());
-            }
-        }
-    });
-
-    match watcher {
-        Ok(mut w) => {
-            if let Err(e) = w.watch(&notes_dir(), RecursiveMode::NonRecursive) {
-                eprintln!("notes watcher: watch failed: {e}");
+    let mut watcher = match notify::recommended_watcher(
+        move |res: notify::Result<notify::Event>| {
+            let Ok(event) = res else { return };
+            if !matches!(
+                event.kind,
+                EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_)
+            ) {
                 return;
             }
-            app.manage(NotesWatcher(w));
+            for path in event.paths {
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    let _ = handle.emit("parker://note-changed", name.to_string());
+                }
+            }
+        },
+    ) {
+        Ok(w) => w,
+        Err(e) => {
+            eprintln!("notes watcher: init failed: {e}");
+            return None;
         }
-        Err(e) => eprintln!("notes watcher: init failed: {e}"),
+    };
+    if let Err(e) = watcher.watch(&notes_dir(), RecursiveMode::NonRecursive) {
+        eprintln!("notes watcher: watch failed: {e}");
+        return None;
+    }
+    Some(watcher)
+}
+
+/// (Re)point the notes watcher at the current folder. Called at startup and
+/// again whenever the user changes the notes folder — dropping the previous
+/// watcher stops it, so we never keep watching a stale directory.
+#[cfg(desktop)]
+fn rewatch_notes(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let fresh = build_notes_watcher(app);
+    match app.try_state::<NotesWatcher>() {
+        Some(state) => {
+            if let Ok(mut slot) = state.0.lock() {
+                *slot = fresh; // old watcher dropped here → stops watching
+            }
+        }
+        None => {
+            app.manage(NotesWatcher(std::sync::Mutex::new(fresh)));
+        }
     }
 }
 
@@ -1129,7 +1160,7 @@ pub fn run() {
                 // Watch the notes folder: when a file changes on disk (git
                 // pull, another machine/editor), tell the frontend so it can
                 // reload the open tab instead of letting autosave clobber it.
-                start_notes_watcher(app.handle());
+                rewatch_notes(app.handle());
             }
             Ok(())
         })
