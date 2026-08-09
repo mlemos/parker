@@ -22,6 +22,8 @@ export interface GroupCallbacks {
   onSplit: (dir: "row" | "col") => void;
   onMerge: (dir: Direction) => void;
   onDropTab: (source: { from: string; name: string }, toIndex: number) => void;
+  onTabDragStart: () => void;
+  onTabDragEnd: () => void;
   onCloseGroup: () => void;
 }
 
@@ -38,6 +40,7 @@ export function EditorGroup({
   focused,
   canClose,
   altHeld,
+  dragging,
   mergeDirs,
   theme,
   gutterOn,
@@ -50,6 +53,7 @@ export function EditorGroup({
   focused: boolean;
   canClose: boolean; // more than one group exists
   altHeld: boolean; // Option held → show merge arrows instead of split
+  dragging: boolean; // a tab is being dragged somewhere in the app
   mergeDirs: Direction[]; // directions with a neighbour to merge into
   theme: ThemeDef;
   gutterOn: boolean;
@@ -60,6 +64,7 @@ export function EditorGroup({
   const [langExt, setLangExt] = useState<Extension[]>([]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [dropActive, setDropActive] = useState(false); // a tab is over the body
 
   const active = group.active;
   const activeBuf = buffers.find((b) => b.name === active) ?? null;
@@ -83,16 +88,14 @@ export function EditorGroup({
   ];
 
   return (
-    <div
-      className={"egroup" + (focused ? " focused" : "")}
-      onMouseDown={cb.onFocus}
-    >
+    <div className={"egroup" + (focused ? " focused" : "")} onMouseDown={cb.onFocus}>
       <div className="tabstrip">
         <div
           className="tabs"
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes(TAB_MIME)) {
               e.preventDefault();
+              e.stopPropagation();
               e.dataTransfer.dropEffect = "move";
             }
           }}
@@ -100,6 +103,7 @@ export function EditorGroup({
             const raw = e.dataTransfer.getData(TAB_MIME);
             if (!raw) return;
             e.preventDefault();
+            e.stopPropagation();
             try {
               cb.onDropTab(JSON.parse(raw), group.tabs.length);
             } catch {
@@ -141,6 +145,7 @@ export function EditorGroup({
                     TAB_MIME,
                     JSON.stringify({ from: group.id, name })
                   );
+                  cb.onTabDragStart();
                 }}
                 onDragOver={(e) => {
                   if (!e.dataTransfer.types.includes(TAB_MIME)) return;
@@ -165,6 +170,7 @@ export function EditorGroup({
                 onDragEnd={() => {
                   setDragIndex(null);
                   setOverIndex(null);
+                  cb.onTabDragEnd();
                 }}
                 title={`${name}  —  double-click or F2 to rename`}
               >
@@ -269,6 +275,31 @@ export function EditorGroup({
               highlightActiveLineGutter: gutterOn,
               highlightSelectionMatches: false,
               syntaxHighlighting: false,
+            }}
+          />
+        )}
+        {/* While a tab is being dragged, a full-body catcher sits above the
+            editor so the tab can be dropped anywhere on the pane. */}
+        {dragging && (
+          <div
+            className={"drop-catcher" + (dropActive ? " active" : "")}
+            onDragOver={(e) => {
+              if (!e.dataTransfer.types.includes(TAB_MIME)) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              if (!dropActive) setDropActive(true);
+            }}
+            onDragLeave={() => setDropActive(false)}
+            onDrop={(e) => {
+              const raw = e.dataTransfer.getData(TAB_MIME);
+              setDropActive(false);
+              if (!raw) return;
+              e.preventDefault();
+              try {
+                cb.onDropTab(JSON.parse(raw), group.tabs.length);
+              } catch {
+                /* ignore malformed */
+              }
             }}
           />
         )}

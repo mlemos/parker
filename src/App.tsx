@@ -50,6 +50,9 @@ export default function App() {
   );
   // Option (⌥) held → the pane's split buttons become a merge (unsplit) button.
   const [altHeld, setAltHeld] = useState(false);
+  // True while a tab is being dragged — lets every pane show a full-body drop
+  // zone (above the editor) so a tab can be dropped anywhere on a pane.
+  const [tabDragging, setTabDragging] = useState(false);
 
   // Mirror state into a ref so global handlers never read stale values.
   const stateRef = useRef({ buffers, layout, focusedId, themeId });
@@ -754,6 +757,8 @@ export default function App() {
     onSplit: splitFocused,
     onMerge: mergeDir,
     onDropTab: dropTab,
+    onTabDragStart: () => setTabDragging(true),
+    onTabDragEnd: () => setTabDragging(false),
     onCloseGroup: closeGroup,
     onResize,
   };
@@ -859,6 +864,7 @@ export default function App() {
           renamingName={renamingName}
           multiGroup={multiGroup}
           altHeld={altHeld}
+          dragging={tabDragging}
           mergeDirs={mergeDirsByGroup}
           h={handlers}
         />

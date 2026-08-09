@@ -558,11 +558,24 @@ body.resizing {
 
 /* An editor group: its own tab bar + editor. */
 .egroup {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+}
+/* While dragging a tab, this sits above the editor to catch drops anywhere on
+   the pane body; it highlights when a tab hovers over it. */
+.drop-catcher {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: transparent;
+}
+.drop-catcher.active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 .egroup.focused .tabstrip {
   box-shadow: inset 0 -2px 0 0 var(--accent);
@@ -608,6 +621,7 @@ body.resizing {
   min-height: 0;
   overflow: hidden;
   display: flex;
+  position: relative;
 }
 /* The react-codemirror wrapper must fill the height, otherwise cm-editor's
    height:100% resolves against an auto-height box and content is clipped

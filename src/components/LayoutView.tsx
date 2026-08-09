@@ -20,6 +20,8 @@ export interface LayoutHandlers {
     toGroupId: string,
     toIndex: number
   ) => void;
+  onTabDragStart: () => void;
+  onTabDragEnd: () => void;
   onCloseGroup: (groupId: string) => void;
   onResize: (splitId: string, index: number, delta: number) => void;
 }
@@ -33,6 +35,7 @@ interface Common {
   renamingName: string | null;
   multiGroup: boolean;
   altHeld: boolean;
+  dragging: boolean;
   mergeDirs: Record<string, Direction[]>;
   h: LayoutHandlers;
 }
@@ -56,6 +59,8 @@ export function LayoutView({
       onMerge: (dir) => common.h.onMerge(g.id, dir),
       onDropTab: (source, toIndex) =>
         common.h.onDropTab(source, g.id, toIndex),
+      onTabDragStart: common.h.onTabDragStart,
+      onTabDragEnd: common.h.onTabDragEnd,
       onCloseGroup: () => common.h.onCloseGroup(g.id),
     };
     return (
@@ -65,6 +70,7 @@ export function LayoutView({
         focused={common.focusedId === g.id}
         canClose={common.multiGroup}
         altHeld={common.altHeld}
+        dragging={common.dragging}
         mergeDirs={common.mergeDirs[g.id] ?? []}
         theme={common.theme}
         gutterOn={common.gutterOn}
