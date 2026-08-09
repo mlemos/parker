@@ -632,10 +632,33 @@ fn autostart_enabled(_app: &tauri::AppHandle) -> bool {
     }
 }
 
-/// Bring the main window to the front (showing it if hidden).
+/// Make the window follow the user to whatever Space is active when it's
+/// summoned, instead of yanking them back to the Space it was created on.
+/// Sets NSWindowCollectionBehaviorMoveToActiveSpace on the underlying NSWindow.
+#[cfg(target_os = "macos")]
+fn follow_active_space<R: tauri::Runtime>(window: &tauri::WebviewWindow<R>) {
+    use objc2::msg_send;
+    use objc2::runtime::AnyObject;
+    // NSWindowCollectionBehaviorMoveToActiveSpace = 1 << 1
+    const MOVE_TO_ACTIVE_SPACE: usize = 1 << 1;
+    if let Ok(ptr) = window.ns_window() {
+        let ns_window = ptr as *mut AnyObject;
+        if !ns_window.is_null() {
+            unsafe {
+                let _: () = msg_send![ns_window, setCollectionBehavior: MOVE_TO_ACTIVE_SPACE];
+            }
+        }
+    }
+}
+
+/// Bring the main window to the front (showing it if hidden). Re-asserts the
+/// "move to active Space" behavior right before showing so summon always lands
+/// on the current desktop.
 fn show_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     use tauri::Manager;
     if let Some(w) = app.get_webview_window("main") {
+        #[cfg(target_os = "macos")]
+        follow_active_space(&w);
         let _ = w.show();
         let _ = w.unminimize();
         let _ = w.set_focus();
@@ -651,9 +674,7 @@ fn toggle_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         if visible && focused {
             let _ = w.hide();
         } else {
-            let _ = w.show();
-            let _ = w.unminimize();
-            let _ = w.set_focus();
+            show_window(app);
         }
     }
 }
@@ -805,9 +826,10 @@ pub fn run() {
                         .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
                 }
                 let win = b.build()?;
-                // Follow the user across Spaces so the summon shortcut always
-                // brings Parker to the *current* desktop, not its origin space.
-                let _ = win.set_visible_on_all_workspaces(true);
+                // Follow the user across Spaces: summon brings Parker to the
+                // *current* desktop, not the Space it was created on.
+                #[cfg(target_os = "macos")]
+                follow_active_space(&win);
             }
 
             #[cfg(desktop)]
