@@ -484,6 +484,50 @@ export default function App() {
     };
   }, []);
 
+  // External-change reload: the backend watches the notes folder and fires this
+  // when a file changes on disk (git pull, another machine, another editor).
+  // Reload the open tab — but never over unsaved edits (protect the user's
+  // typing), and skip our own autosave writes (disk already equals the buffer).
+  useEffect(() => {
+    const timers = new Map<string, number>();
+    const reload = async (name: string) => {
+      const before = stateRef.current.tabs.find((t) => t.name === name);
+      if (!before || before.dirty) return;
+      let disk: string;
+      try {
+        disk = await api.readNote(name);
+      } catch {
+        return; // deleted/unreadable externally — keep the buffer as-is
+      }
+      // Re-check after the await: the user may have started typing meanwhile.
+      const now = stateRef.current.tabs.find((t) => t.name === name);
+      if (!now || now.dirty || now.content === disk) return;
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.name === name ? { ...t, content: disk, dirty: false } : t
+        )
+      );
+    };
+    const p = listen<string>("parker://note-changed", (e) => {
+      const name = e.payload;
+      if (!stateRef.current.tabs.some((t) => t.name === name)) return;
+      const existing = timers.get(name);
+      if (existing) clearTimeout(existing);
+      // Debounce: editors/git emit several events per save.
+      timers.set(
+        name,
+        window.setTimeout(() => {
+          timers.delete(name);
+          reload(name);
+        }, 150)
+      );
+    });
+    return () => {
+      p.then((un) => un());
+      for (const id of timers.values()) clearTimeout(id);
+    };
+  }, []);
+
   // ---- Render --------------------------------------------------------------
 
   if (!ready) {

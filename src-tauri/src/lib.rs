@@ -1020,6 +1020,46 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
     Ok(())
 }
 
+/// Holds the notes-folder watcher for the app's lifetime — a `notify` watcher
+/// stops firing the moment it's dropped, so we stash it in Tauri state.
+#[cfg(desktop)]
+struct NotesWatcher(#[allow(dead_code)] notify::RecommendedWatcher);
+
+/// Watch the notes folder (non-recursive) and emit `parker://note-changed`
+/// with the file's basename whenever a note is created, modified, or removed.
+#[cfg(desktop)]
+fn start_notes_watcher(app: &tauri::AppHandle) {
+    use notify::{EventKind, RecursiveMode, Watcher};
+    use tauri::{Emitter, Manager};
+
+    let handle = app.clone();
+    let watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
+        let Ok(event) = res else { return };
+        if !matches!(
+            event.kind,
+            EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_)
+        ) {
+            return;
+        }
+        for path in event.paths {
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                let _ = handle.emit("parker://note-changed", name.to_string());
+            }
+        }
+    });
+
+    match watcher {
+        Ok(mut w) => {
+            if let Err(e) = w.watch(&notes_dir(), RecursiveMode::NonRecursive) {
+                eprintln!("notes watcher: watch failed: {e}");
+                return;
+            }
+            app.manage(NotesWatcher(w));
+        }
+        Err(e) => eprintln!("notes watcher: init failed: {e}"),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
@@ -1085,6 +1125,11 @@ pub fn run() {
                     Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyP)
                 });
                 app.global_shortcut().register(sc)?;
+
+                // Watch the notes folder: when a file changes on disk (git
+                // pull, another machine/editor), tell the frontend so it can
+                // reload the open tab instead of letting autosave clobber it.
+                start_notes_watcher(app.handle());
             }
             Ok(())
         })
