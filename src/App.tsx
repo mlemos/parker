@@ -395,6 +395,7 @@ export default function App() {
       // F2 renames the active tab (no modifier).
       if (e.key === "F2") {
         e.preventDefault();
+        e.stopPropagation();
         startRename();
         return;
       }
@@ -440,25 +441,33 @@ export default function App() {
         e.preventDefault();
         const active = stateRef.current.activeName;
         if (active) flushSave(active);
-      } else if (k === "}") {
+      } else if (e.shiftKey && (k === "]" || k === "}")) {
+        // ⌘⇧] — move active tab right. Shift may or may not turn "]" into "}"
+        // depending on the keyboard layout, so accept both.
         e.preventDefault();
-        moveActiveTab(1); // ⌘⇧] — move active tab right
-      } else if (k === "{") {
+        moveActiveTab(1);
+      } else if (e.shiftKey && (k === "[" || k === "{")) {
         e.preventDefault();
         moveActiveTab(-1); // ⌘⇧[ — move active tab left
-      } else if (k === "]") {
+      } else if (k === "]" || k === "}") {
         e.preventDefault();
         switchByOffset(1);
-      } else if (k === "[") {
+      } else if (k === "[" || k === "{") {
         e.preventDefault();
         switchByOffset(-1);
       } else if (k >= "1" && k <= "9") {
         e.preventDefault();
         switchToIndex(Number(k) - 1);
       }
+      // For any shortcut we handled, stop the event before it reaches
+      // CodeMirror — it binds ⌘[/⌘] to indent and would edit the text.
+      if (e.defaultPrevented) e.stopPropagation();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // Capture phase so our preventDefault runs BEFORE CodeMirror handles the
+    // key — otherwise the editor inserts a character for combos like ⌘[ before
+    // we can stop it.
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [
     newTab,
     closeTab,
