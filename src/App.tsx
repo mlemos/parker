@@ -3,7 +3,7 @@ import {
   Search,
   ListOrdered,
   WrapText,
-  Contrast,
+  Palette,
   Settings as SettingsIcon,
 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -899,10 +899,11 @@ export default function App() {
           <button
             className="icon-btn"
             onClick={cycleTheme}
-            title={`Theme: ${theme.label} — cycle (Cmd+Shift+T)`}
+            onDoubleClick={() => setThemeId(DEFAULT_THEME_ID)}
+            title={`Theme: ${theme.label} — cycle (Cmd+Shift+T) · double-click to reset`}
             aria-label="Cycle theme"
           >
-            <Contrast size={16} strokeWidth={1.8} aria-hidden="true" />
+            <Palette size={16} strokeWidth={1.8} aria-hidden="true" />
           </button>
           <button
             className="icon-btn"
