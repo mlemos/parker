@@ -1168,6 +1168,9 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  /* Show ~3 commits, scroll for the rest. */
+  max-height: 78px;
+  overflow-y: auto;
 }
 .gm-commit {
   display: flex;
