@@ -6,7 +6,12 @@ import "./App.css";
 
 const REPO = "https://github.com/mlemos/parker";
 
-// Standalone About window (its own Tauri window). Always branded dark.
+// Follow the editor's theme (passed in the URL when the window opens).
+const themeId =
+  new URLSearchParams(window.location.search).get("theme") || DEFAULT_THEME_ID;
+const theme = themeById(themeId);
+
+// Standalone About window (its own Tauri window).
 export default function AboutWindow() {
   const [version, setVersion] = useState("");
 
@@ -17,7 +22,7 @@ export default function AboutWindow() {
   }, []);
 
   useEffect(() => {
-    const u = themeById(DEFAULT_THEME_ID).ui;
+    const u = theme.ui;
     const root = document.documentElement;
     const vars: Record<string, string> = {
       "--text": u.text,
@@ -27,9 +32,11 @@ export default function AboutWindow() {
       "--accent": u.accent,
       "--danger": u.danger,
       "--editor-bg": u.editorBg,
+      "--on-accent": u.onAccent,
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
-    root.dataset.mode = "dark";
+    root.dataset.mode = theme.mode;
+    root.dataset.theme = theme.id;
     document.body.style.background = u.editorBg;
   }, []);
 
@@ -38,16 +45,15 @@ export default function AboutWindow() {
     openUrl(url).catch(() => {});
   };
 
+  // Paper (light) lockup on dark themes, ink (dark) lockup on light themes.
+  const lockup =
+    theme.mode === "dark"
+      ? "/logo-horizontal-paper.png"
+      : "/logo-horizontal-ink.png";
+
   return (
-    <div className="aboutwin">
-      <img
-        className="aboutwin-logo"
-        src="/logo.png"
-        alt="Parker"
-        width={88}
-        height={88}
-      />
-      <div className="aboutwin-mark">Parker</div>
+    <div className="aboutwin" data-tauri-drag-region>
+      <img className="aboutwin-lockup" src={lockup} alt="Parker" />
       <div className="aboutwin-version">
         {version ? `Version ${version}` : ""}
       </div>

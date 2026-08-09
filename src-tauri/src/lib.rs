@@ -926,18 +926,24 @@ fn show_about_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         let _ = w.set_focus();
         return;
     }
-    let _ = WebviewWindowBuilder::new(
-        app,
-        "about",
-        WebviewUrl::App("index.html?view=about".into()),
-    )
-    .title("About Parker")
-    .inner_size(360.0, 452.0)
-    .resizable(false)
-    .maximizable(false)
-    .minimizable(false)
-    .center()
-    .build();
+    // Pass the current theme so the About window matches the editor's look.
+    let theme = load_session().theme.unwrap_or_default();
+    let url = format!("index.html?view=about&theme={theme}");
+    #[allow(unused_mut)]
+    let mut b = WebviewWindowBuilder::new(app, "about", WebviewUrl::App(url.into()))
+        .title("About Parker")
+        .inner_size(360.0, 452.0)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .center();
+    #[cfg(target_os = "macos")]
+    {
+        b = b
+            .title_bar_style(tauri::TitleBarStyle::Overlay)
+            .hidden_title(true);
+    }
+    let _ = b.build();
 }
 
 /// Toggle: if the window is visible and focused, hide it; otherwise summon it.
