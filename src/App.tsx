@@ -9,13 +9,14 @@ import {
   findGroup,
   firstGroup,
   makeGroup,
+  mergeDirections,
+  neighborGroupId,
   removeGroup,
   resizeSplit,
-  siblingGroupId,
   splitGroup,
   updateGroup,
 } from "./lib/layout";
-import type { Buffer, LayoutNode } from "./lib/layout";
+import type { Buffer, Direction, LayoutNode } from "./lib/layout";
 import { NotePicker } from "./components/NotePicker";
 import { GitMenu } from "./components/GitMenu";
 import { Settings } from "./components/Settings";
@@ -368,26 +369,68 @@ export default function App() {
     setFocusedId(ng.id);
   }, []);
 
-  // Merge a pane into its sibling: move its tabs over, then collapse the split.
-  const mergeGroup = useCallback((groupId: string) => {
+  // Merge a pane with its neighbour in `dir`: absorb that pane's tabs, then
+  // collapse the split. The clicked pane survives (keeps focus).
+  const mergeDir = useCallback((groupId: string, dir: Direction) => {
     const s = stateRef.current;
-    const g = findGroup(s.layout, groupId);
-    const sibId = g ? siblingGroupId(s.layout, groupId) : null;
-    if (!g || !sibId) return;
-    const sib = findGroup(s.layout, sibId);
-    if (!sib) return;
+    const nbId = neighborGroupId(s.layout, groupId, dir);
+    const me = findGroup(s.layout, groupId);
+    const nb = nbId ? findGroup(s.layout, nbId) : null;
+    if (!me || !nb || !nbId) return;
     const mergedTabs = [
-      ...sib.tabs,
-      ...g.tabs.filter((t) => !sib.tabs.includes(t)),
+      ...me.tabs,
+      ...nb.tabs.filter((t) => !me.tabs.includes(t)),
     ];
-    let next = updateGroup(s.layout, sibId, {
+    let next = updateGroup(s.layout, groupId, {
       tabs: mergedTabs,
-      active: sib.active ?? g.active,
+      active: me.active ?? nb.active,
     });
-    next = removeGroup(next, groupId)!;
+    next = removeGroup(next, nbId)!;
     setLayout(next);
-    setFocusedId(sibId);
+    setFocusedId(groupId);
   }, []);
+
+  // Drop a dragged tab: reorder within a pane, or move it to another pane.
+  const dropTab = useCallback(
+    (source: { from: string; name: string }, toGroupId: string, toIndex: number) => {
+      const s = stateRef.current;
+      const { from, name } = source;
+      if (from === toGroupId) {
+        const g = findGroup(s.layout, toGroupId);
+        if (!g) return;
+        const fromIdx = g.tabs.indexOf(name);
+        if (fromIdx < 0) return;
+        const tabs = g.tabs.filter((t) => t !== name);
+        const at = Math.min(Math.max(toIndex, 0), tabs.length);
+        tabs.splice(at, 0, name);
+        setLayout((l) => updateGroup(l, toGroupId, { tabs }));
+        return;
+      }
+      const src = findGroup(s.layout, from);
+      const dst = findGroup(s.layout, toGroupId);
+      if (!src || !dst) return;
+      const srcTabs = src.tabs.filter((t) => t !== name);
+      const srcActive =
+        src.active === name
+          ? srcTabs[Math.min(src.tabs.indexOf(name), srcTabs.length - 1)] ?? null
+          : src.active;
+      const dstTabs = dst.tabs.filter((t) => t !== name);
+      const at = Math.min(Math.max(toIndex, 0), dstTabs.length);
+      dstTabs.splice(at, 0, name);
+      let next = updateGroup(s.layout, toGroupId, {
+        tabs: dstTabs,
+        active: name,
+      });
+      if (srcTabs.length === 0) {
+        next = removeGroup(next, from)!; // source emptied → collapse it
+      } else {
+        next = updateGroup(next, from, { tabs: srcTabs, active: srcActive });
+      }
+      setLayout(next);
+      setFocusedId(toGroupId);
+    },
+    []
+  );
 
   const onResize = useCallback(
     (splitId: string, index: number, delta: number) => {
@@ -705,15 +748,21 @@ export default function App() {
     onCloseTab: closeTab,
     onNewTab: newTab,
     onChange,
-    onReorder: reorderTab,
     onStartRename: startRename,
     onCommitRename: commitRename,
     onCancelRename: () => setRenamingName(null),
     onSplit: splitFocused,
-    onMerge: mergeGroup,
+    onMerge: mergeDir,
+    onDropTab: dropTab,
     onCloseGroup: closeGroup,
     onResize,
   };
+
+  // Which merge arrows to show per pane (only while Option is held).
+  const mergeDirsByGroup: Record<string, Direction[]> = {};
+  if (altHeld && multiGroup) {
+    for (const g of groups) mergeDirsByGroup[g.id] = mergeDirections(layout, g.id);
+  }
 
   return (
     <div className="parker">
@@ -810,6 +859,7 @@ export default function App() {
           renamingName={renamingName}
           multiGroup={multiGroup}
           altHeld={altHeld}
+          mergeDirs={mergeDirsByGroup}
           h={handlers}
         />
       </div>

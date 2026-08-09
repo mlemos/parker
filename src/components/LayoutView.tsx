@@ -1,7 +1,7 @@
 import { Fragment, useRef } from "react";
 import { EditorGroup } from "./EditorGroup";
 import type { GroupCallbacks } from "./EditorGroup";
-import type { Buffer, LayoutNode, SplitNode } from "../lib/layout";
+import type { Buffer, Direction, LayoutNode, SplitNode } from "../lib/layout";
 import type { ThemeDef } from "../lib/themes";
 
 export interface LayoutHandlers {
@@ -10,12 +10,16 @@ export interface LayoutHandlers {
   onCloseTab: (groupId: string, name: string) => void;
   onNewTab: (groupId: string) => void;
   onChange: (name: string, value: string) => void;
-  onReorder: (groupId: string, from: number, to: number) => void;
   onStartRename: (name: string) => void;
   onCommitRename: (oldName: string, raw: string) => void;
   onCancelRename: () => void;
   onSplit: (groupId: string, dir: "row" | "col") => void;
-  onMerge: (groupId: string) => void;
+  onMerge: (groupId: string, dir: Direction) => void;
+  onDropTab: (
+    source: { from: string; name: string },
+    toGroupId: string,
+    toIndex: number
+  ) => void;
   onCloseGroup: (groupId: string) => void;
   onResize: (splitId: string, index: number, delta: number) => void;
 }
@@ -29,6 +33,7 @@ interface Common {
   renamingName: string | null;
   multiGroup: boolean;
   altHeld: boolean;
+  mergeDirs: Record<string, Direction[]>;
   h: LayoutHandlers;
 }
 
@@ -44,12 +49,13 @@ export function LayoutView({
       onCloseTab: (name) => common.h.onCloseTab(g.id, name),
       onNewTab: () => common.h.onNewTab(g.id),
       onChange: common.h.onChange,
-      onReorder: (from, to) => common.h.onReorder(g.id, from, to),
       onStartRename: common.h.onStartRename,
       onCommitRename: common.h.onCommitRename,
       onCancelRename: common.h.onCancelRename,
       onSplit: (dir) => common.h.onSplit(g.id, dir),
-      onMerge: () => common.h.onMerge(g.id),
+      onMerge: (dir) => common.h.onMerge(g.id, dir),
+      onDropTab: (source, toIndex) =>
+        common.h.onDropTab(source, g.id, toIndex),
       onCloseGroup: () => common.h.onCloseGroup(g.id),
     };
     return (
@@ -59,6 +65,7 @@ export function LayoutView({
         focused={common.focusedId === g.id}
         canClose={common.multiGroup}
         altHeld={common.altHeld}
+        mergeDirs={common.mergeDirs[g.id] ?? []}
         theme={common.theme}
         gutterOn={common.gutterOn}
         wrapOn={common.wrapOn}

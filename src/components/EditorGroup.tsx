@@ -5,8 +5,10 @@ import { EditorView, Prec } from "@uiw/react-codemirror";
 import { languageForName } from "../lib/lang";
 import { todoHighlighter } from "../lib/todo";
 import type { ThemeDef } from "../lib/themes";
-import type { Buffer, Group } from "../lib/layout";
+import type { Buffer, Direction, Group } from "../lib/layout";
 import { RenameInput } from "./RenameInput";
+
+const TAB_MIME = "application/x-parker-tab";
 
 export interface GroupCallbacks {
   onFocus: () => void;
@@ -14,14 +16,21 @@ export interface GroupCallbacks {
   onCloseTab: (name: string) => void;
   onNewTab: () => void;
   onChange: (name: string, value: string) => void;
-  onReorder: (from: number, to: number) => void;
   onStartRename: (name: string) => void;
   onCommitRename: (oldName: string, raw: string) => void;
   onCancelRename: () => void;
   onSplit: (dir: "row" | "col") => void;
-  onMerge: () => void;
+  onMerge: (dir: Direction) => void;
+  onDropTab: (source: { from: string; name: string }, toIndex: number) => void;
   onCloseGroup: () => void;
 }
+
+const MERGE_ARROW: Record<Direction, string> = {
+  left: "M14 7l-5 5 5 5", // ‹
+  right: "M10 7l5 5-5 5", // ›
+  up: "M7 14l5-5 5 5", // ˄
+  down: "M7 10l5 5 5-5", // ˅
+};
 
 export function EditorGroup({
   group,
@@ -29,6 +38,7 @@ export function EditorGroup({
   focused,
   canClose,
   altHeld,
+  mergeDirs,
   theme,
   gutterOn,
   wrapOn,
@@ -39,7 +49,8 @@ export function EditorGroup({
   buffers: Buffer[];
   focused: boolean;
   canClose: boolean; // more than one group exists
-  altHeld: boolean; // Option held → show merge instead of split
+  altHeld: boolean; // Option held → show merge arrows instead of split
+  mergeDirs: Direction[]; // directions with a neighbour to merge into
   theme: ThemeDef;
   gutterOn: boolean;
   wrapOn: boolean;
@@ -77,7 +88,27 @@ export function EditorGroup({
       onMouseDown={cb.onFocus}
     >
       <div className="tabstrip">
-        <div className="tabs">
+        <div
+          className="tabs"
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes(TAB_MIME)) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }
+          }}
+          onDrop={(e) => {
+            const raw = e.dataTransfer.getData(TAB_MIME);
+            if (!raw) return;
+            e.preventDefault();
+            try {
+              cb.onDropTab(JSON.parse(raw), group.tabs.length);
+            } catch {
+              /* ignore malformed */
+            }
+            setDragIndex(null);
+            setOverIndex(null);
+          }}
+        >
           {group.tabs.map((name, i) => {
             const buf = buffers.find((b) => b.name === name);
             const dirty = buf?.dirty ?? false;
@@ -106,15 +137,28 @@ export function EditorGroup({
                 onDragStart={(e) => {
                   setDragIndex(i);
                   e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData(
+                    TAB_MIME,
+                    JSON.stringify({ from: group.id, name })
+                  );
                 }}
                 onDragOver={(e) => {
+                  if (!e.dataTransfer.types.includes(TAB_MIME)) return;
                   e.preventDefault();
+                  e.stopPropagation();
                   e.dataTransfer.dropEffect = "move";
                   if (overIndex !== i) setOverIndex(i);
                 }}
                 onDrop={(e) => {
+                  const raw = e.dataTransfer.getData(TAB_MIME);
+                  if (!raw) return;
                   e.preventDefault();
-                  if (dragIndex !== null) cb.onReorder(dragIndex, i);
+                  e.stopPropagation();
+                  try {
+                    cb.onDropTab(JSON.parse(raw), i);
+                  } catch {
+                    /* ignore malformed */
+                  }
                   setDragIndex(null);
                   setOverIndex(null);
                 }}
@@ -151,20 +195,21 @@ export function EditorGroup({
           </button>
         </div>
         <div className="group-actions">
-          {altHeld && canClose ? (
-            // Option held: the split buttons become a merge (unsplit) button.
-            <button
-              className="group-btn merge"
-              onClick={cb.onMerge}
-              title="Merge into the neighbouring pane (unsplit)"
-              aria-label="Merge pane"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="1.5" />
-                <path d="M14 9l-3 3 3 3" />
-                <path d="M8 9l3 3-3 3" />
-              </svg>
-            </button>
+          {altHeld && mergeDirs.length > 0 ? (
+            // Option held: directional merge arrows, one per neighbouring pane.
+            mergeDirs.map((d) => (
+              <button
+                key={d}
+                className="group-btn merge"
+                onClick={() => cb.onMerge(d)}
+                title={`Merge with the pane to the ${d} (unsplit)`}
+                aria-label={`Merge ${d}`}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d={MERGE_ARROW[d]} />
+                </svg>
+              </button>
+            ))
           ) : (
             <>
               <button
@@ -189,20 +234,20 @@ export function EditorGroup({
                   <line x1="3" y1="12" x2="21" y2="12" />
                 </svg>
               </button>
+              {canClose && (
+                <button
+                  className="group-btn"
+                  onClick={cb.onCloseGroup}
+                  title="Close this pane"
+                  aria-label="Close pane"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                  </svg>
+                </button>
+              )}
             </>
-          )}
-          {canClose && !altHeld && (
-            <button
-              className="group-btn"
-              onClick={cb.onCloseGroup}
-              title="Close this pane"
-              aria-label="Close pane"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                <line x1="6" y1="6" x2="18" y2="18" />
-                <line x1="18" y1="6" x2="6" y2="18" />
-              </svg>
-            </button>
           )}
         </div>
       </div>

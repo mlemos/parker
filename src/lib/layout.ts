@@ -129,25 +129,55 @@ export function removeGroup(root: LayoutNode, id: string): LayoutNode | null {
   return { ...root, children: kids, sizes: kids.map(() => 1 / kids.length) };
 }
 
-// The id of a group adjacent to `id` (its merge target). Prefers the next
-// sibling, else the previous. Null when the group has no sibling (root group).
-export function siblingGroupId(root: LayoutNode, id: string): string | null {
-  const find = (node: LayoutNode): string | null => {
-    if (node.kind !== "split") return null;
-    const idx = node.children.findIndex(
-      (c) => c.kind === "group" && c.id === id
-    );
-    if (idx >= 0) {
-      const sib = node.children[idx + 1] ?? node.children[idx - 1];
-      return sib ? firstGroup(sib).id : null;
+export type Direction = "left" | "right" | "up" | "down";
+
+export function lastGroup(node: LayoutNode): Group {
+  return node.kind === "group"
+    ? node
+    : lastGroup(node.children[node.children.length - 1]);
+}
+
+// The group spatially adjacent to `id` in a given direction, or null if there's
+// no pane that way. Walks up to the nearest ancestor split on the matching axis
+// (row for left/right, col for up/down) and steps to the neighbouring subtree,
+// picking the group closest to `id` on that side.
+export function neighborGroupId(
+  root: LayoutNode,
+  id: string,
+  dir: Direction
+): string | null {
+  const axis: "row" | "col" =
+    dir === "left" || dir === "right" ? "row" : "col";
+  const before = dir === "left" || dir === "up";
+  const path: { node: SplitNode; i: number }[] = [];
+  const build = (node: LayoutNode): boolean => {
+    if (node.kind === "group") return node.id === id;
+    for (let i = 0; i < node.children.length; i++) {
+      if (build(node.children[i])) {
+        path.push({ node, i });
+        return true;
+      }
     }
-    for (const c of node.children) {
-      const r = find(c);
-      if (r) return r;
-    }
-    return null;
+    return false;
   };
-  return find(root);
+  if (!build(root)) return null;
+  for (const { node, i } of path) {
+    if (node.dir === axis) {
+      const j = before ? i - 1 : i + 1;
+      if (j >= 0 && j < node.children.length) {
+        const sib = node.children[j];
+        return before ? lastGroup(sib).id : firstGroup(sib).id;
+      }
+    }
+  }
+  return null;
+}
+
+// Directions in which `id` has a neighbour to merge with.
+export function mergeDirections(root: LayoutNode, id: string): Direction[] {
+  return (["left", "right", "up", "down"] as Direction[]).filter(
+    (d) => neighborGroupId(root, id, d) !== null
+  );
 }
 
 // Resize the divider after child `index` inside a split, shifting `delta`
