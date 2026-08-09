@@ -267,6 +267,27 @@ export function mergeDirections(root: LayoutNode, id: string): Direction[] {
   );
 }
 
+// Center a divider: give the two panes it separates equal size (the rest of
+// the split keeps its sizes). Used on a double-click of the divider.
+export function centerDivider(
+  root: LayoutNode,
+  splitId: string,
+  index: number
+): LayoutNode {
+  if (root.kind === "group") return root;
+  if (root.id === splitId) {
+    const sizes = [...root.sizes];
+    const avg = (sizes[index] + sizes[index + 1]) / 2;
+    sizes[index] = avg;
+    sizes[index + 1] = avg;
+    return { ...root, sizes };
+  }
+  return {
+    ...root,
+    children: root.children.map((c) => centerDivider(c, splitId, index)),
+  };
+}
+
 // Resize the divider after child `index` inside a split, shifting `delta`
 // (fraction of the split's length) from the next child to this one.
 export function resizeSplit(

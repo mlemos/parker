@@ -26,6 +26,7 @@ export interface LayoutHandlers {
   onTabDragEnd: () => void;
   onCloseGroup: (groupId: string) => void;
   onResize: (splitId: string, index: number, delta: number) => void;
+  onEqualize: (splitId: string, index: number) => void;
 }
 
 interface Common {
@@ -118,6 +119,8 @@ function SplitView({ node, ...common }: { node: SplitNode } & Common) {
             <div
               className={"split-divider " + node.dir}
               onPointerDown={startResize(i - 1)}
+              onDoubleClick={() => common.h.onEqualize(node.id, i - 1)}
+              title="Drag to resize · double-click to center"
             />
           )}
           <div

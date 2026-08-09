@@ -17,6 +17,7 @@ import {
   asLayout,
   findGroup,
   firstGroup,
+  centerDivider,
   makeGroup,
   pruneLayout,
   removeGroup,
@@ -529,6 +530,10 @@ export default function App() {
     []
   );
 
+  const onEqualize = useCallback((splitId: string, index: number) => {
+    setLayout((l) => centerDivider(l, splitId, index));
+  }, []);
+
   const switchToIndex = useCallback((i: number) => {
     const s = stateRef.current;
     const g = findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout);
@@ -854,6 +859,7 @@ export default function App() {
     onTabDragEnd: () => setTabDragging(false),
     onCloseGroup: closeGroup,
     onResize,
+    onEqualize,
   };
 
   return (
