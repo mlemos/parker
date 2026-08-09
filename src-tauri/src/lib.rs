@@ -987,11 +987,16 @@ fn build_menu<R: tauri::Runtime>(
         .build(handle)?;
     // Our own About panel (with the beta disclaimer) instead of the OS default.
     let about = MenuItemBuilder::with_id("about", "About Parker").build(handle)?;
+    // Keyboard shortcuts help overlay.
+    let help = MenuItemBuilder::with_id("help", "Keyboard Shortcuts")
+        .accelerator("CmdOrCtrl+/")
+        .build(handle)?;
 
     let app_menu = SubmenuBuilder::new(handle, variant::TITLE)
         .item(&about)
         .separator()
         .item(&settings)
+        .item(&help)
         .separator()
         .hide()
         .hide_others()
@@ -1215,6 +1220,11 @@ pub fn run() {
                 let _ = app.emit("parker://open-settings", ());
             }
             "about" => show_about_window(app),
+            "help" => {
+                use tauri::Emitter;
+                show_window(app);
+                let _ = app.emit("parker://open-help", ());
+            }
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
