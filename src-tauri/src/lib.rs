@@ -989,7 +989,7 @@ fn build_menu<R: tauri::Runtime>(
     let about = MenuItemBuilder::with_id("about", "About Parker").build(handle)?;
     // Keyboard shortcuts help overlay.
     let help = MenuItemBuilder::with_id("help", "Keyboard Shortcuts")
-        .accelerator("CmdOrCtrl+/")
+        .accelerator("CmdOrCtrl+K")
         .build(handle)?;
 
     let app_menu = SubmenuBuilder::new(handle, variant::TITLE)

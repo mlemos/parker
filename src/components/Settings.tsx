@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { api } from "../lib/api";
 import type { SettingsInfo } from "../lib/api";
 import { prettyPath } from "../lib/path";
@@ -184,7 +185,7 @@ export function Settings({
         <div className="settings-head">
           <span>Settings</span>
           <button className="settings-x" onClick={onClose} title="Close (Esc)">
-            ×
+            <X size={16} strokeWidth={1.8} />
           </button>
         </div>
 

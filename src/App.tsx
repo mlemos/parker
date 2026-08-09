@@ -5,6 +5,7 @@ import {
   WrapText,
   Palette,
   Settings as SettingsIcon,
+  CircleQuestionMark,
 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
@@ -961,6 +962,14 @@ export default function App() {
         <span className="status-dir" title={notesDir}>
           {prettyPath(notesDir, homeDir)}
         </span>
+        <button
+          className="status-help"
+          onClick={() => setHelpOpen(true)}
+          title="Keyboard shortcuts (Cmd+K)"
+          aria-label="Keyboard shortcuts"
+        >
+          <CircleQuestionMark size={16} strokeWidth={2} aria-hidden="true" />
+        </button>
       </div>
 
       {pickerOpen && (

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { api } from "../lib/api";
 
 // Tauri accelerator → mac symbols (e.g. "Ctrl+Alt+P" → "⌃⌥P").
@@ -11,46 +12,47 @@ function pretty(accel: string): string {
     .replace(/\+/g, "");
 }
 
-type Row = [keys: string, label: string];
+// [label, keys] — each key string renders as its own <kbd> chip.
+type Row = [label: string, keys: string[]];
 
 const SECTIONS: { title: string; rows: Row[] }[] = [
   {
     title: "Notes & tabs",
     rows: [
-      ["⌘T", "New note"],
-      ["⌘O", "Open / search notes"],
-      ["⌘S", "Save now"],
-      ["⌘W", "Close tab"],
-      ["⌘1 – ⌘9", "Go to tab 1–9"],
-      ["⌘[  ⌘]", "Previous / next tab"],
-      ["⌘⇧[  ⌘⇧]", "Move tab left / right"],
-      ["F2  ⌘⇧R", "Rename tab"],
+      ["New note", ["⌘T"]],
+      ["Open / search notes", ["⌘O"]],
+      ["Save now", ["⌘S"]],
+      ["Close tab", ["⌘W"]],
+      ["Go to tab 1–9", ["⌘1–9"]],
+      ["Previous / next tab", ["⌘[", "⌘]"]],
+      ["Move tab left / right", ["⌘⇧[", "⌘⇧]"]],
+      ["Rename tab", ["F2", "⌘⇧R"]],
     ],
   },
   {
     title: "Panes (split)",
     rows: [
-      ["⌘\\", "Split right"],
-      ["⌘⇧\\", "Split down"],
-      ["⌘⇧V", "Markdown preview to the side"],
+      ["Split right", ["⌘\\"]],
+      ["Split down", ["⌘⇧\\"]],
+      ["Markdown preview to the side", ["⌘⇧V"]],
     ],
   },
   {
     title: "View",
     rows: [
-      ["⌘=  ⌘-", "Font size up / down"],
-      ["⌘0", "Reset font size"],
-      ["⌘⇧L", "Toggle line numbers"],
-      ["⌘⇧T", "Cycle theme"],
+      ["Font size up / down", ["⌘=", "⌘-"]],
+      ["Reset font size", ["⌘0"]],
+      ["Toggle line numbers", ["⌘⇧L"]],
+      ["Cycle theme", ["⌘⇧T"]],
     ],
   },
   {
     title: "Git & app",
     rows: [
-      ["⌘⇧S", "Commit & push (quick)"],
-      ["⌘,", "Settings"],
-      ["⌘/", "This help"],
-      ["⌘Q", "Quit"],
+      ["Commit & push (quick)", ["⌘⇧S"]],
+      ["Settings", ["⌘,"]],
+      ["This help", ["⌘K"]],
+      ["Quit", ["⌘Q"]],
     ],
   },
 ];
@@ -85,34 +87,40 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
 
-  const appRows: Row[] = summon
-    ? [[summon, "Summon / hide Parker (global — change in Settings)"]]
-    : [];
-
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
       <div className="shortcuts" onMouseDown={(e) => e.stopPropagation()}>
         <div className="sc-head">
           <span>Keyboard shortcuts</span>
           <button className="sc-x" onClick={onClose} title="Close (Esc)">
-            ×
+            <X size={16} strokeWidth={1.8} />
           </button>
         </div>
 
         <div className="sc-grid">
-          {SECTIONS.map((sec) => (
-            <div className="sc-section" key={sec.title}>
-              <div className="sc-title">{sec.title}</div>
-              {sec.rows
-                .concat(sec.title === "Git & app" ? appRows : [])
-                .map(([keys, label]) => (
+          {SECTIONS.map((sec) => {
+            const rows: Row[] =
+              sec.title === "Git & app" && summon
+                ? [...sec.rows, ["Summon / hide Parker (global)", [summon]]]
+                : sec.rows;
+            return (
+              <div className="sc-section" key={sec.title}>
+                <div className="sc-title">{sec.title}</div>
+                {rows.map(([label, keys]) => (
                   <div className="sc-row" key={label}>
                     <span className="sc-label">{label}</span>
-                    <kbd className="sc-keys">{keys}</kbd>
+                    <span className="sc-keys">
+                      {keys.map((k) => (
+                        <kbd className="sc-key" key={k}>
+                          {k}
+                        </kbd>
+                      ))}
+                    </span>
                   </div>
                 ))}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
 
         <div className="sc-gestures">
