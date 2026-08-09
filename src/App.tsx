@@ -6,11 +6,14 @@ import { prettyPath } from "./lib/path";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import {
   allGroups,
+  allTabNames,
+  asLayout,
   findGroup,
   firstGroup,
   makeGroup,
   mergeDirections,
   neighborGroupId,
+  pruneLayout,
   removeGroup,
   resizeSplit,
   splitGroup,
@@ -117,6 +120,8 @@ export default function App() {
         open: s.buffers.map((b) => b.name),
         active: focusedActive(s),
         theme: s.themeId,
+        layout: s.layout,
+        focused: s.focusedId,
       })
       .catch(() => {});
   }, []);
@@ -130,6 +135,8 @@ export default function App() {
           open: s.buffers.map((b) => b.name),
           active: focusedActive(s),
           theme: s.themeId,
+          layout: s.layout,
+          focused: s.focusedId,
         })
         .catch((e) => console.error("session save failed", e));
     }, SESSION_MS);
@@ -164,13 +171,31 @@ export default function App() {
             ? session.active
             : restored[0].name;
 
-        const g = makeGroup(
-          restored.map((b) => b.name),
-          active
-        );
+        // Restore the split layout if we saved one and it still holds notes;
+        // otherwise fall back to a single pane with the open notes.
+        const valid = new Set(restored.map((b) => b.name));
+        const saved = session.layout ? asLayout(session.layout) : null;
+        const pruned = saved ? pruneLayout(saved, valid) : null;
+
+        let root: LayoutNode;
+        let focused: string;
+        if (pruned && allTabNames(pruned).length > 0) {
+          root = pruned;
+          focused =
+            session.focused && findGroup(pruned, session.focused)
+              ? session.focused
+              : firstGroup(pruned).id;
+        } else {
+          const g = makeGroup(
+            restored.map((b) => b.name),
+            active
+          );
+          root = g;
+          focused = g.id;
+        }
         setBuffers(restored);
-        setLayout(g);
-        setFocusedId(g.id);
+        setLayout(root);
+        setFocusedId(focused);
         if (session.theme) setThemeId(session.theme);
       } catch (e) {
         console.error("startup failed", e);

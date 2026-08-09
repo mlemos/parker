@@ -17,6 +17,8 @@ export interface Session {
   open: string[];
   active: string | null;
   theme: string | null;
+  layout?: unknown; // serialized split layout tree (frontend-owned schema)
+  focused?: string | null; // focused group id within the layout
 }
 
 export interface SettingsInfo {

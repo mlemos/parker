@@ -31,6 +31,12 @@ struct Session {
     active: Option<String>,
     #[serde(default)]
     theme: Option<String>,
+    /// Split layout tree (opaque JSON owned by the frontend). None → single pane.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    layout: Option<serde_json::Value>,
+    /// Focused group id within the layout.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    focused: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]

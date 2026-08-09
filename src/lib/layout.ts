@@ -29,7 +29,9 @@ export type LayoutNode = Group | SplitNode;
 let _id = 0;
 export function newId(prefix = "n"): string {
   _id += 1;
-  return `${prefix}${_id}`;
+  // Counter + random fragment so ids restored from a saved layout can never
+  // collide with freshly-minted ones after a reload.
+  return `${prefix}${_id}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
 export function makeGroup(tabs: string[], active: string | null): Group {
@@ -40,6 +42,54 @@ export function allGroups(node: LayoutNode): Group[] {
   return node.kind === "group"
     ? [node]
     : node.children.flatMap(allGroups);
+}
+
+// Every note name referenced anywhere in the tree (deduped).
+export function allTabNames(node: LayoutNode): string[] {
+  return [...new Set(allGroups(node).flatMap((g) => g.tabs))];
+}
+
+// Drop tabs whose note no longer exists; keep structure (panes may go empty).
+export function pruneLayout(node: LayoutNode, valid: Set<string>): LayoutNode {
+  if (node.kind === "group") {
+    const tabs = node.tabs.filter((t) => valid.has(t));
+    const active =
+      node.active && tabs.includes(node.active) ? node.active : tabs[0] ?? null;
+    return { ...node, tabs, active };
+  }
+  return { ...node, children: node.children.map((c) => pruneLayout(c, valid)) };
+}
+
+// Validate/normalise a value deserialized from the session into a LayoutNode,
+// or null if it's not a well-formed tree.
+export function asLayout(x: unknown): LayoutNode | null {
+  if (!x || typeof x !== "object") return null;
+  const n = x as Record<string, unknown>;
+  if (n.kind === "group") {
+    if (!Array.isArray(n.tabs)) return null;
+    const tabs = n.tabs.filter((t): t is string => typeof t === "string");
+    const active = typeof n.active === "string" ? n.active : null;
+    return { id: typeof n.id === "string" ? n.id : newId("g"), kind: "group", tabs, active };
+  }
+  if (n.kind === "split") {
+    if (!Array.isArray(n.children) || n.children.length === 0) return null;
+    const children = n.children.map(asLayout);
+    if (children.some((c) => c === null)) return null;
+    const kids = children as LayoutNode[];
+    const dir = n.dir === "col" ? "col" : "row";
+    const sizes =
+      Array.isArray(n.sizes) && n.sizes.length === kids.length
+        ? (n.sizes as number[])
+        : kids.map(() => 1 / kids.length);
+    return {
+      id: typeof n.id === "string" ? n.id : newId("s"),
+      kind: "split",
+      dir,
+      children: kids,
+      sizes,
+    };
+  }
+  return null;
 }
 
 export function findGroup(node: LayoutNode, id: string): Group | null {
