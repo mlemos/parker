@@ -859,6 +859,14 @@ pub fn run() {
             set_notes_dir,
             quit,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, _event| {
+            // Clicking the Dock icon (now that we're a Regular app) re-summons
+            // the window even after the red button hid it back to the tray.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = &_event {
+                show_window(_app);
+            }
+        });
 }
