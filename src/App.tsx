@@ -365,9 +365,20 @@ export default function App() {
     const s = stateRef.current;
     const g = findGroup(s.layout, groupId);
     if (!g || !g.active) return;
-    // The new pane opens the same note — a second view / preview basis.
-    const ng = makeGroup([g.active], g.active);
-    const next = splitGroup(s.layout, groupId, dir, ng);
+    const active = g.active;
+    const ng = makeGroup([active], active);
+    let base = s.layout;
+    // If the pane has other tabs, MOVE the active one into the new pane (no
+    // duplication). With a single tab, mirror it (can't leave the pane empty).
+    if (g.tabs.length > 1) {
+      const idx = g.tabs.indexOf(active);
+      const remaining = g.tabs.filter((t) => t !== active);
+      base = updateGroup(s.layout, groupId, {
+        tabs: remaining,
+        active: remaining[Math.min(idx, remaining.length - 1)],
+      });
+    }
+    const next = splitGroup(base, groupId, dir, ng);
     setLayout(next);
     setFocusedId(ng.id);
   }, []);
