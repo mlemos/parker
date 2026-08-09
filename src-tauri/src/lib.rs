@@ -917,6 +917,29 @@ fn show_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     }
 }
 
+/// Open (or focus) the standalone About window — a small, fixed-size window
+/// loading the frontend with ?view=about.
+fn show_about_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+    if let Some(w) = app.get_webview_window("about") {
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let _ = WebviewWindowBuilder::new(
+        app,
+        "about",
+        WebviewUrl::App("index.html?view=about".into()),
+    )
+    .title("About Parker")
+    .inner_size(360.0, 452.0)
+    .resizable(false)
+    .maximizable(false)
+    .minimizable(false)
+    .center()
+    .build();
+}
+
 /// Toggle: if the window is visible and focused, hide it; otherwise summon it.
 fn toggle_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     use tauri::Manager;
@@ -1021,10 +1044,7 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
                 show_window(app);
                 let _ = app.emit("parker://open-settings", ());
             }
-            "tray_about" => {
-                show_window(app);
-                let _ = app.emit("parker://open-about", ());
-            }
+            "tray_about" => show_about_window(app),
             "tray_quit" => request_quit(app),
             _ => {}
         })
@@ -1188,10 +1208,7 @@ pub fn run() {
                 use tauri::Emitter;
                 let _ = app.emit("parker://open-settings", ());
             }
-            "about" => {
-                use tauri::Emitter;
-                let _ = app.emit("parker://open-about", ());
-            }
+            "about" => show_about_window(app),
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
