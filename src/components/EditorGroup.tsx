@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import type { Extension } from "@uiw/react-codemirror";
 import { EditorView, Prec } from "@uiw/react-codemirror";
+import {
+  SquareSplitHorizontal,
+  SquareSplitVertical,
+  SquaresUnite,
+} from "lucide-react";
 import { languageForName } from "../lib/lang";
 import { todoHighlighter } from "../lib/todo";
 import type { ThemeDef } from "../lib/themes";
@@ -238,14 +243,11 @@ export function EditorGroup({
             }
             aria-label={altHeld ? "Split down" : "Split right"}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="16" rx="1.5" />
-              {altHeld ? (
-                <line x1="3" y1="12" x2="21" y2="12" />
-              ) : (
-                <line x1="12" y1="4" x2="12" y2="20" />
-              )}
-            </svg>
+            {altHeld ? (
+              <SquareSplitVertical size={15} strokeWidth={1.8} />
+            ) : (
+              <SquareSplitHorizontal size={15} strokeWidth={1.8} />
+            )}
           </button>
           {/* Close — click closes the pane, ⌥ merges it into a neighbour. */}
           {canClose && (
@@ -260,11 +262,7 @@ export function EditorGroup({
               aria-label={altHeld ? "Merge pane" : "Close pane"}
             >
               {altHeld ? (
-                // Two arrows collapsing toward the centre = merge.
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 12h8M8 9l3 3-3 3" />
-                  <path d="M21 12h-8M16 9l-3 3 3 3" />
-                </svg>
+                <SquaresUnite size={15} strokeWidth={1.8} />
               ) : (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
                   <line x1="6" y1="6" x2="18" y2="18" />
