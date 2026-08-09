@@ -207,6 +207,35 @@ export function EditorGroup({
           </button>
         </div>
         <div className="group-actions">
+          {/* Single preview control: click toggles in place, ⌥-click (or the
+              button while ⌥ is held) opens the preview side by side. */}
+          {isMd && (
+            <button
+              className={"group-btn" + (showPreview && !altHeld ? " on" : "")}
+              onClick={(e) =>
+                e.altKey ? cb.onPreviewToSide() : cb.onToggleMode()
+              }
+              title={
+                altHeld
+                  ? "Preview to the side (Cmd+Shift+V)"
+                  : "Markdown preview — hold ⌥ for side by side"
+              }
+              aria-label="Preview"
+            >
+              {altHeld ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="1.5" />
+                  <line x1="13" y1="4" x2="13" y2="20" />
+                  <path d="M16 10l2 2-2 2" />
+                </svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          )}
           {altHeld && mergeDirs.length > 0 ? (
             // Option held: directional merge arrows, one per neighbouring pane.
             mergeDirs.map((d) => (
@@ -224,34 +253,6 @@ export function EditorGroup({
             ))
           ) : (
             <>
-              {isMd && (
-                <>
-                  <button
-                    className={"group-btn" + (showPreview ? " on" : "")}
-                    onClick={cb.onToggleMode}
-                    title="Toggle Markdown preview"
-                    aria-label="Toggle preview"
-                    aria-pressed={showPreview}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  </button>
-                  <button
-                    className="group-btn"
-                    onClick={cb.onPreviewToSide}
-                    title="Preview to the side (Cmd+Shift+V)"
-                    aria-label="Preview to the side"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="3" y="4" width="18" height="16" rx="1.5" />
-                      <line x1="13" y1="4" x2="13" y2="20" />
-                      <path d="M16 10l2 2-2 2" />
-                    </svg>
-                  </button>
-                </>
-              )}
               <button
                 className="group-btn"
                 onClick={() => cb.onSplit("row")}
