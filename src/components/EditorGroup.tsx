@@ -259,7 +259,7 @@ export function EditorGroup({
       </div>
 
       <div className="editor-wrap">
-        {activeBuf && (
+        {activeBuf ? (
           <CodeMirror
             key={`${group.id}:${activeBuf.name}`}
             value={activeBuf.content}
@@ -277,6 +277,18 @@ export function EditorGroup({
               syntaxHighlighting: false,
             }}
           />
+        ) : (
+          <div className="empty-pane">
+            <div className="empty-pane-inner">
+              <div className="empty-title">Empty pane</div>
+              <button className="empty-btn" onClick={cb.onNewTab}>
+                New note
+              </button>
+              <div className="empty-hint">
+                ⌘T new · ⌘O open · or drop a tab here
+              </div>
+            </div>
+          </div>
         )}
         {/* While a tab is being dragged, a full-body catcher sits above the
             editor so the tab can be dropped anywhere on the pane. */}

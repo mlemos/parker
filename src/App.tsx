@@ -364,19 +364,23 @@ export default function App() {
   const splitFocused = useCallback((groupId: string, dir: "row" | "col") => {
     const s = stateRef.current;
     const g = findGroup(s.layout, groupId);
-    if (!g || !g.active) return;
-    const active = g.active;
-    const ng = makeGroup([active], active);
+    if (!g) return;
     let base = s.layout;
-    // If the pane has other tabs, MOVE the active one into the new pane (no
-    // duplication). With a single tab, mirror it (can't leave the pane empty).
-    if (g.tabs.length > 1) {
+    let ng;
+    if (g.active && g.tabs.length > 1) {
+      // Multiple tabs: MOVE the active one into the new pane (no duplication).
+      const active = g.active;
       const idx = g.tabs.indexOf(active);
       const remaining = g.tabs.filter((t) => t !== active);
       base = updateGroup(s.layout, groupId, {
         tabs: remaining,
         active: remaining[Math.min(idx, remaining.length - 1)],
       });
+      ng = makeGroup([active], active);
+    } else {
+      // Single tab (or already empty): open a fresh EMPTY pane, leaving the
+      // original untouched. Fill it with ⌘T / ⌘O / a dragged tab.
+      ng = makeGroup([], null);
     }
     const next = splitGroup(base, groupId, dir, ng);
     setLayout(next);

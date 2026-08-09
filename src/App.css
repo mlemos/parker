@@ -577,6 +577,45 @@ body.resizing {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   box-shadow: inset 0 0 0 2px var(--accent);
 }
+
+/* Empty pane placeholder */
+.empty-pane {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--editor-bg);
+  color: var(--muted);
+}
+.empty-pane-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.empty-title {
+  font-size: 13px;
+  color: var(--secondary);
+}
+.empty-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.empty-btn:hover {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+.empty-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+}
 .egroup.focused .tabstrip {
   box-shadow: inset 0 -2px 0 0 var(--accent);
 }
