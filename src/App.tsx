@@ -20,6 +20,7 @@ import {
   updateGroup,
 } from "./lib/layout";
 import type { Buffer, Direction, LayoutNode } from "./lib/layout";
+import { isMarkdown } from "./lib/markdown";
 import { NotePicker } from "./components/NotePicker";
 import { GitMenu } from "./components/GitMenu";
 import { Settings } from "./components/Settings";
@@ -414,6 +415,28 @@ export default function App() {
     setFocusedId(ng.id);
   }, []);
 
+  // Toggle a pane between editor and markdown preview.
+  const toggleMode = useCallback((groupId: string) => {
+    setLayout((l) => {
+      const g = findGroup(l, groupId);
+      if (!g) return l;
+      return updateGroup(l, groupId, {
+        mode: g.mode === "preview" ? "edit" : "preview",
+      });
+    });
+  }, []);
+
+  // Open a live preview of the active note in a new pane to the right, leaving
+  // the editor pane focused so you keep typing. (The one intentional mirror.)
+  const previewToSide = useCallback((groupId: string) => {
+    const s = stateRef.current;
+    const g = findGroup(s.layout, groupId);
+    if (!g || !g.active || !isMarkdown(g.active)) return;
+    const ng = makeGroup([g.active], g.active, "preview");
+    setLayout(splitGroup(s.layout, groupId, "row", ng));
+    setFocusedId(groupId);
+  }, []);
+
   // Merge a pane with its neighbour in `dir`: absorb that pane's tabs, then
   // collapse the split. The clicked pane survives (keeps focus).
   const mergeDir = useCallback((groupId: string, dir: Direction) => {
@@ -607,6 +630,9 @@ export default function App() {
         // ⌘\ split right, ⌘⇧\ split down. Shift+\ is "|" on US layouts.
         e.preventDefault();
         splitFocused(fid, e.shiftKey ? "col" : "row");
+      } else if (k === "v" && e.shiftKey) {
+        e.preventDefault();
+        previewToSide(fid); // ⌘⇧V — markdown preview to the side
       } else if (k === "t" && e.shiftKey) {
         e.preventDefault();
         cycleTheme();
@@ -670,6 +696,7 @@ export default function App() {
     switchToIndex,
     moveActiveTab,
     splitFocused,
+    previewToSide,
     startRename,
     openPicker,
   ]);
@@ -798,6 +825,8 @@ export default function App() {
     onCancelRename: () => setRenamingName(null),
     onSplit: splitFocused,
     onMerge: mergeDir,
+    onToggleMode: toggleMode,
+    onPreviewToSide: previewToSide,
     onDropTab: dropTab,
     onTabDragStart: () => setTabDragging(true),
     onTabDragEnd: () => setTabDragging(false),

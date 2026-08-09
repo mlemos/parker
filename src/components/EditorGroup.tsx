@@ -6,7 +6,9 @@ import { languageForName } from "../lib/lang";
 import { todoHighlighter } from "../lib/todo";
 import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Direction, Group } from "../lib/layout";
+import { isMarkdown } from "../lib/markdown";
 import { RenameInput } from "./RenameInput";
+import { MarkdownPreview } from "./MarkdownPreview";
 
 const TAB_MIME = "application/x-parker-tab";
 
@@ -21,6 +23,8 @@ export interface GroupCallbacks {
   onCancelRename: () => void;
   onSplit: (dir: "row" | "col") => void;
   onMerge: (dir: Direction) => void;
+  onToggleMode: () => void;
+  onPreviewToSide: () => void;
   onDropTab: (source: { from: string; name: string }, toIndex: number) => void;
   onTabDragStart: () => void;
   onTabDragEnd: () => void;
@@ -68,6 +72,8 @@ export function EditorGroup({
 
   const active = group.active;
   const activeBuf = buffers.find((b) => b.name === active) ?? null;
+  const isMd = isMarkdown(active);
+  const showPreview = group.mode === "preview" && isMd && !!activeBuf;
 
   useEffect(() => {
     if (!active) return;
@@ -218,6 +224,34 @@ export function EditorGroup({
             ))
           ) : (
             <>
+              {isMd && (
+                <>
+                  <button
+                    className={"group-btn" + (showPreview ? " on" : "")}
+                    onClick={cb.onToggleMode}
+                    title="Toggle Markdown preview"
+                    aria-label="Toggle preview"
+                    aria-pressed={showPreview}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                  <button
+                    className="group-btn"
+                    onClick={cb.onPreviewToSide}
+                    title="Preview to the side (Cmd+Shift+V)"
+                    aria-label="Preview to the side"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="16" rx="1.5" />
+                      <line x1="13" y1="4" x2="13" y2="20" />
+                      <path d="M16 10l2 2-2 2" />
+                    </svg>
+                  </button>
+                </>
+              )}
               <button
                 className="group-btn"
                 onClick={() => cb.onSplit("row")}
@@ -259,7 +293,9 @@ export function EditorGroup({
       </div>
 
       <div className="editor-wrap">
-        {activeBuf ? (
+        {activeBuf && showPreview ? (
+          <MarkdownPreview content={activeBuf.content} />
+        ) : activeBuf ? (
           <CodeMirror
             key={`${group.id}:${activeBuf.name}`}
             value={activeBuf.content}

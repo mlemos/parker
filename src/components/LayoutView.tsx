@@ -15,6 +15,8 @@ export interface LayoutHandlers {
   onCancelRename: () => void;
   onSplit: (groupId: string, dir: "row" | "col") => void;
   onMerge: (groupId: string, dir: Direction) => void;
+  onToggleMode: (groupId: string) => void;
+  onPreviewToSide: (groupId: string) => void;
   onDropTab: (
     source: { from: string; name: string },
     toGroupId: string,
@@ -57,6 +59,8 @@ export function LayoutView({
       onCancelRename: common.h.onCancelRename,
       onSplit: (dir) => common.h.onSplit(g.id, dir),
       onMerge: (dir) => common.h.onMerge(g.id, dir),
+      onToggleMode: () => common.h.onToggleMode(g.id),
+      onPreviewToSide: () => common.h.onPreviewToSide(g.id),
       onDropTab: (source, toIndex) =>
         common.h.onDropTab(source, g.id, toIndex),
       onTabDragStart: common.h.onTabDragStart,

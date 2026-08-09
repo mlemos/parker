@@ -14,6 +14,7 @@ export interface Group {
   kind: "group";
   tabs: string[]; // note names open here, in tab order
   active: string | null;
+  mode?: "edit" | "preview"; // how the active note is shown (default edit)
 }
 
 export interface SplitNode {
@@ -34,8 +35,12 @@ export function newId(prefix = "n"): string {
   return `${prefix}${_id}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function makeGroup(tabs: string[], active: string | null): Group {
-  return { id: newId("g"), kind: "group", tabs, active };
+export function makeGroup(
+  tabs: string[],
+  active: string | null,
+  mode: "edit" | "preview" = "edit"
+): Group {
+  return { id: newId("g"), kind: "group", tabs, active, mode };
 }
 
 export function allGroups(node: LayoutNode): Group[] {
@@ -69,7 +74,14 @@ export function asLayout(x: unknown): LayoutNode | null {
     if (!Array.isArray(n.tabs)) return null;
     const tabs = n.tabs.filter((t): t is string => typeof t === "string");
     const active = typeof n.active === "string" ? n.active : null;
-    return { id: typeof n.id === "string" ? n.id : newId("g"), kind: "group", tabs, active };
+    const mode = n.mode === "preview" ? "preview" : "edit";
+    return {
+      id: typeof n.id === "string" ? n.id : newId("g"),
+      kind: "group",
+      tabs,
+      active,
+      mode,
+    };
   }
   if (n.kind === "split") {
     if (!Array.isArray(n.children) || n.children.length === 0) return null;
@@ -109,7 +121,7 @@ export function firstGroup(node: LayoutNode): Group {
 export function updateGroup(
   node: LayoutNode,
   id: string,
-  patch: Partial<Pick<Group, "tabs" | "active">>
+  patch: Partial<Pick<Group, "tabs" | "active" | "mode">>
 ): LayoutNode {
   if (node.kind === "group") {
     return node.id === id ? { ...node, ...patch } : node;
