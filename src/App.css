@@ -171,6 +171,8 @@ body,
   font-size: 12.5px;
   cursor: pointer;
   white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .tab:hover {
   background: color-mix(in srgb, var(--text) 6%, transparent);

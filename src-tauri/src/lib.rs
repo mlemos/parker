@@ -1125,7 +1125,11 @@ pub fn run() {
                 let mut b = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
                     .title(variant::TITLE)
                     .inner_size(900.0, 700.0)
-                    .min_inner_size(480.0, 360.0);
+                    .min_inner_size(480.0, 360.0)
+                    // Let HTML5 drag-and-drop work (tab reordering). Otherwise
+                    // the webview swallows drag events for OS file-drop, which
+                    // Parker doesn't use.
+                    .disable_drag_drop_handler();
                 #[cfg(target_os = "macos")]
                 {
                     b = b
