@@ -27,18 +27,35 @@ export interface SettingsInfo {
   git_auto_sync: boolean;
 }
 
+export interface GitFileChange {
+  status: string; // two-char porcelain code, e.g. " M", "A ", "??"
+  path: string;
+  added: number;
+  deleted: number;
+  binary: boolean;
+}
+
 export interface GitStatus {
   is_repo: boolean;
   has_remote: boolean;
   branch: string | null;
-  dirty: boolean;
-  ahead: number;
+  ahead: number; // -1 when no upstream is configured
+  files: GitFileChange[];
+  total_added: number;
+  total_deleted: number;
 }
 
-export interface GitSyncResult {
+export interface GitLogEntry {
+  hash: string;
+  subject: string;
+  rel_date: string;
+  unpushed: boolean;
+}
+
+export interface CommitResult {
   ok: boolean;
-  committed: boolean;
-  pushed: boolean;
+  error: string | null;
+  hash: string | null;
   message: string;
 }
 
@@ -64,7 +81,10 @@ export const api = {
   setGitAutoSync: (enabled: boolean) =>
     invoke<void>("set_git_auto_sync", { enabled }),
   gitStatus: () => invoke<GitStatus>("git_status"),
-  gitSync: (message?: string) => invoke<GitSyncResult>("git_sync", { message }),
+  gitLog: (limit?: number) => invoke<GitLogEntry[]>("git_log", { limit }),
+  gitCommit: (message: string, push: boolean) =>
+    invoke<CommitResult>("git_commit", { message, push }),
+  gitPush: () => invoke<CommitResult>("git_push"),
   pickNotesDir: () => invoke<string | null>("pick_notes_dir"),
   setNotesDir: (path: string, moveExisting: boolean) =>
     invoke<string>("set_notes_dir", { path, moveExisting }),

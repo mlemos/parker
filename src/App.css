@@ -581,6 +581,12 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
   color: var(--muted);
   white-space: nowrap;
 }
+/* ---- Git commit menu ---------------------------------------------------- */
+
+.gm-root {
+  position: relative;
+  display: inline-flex;
+}
 .status-git {
   display: inline-flex;
   align-items: center;
@@ -594,24 +600,272 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
   cursor: pointer;
   -webkit-app-region: no-drag;
 }
-.status-git:hover:not(:disabled) {
+.status-git:hover,
+.status-git.open {
   color: var(--text);
   background: color-mix(in srgb, var(--text) 9%, transparent);
-}
-.status-git:disabled {
-  cursor: default;
-  opacity: 0.8;
 }
 .status-git.dirty {
   color: var(--accent);
 }
-.git-icon.spin {
+.gm-icon.spin {
   animation: parker-spin 0.8s linear infinite;
 }
 @keyframes parker-spin {
   to {
     transform: rotate(360deg);
   }
+}
+.gm-badge {
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Popover — opens upward from the status bar */
+.gm-pop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  width: 440px;
+  max-width: calc(100vw - 2rem);
+  max-height: 70vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--popover-bg);
+  color: var(--text);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  font-size: 12.5px;
+}
+.gm-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.gm-branch {
+  font-weight: 600;
+  color: var(--text);
+}
+.gm-sync {
+  color: var(--muted);
+}
+.gm-totals {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.gm-add {
+  color: var(--accent);
+}
+.gm-del {
+  color: var(--danger);
+}
+.gm-mod {
+  color: var(--secondary);
+}
+
+.gm-section {
+  padding: 6px;
+  max-height: 34vh;
+  overflow-y: auto;
+}
+.gm-empty {
+  padding: 18px 8px;
+  text-align: center;
+  color: var(--muted);
+}
+.gm-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.gm-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: 5px;
+}
+.gm-file:hover {
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+.gm-tag {
+  flex: none;
+  width: 46px;
+  text-align: center;
+  padding: 1px 0;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gm-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gm-delta {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+.gm-bin {
+  font-style: italic;
+  color: var(--muted);
+}
+
+.gm-form {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+.gm-msg {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--field-bg);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+.gm-msg:focus {
+  border-color: var(--accent);
+}
+.gm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 9px;
+}
+.gm-btn {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.gm-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+.gm-btn.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.gm-btn.primary:hover:not(:disabled) {
+  background: var(--accent);
+  opacity: 0.9;
+}
+.gm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.gm-hint {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.gm-hint code,
+.gm-history code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+.gm-error,
+.gm-ok {
+  margin: 0 12px 10px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.gm-error {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+.gm-ok {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.gm-history {
+  border-top: 1px solid var(--border);
+  padding: 8px 6px 8px;
+}
+.gm-history-head {
+  padding: 2px 8px 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.gm-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.gm-commit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: 5px;
+}
+.gm-commit:hover {
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+.gm-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.gm-commit.unpushed .gm-dot {
+  background: var(--accent);
+}
+.gm-hash {
+  flex: none;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.gm-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--secondary);
+}
+.gm-commit.unpushed .gm-subject {
+  color: var(--text);
+}
+.gm-when {
+  flex: none;
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- Rename (inline in tab) --------------------------------------------- */

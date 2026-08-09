@@ -349,9 +349,14 @@ fn set_git_auto_sync(enabled: bool) -> Result<(), String> {
 // ---- Git sync -------------------------------------------------------------
 // Parker never runs `git init` or touches credentials — it drives an existing
 // repo the user set up in their notes folder, doing only add + commit + push.
+// Inspired by the Health Dashboard's commit menu: a rich per-file status, a
+// real (editable) commit message, separate commit/push, and a history view.
 
 fn run_git(args: &[&str]) -> Result<std::process::Output, String> {
     Command::new("git")
+        // Keep non-ASCII note names literal instead of octal-escaped.
+        .arg("-c")
+        .arg("core.quotepath=false")
         .args(args)
         .current_dir(notes_dir())
         .output()
@@ -364,136 +369,328 @@ fn git_is_repo() -> bool {
         .unwrap_or(false)
 }
 
+fn git_has_remote() -> bool {
+    run_git(&["remote"])
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false)
+}
+
+/// Count newline bytes in an untracked file (its "added" line count).
+fn count_lines(rel: &str) -> u32 {
+    match std::fs::read(notes_dir().join(rel)) {
+        Ok(b) => b.iter().filter(|&&c| c == b'\n').count() as u32,
+        Err(_) => 0,
+    }
+}
+
+#[derive(Serialize)]
+struct GitFileChange {
+    status: String, // two-char porcelain code (e.g. " M", "A ", "??")
+    path: String,
+    added: u32,
+    deleted: u32,
+    binary: bool,
+}
+
 #[derive(Serialize)]
 struct GitStatus {
     is_repo: bool,
     has_remote: bool,
     branch: Option<String>,
-    dirty: bool,     // uncommitted changes present
-    ahead: u32,      // commits not yet pushed
+    /// Commits on HEAD not yet on upstream. -1 when no upstream is configured.
+    ahead: i32,
+    files: Vec<GitFileChange>,
+    total_added: u32,
+    total_deleted: u32,
+}
+
+impl GitStatus {
+    fn empty(is_repo: bool) -> Self {
+        GitStatus {
+            is_repo,
+            has_remote: false,
+            branch: None,
+            ahead: -1,
+            files: Vec::new(),
+            total_added: 0,
+            total_deleted: 0,
+        }
+    }
 }
 
 #[tauri::command]
 fn git_status() -> GitStatus {
+    use std::collections::HashMap;
     if !git_is_repo() {
-        return GitStatus {
-            is_repo: false,
-            has_remote: false,
-            branch: None,
-            dirty: false,
-            ahead: 0,
-        };
+        return GitStatus::empty(false);
     }
-    let has_remote = run_git(&["remote"])
-        .map(|o| !o.stdout.is_empty())
-        .unwrap_or(false);
+
+    // Line deltas for tracked changes (staged + unstaged vs HEAD).
+    let mut numstat: HashMap<String, (u32, u32, bool)> = HashMap::new();
+    if let Ok(o) = run_git(&["diff", "--numstat", "HEAD"]) {
+        if o.status.success() {
+            for line in String::from_utf8_lossy(&o.stdout).lines() {
+                let mut it = line.splitn(3, '\t');
+                let a = it.next().unwrap_or("");
+                let d = it.next().unwrap_or("");
+                let p = it.next().unwrap_or("");
+                if p.is_empty() {
+                    continue;
+                }
+                let binary = a == "-" || d == "-";
+                numstat.insert(
+                    p.to_string(),
+                    (a.parse().unwrap_or(0), d.parse().unwrap_or(0), binary),
+                );
+            }
+        }
+    }
+
+    let mut files = Vec::new();
+    let mut total_added = 0u32;
+    let mut total_deleted = 0u32;
+    if let Ok(o) = run_git(&["status", "--porcelain=v1"]) {
+        for line in String::from_utf8_lossy(&o.stdout).lines() {
+            if line.len() < 3 {
+                continue;
+            }
+            let status = line[..2].to_string();
+            // Bytes 0..3 are ASCII (XY + space), so slicing at 3 is safe.
+            let mut path = line[3..].to_string();
+            // Renames read "old -> new" — keep the destination.
+            if let Some(idx) = path.find(" -> ") {
+                path = path[idx + 4..].to_string();
+            }
+            if path.len() >= 2 && path.starts_with('"') && path.ends_with('"') {
+                path = path[1..path.len() - 1].to_string();
+            }
+            let (added, deleted, binary) = if status.trim() == "??" {
+                (count_lines(&path), 0, false)
+            } else if let Some(&(a, d, b)) = numstat.get(&path) {
+                (a, d, b)
+            } else {
+                (0, 0, false)
+            };
+            total_added += added;
+            total_deleted += deleted;
+            files.push(GitFileChange {
+                status,
+                path,
+                added,
+                deleted,
+                binary,
+            });
+        }
+    }
+
     let branch = run_git(&["rev-parse", "--abbrev-ref", "HEAD"])
         .ok()
         .filter(|o| o.status.success())
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
-    let dirty = run_git(&["status", "--porcelain"])
-        .map(|o| !o.stdout.is_empty())
-        .unwrap_or(false);
-    // Commits on HEAD not on its upstream (0 if no upstream configured).
+    // -1 when there's no upstream to compare against.
     let ahead = run_git(&["rev-list", "--count", "@{u}..HEAD"])
         .ok()
         .filter(|o| o.status.success())
         .and_then(|o| String::from_utf8_lossy(&o.stdout).trim().parse().ok())
-        .unwrap_or(0);
+        .unwrap_or(-1);
+
     GitStatus {
         is_repo: true,
-        has_remote,
+        has_remote: git_has_remote(),
         branch,
-        dirty,
         ahead,
+        files,
+        total_added,
+        total_deleted,
     }
 }
 
 #[derive(Serialize)]
-struct GitSyncResult {
-    ok: bool,
-    committed: bool,
-    pushed: bool,
-    message: String,
+struct GitLogEntry {
+    hash: String,
+    subject: String,
+    rel_date: String,
+    /// True when this commit has not yet been pushed to upstream.
+    unpushed: bool,
 }
 
 #[tauri::command]
-fn git_sync(message: Option<String>) -> Result<GitSyncResult, String> {
+fn git_log(limit: Option<u32>) -> Vec<GitLogEntry> {
+    use std::collections::HashSet;
     if !git_is_repo() {
-        return Ok(GitSyncResult {
-            ok: false,
-            committed: false,
-            pushed: false,
-            message: "Not a git repository — run `git init` in your notes folder first.".into(),
-        });
+        return Vec::new();
     }
-    // Stage everything.
-    let add = run_git(&["add", "-A"])?;
-    if !add.status.success() {
-        return Ok(GitSyncResult {
-            ok: false,
-            committed: false,
-            pushed: false,
-            message: String::from_utf8_lossy(&add.stderr).trim().to_string(),
-        });
-    }
-    let dirty = run_git(&["status", "--porcelain"])
-        .map(|o| !o.stdout.is_empty())
-        .unwrap_or(false);
-    let mut committed = false;
-    if dirty {
-        let msg = message
-            .map(|m| m.trim().to_string())
-            .filter(|m| !m.is_empty())
-            .unwrap_or_else(|| "Parker sync".to_string());
-        let commit = run_git(&["commit", "-m", &msg])?;
-        if !commit.status.success() {
-            return Ok(GitSyncResult {
-                ok: false,
-                committed: false,
-                pushed: false,
-                message: String::from_utf8_lossy(&commit.stderr).trim().to_string(),
-            });
+    // Full hashes of commits not yet on upstream.
+    let mut unpushed: HashSet<String> = HashSet::new();
+    if let Ok(o) = run_git(&["rev-list", "@{u}..HEAD"]) {
+        if o.status.success() {
+            for l in String::from_utf8_lossy(&o.stdout).lines() {
+                let h = l.trim();
+                if !h.is_empty() {
+                    unpushed.insert(h.to_string());
+                }
+            }
         }
-        committed = true;
     }
-    // Push only if a remote exists.
-    let has_remote = run_git(&["remote"])
-        .map(|o| !o.stdout.is_empty())
-        .unwrap_or(false);
-    let mut pushed = false;
-    let mut note = if committed {
-        "Committed".to_string()
-    } else {
-        "Nothing to commit".to_string()
+    let n = limit.unwrap_or(30).clamp(1, 200).to_string();
+    let out = match run_git(&[
+        "log",
+        "-n",
+        &n,
+        "--pretty=format:%H%x09%h%x09%s%x09%cr",
+    ]) {
+        Ok(o) if o.status.success() => o,
+        _ => return Vec::new(),
     };
-    if has_remote {
-        let push = run_git(&["push"])?;
-        if push.status.success() {
-            pushed = true;
-            note = if committed {
-                "Committed & pushed".into()
-            } else {
-                "Already up to date".into()
-            };
-        } else {
-            return Ok(GitSyncResult {
-                ok: false,
-                committed,
-                pushed: false,
-                message: format!(
-                    "Push failed: {}",
-                    String::from_utf8_lossy(&push.stderr).trim()
-                ),
-            });
+    let mut entries = Vec::new();
+    for line in String::from_utf8_lossy(&out.stdout).lines() {
+        let mut it = line.splitn(4, '\t');
+        let full = it.next().unwrap_or("");
+        let short = it.next().unwrap_or("");
+        let subject = it.next().unwrap_or("");
+        let rel_date = it.next().unwrap_or("");
+        if short.is_empty() {
+            continue;
         }
+        entries.push(GitLogEntry {
+            hash: short.to_string(),
+            subject: subject.to_string(),
+            rel_date: rel_date.to_string(),
+            unpushed: unpushed.contains(full),
+        });
     }
-    Ok(GitSyncResult {
+    entries
+}
+
+#[derive(Serialize)]
+struct CommitResult {
+    ok: bool,
+    error: Option<String>,
+    hash: Option<String>,
+    message: String, // human-readable note on success
+}
+
+fn commit_err(msg: impl Into<String>) -> CommitResult {
+    CommitResult {
+        ok: false,
+        error: Some(msg.into()),
+        hash: None,
+        message: String::new(),
+    }
+}
+
+#[tauri::command]
+fn git_commit(message: String, push: bool) -> CommitResult {
+    if !git_is_repo() {
+        return commit_err("Not a git repository — run `git init` in your notes folder first.");
+    }
+    let msg = message.trim();
+    if msg.is_empty() {
+        return commit_err("Commit message is required.");
+    }
+    if msg.chars().count() > 500 {
+        return commit_err("Message too long (>500 chars).");
+    }
+    // Stage everything (respects .gitignore).
+    match run_git(&["add", "-A"]) {
+        Ok(o) if o.status.success() => {}
+        Ok(o) => return commit_err(String::from_utf8_lossy(&o.stderr).trim().to_string()),
+        Err(e) => return commit_err(e),
+    }
+    // Anything actually staged?
+    let staged = run_git(&["diff", "--cached", "--name-only"])
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false);
+    if !staged {
+        return commit_err("No changes to commit.");
+    }
+    match run_git(&["commit", "-m", msg]) {
+        Ok(o) if o.status.success() => {}
+        Ok(o) => return commit_err(String::from_utf8_lossy(&o.stderr).trim().to_string()),
+        Err(e) => return commit_err(e),
+    }
+    let hash = run_git(&["rev-parse", "--short", "HEAD"])
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+
+    if push && git_has_remote() {
+        match run_git(&["push"]) {
+            Ok(o) if o.status.success() => {}
+            Ok(o) => {
+                return CommitResult {
+                    ok: false,
+                    error: Some(format!(
+                        "Commit saved but push failed: {}. Try `git push` in the terminal — credentials may be needed.",
+                        String::from_utf8_lossy(&o.stderr).trim()
+                    )),
+                    hash,
+                    message: String::new(),
+                };
+            }
+            Err(e) => {
+                return CommitResult {
+                    ok: false,
+                    error: Some(format!("Commit saved but push failed: {e}")),
+                    hash,
+                    message: String::new(),
+                };
+            }
+        }
+        return CommitResult {
+            ok: true,
+            error: None,
+            hash,
+            message: "Committed & pushed".into(),
+        };
+    }
+
+    CommitResult {
         ok: true,
-        committed,
-        pushed,
-        message: note,
-    })
+        error: None,
+        hash,
+        message: "Committed".into(),
+    }
+}
+
+/// Push already-made commits without committing anything new.
+#[tauri::command]
+fn git_push() -> CommitResult {
+    if !git_is_repo() {
+        return commit_err("Not a git repository.");
+    }
+    if !git_has_remote() {
+        return commit_err("No remote configured (add an `origin`).");
+    }
+    match run_git(&["push"]) {
+        Ok(o) if o.status.success() => CommitResult {
+            ok: true,
+            error: None,
+            hash: None,
+            message: "Pushed".into(),
+        },
+        Ok(o) => commit_err(format!(
+            "Push failed: {}. Try `git push` in the terminal — credentials may be needed.",
+            String::from_utf8_lossy(&o.stderr).trim()
+        )),
+        Err(e) => commit_err(format!("Push failed: {e}")),
+    }
+}
+
+/// Best-effort commit+push used by the auto-sync-on-quit path.
+fn auto_commit_push() {
+    if !git_is_repo() {
+        return;
+    }
+    let _ = run_git(&["add", "-A"]);
+    let staged = run_git(&["diff", "--cached", "--name-only"])
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false);
+    if staged {
+        let _ = run_git(&["commit", "-m", "Parker auto-sync on quit"]);
+    }
+    if git_has_remote() {
+        let _ = run_git(&["push"]);
+    }
 }
 
 /// Re-register the global summon/dismiss shortcut and persist it.
@@ -612,8 +809,8 @@ fn set_notes_dir(path: String, move_existing: bool) -> Result<String, String> {
 /// notes folder is a git repo, commit & push before exiting (best-effort).
 #[tauri::command]
 fn quit(app: tauri::AppHandle) {
-    if load_settings().git_auto_sync && git_is_repo() {
-        let _ = git_sync(Some("Parker auto-sync on quit".to_string()));
+    if load_settings().git_auto_sync {
+        auto_commit_push();
     }
     app.exit(0);
 }
@@ -876,7 +1073,9 @@ pub fn run() {
             set_autostart,
             set_git_auto_sync,
             git_status,
-            git_sync,
+            git_commit,
+            git_push,
+            git_log,
             pick_notes_dir,
             set_notes_dir,
             quit,
