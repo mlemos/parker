@@ -42,6 +42,11 @@ export default function App() {
   const [gutterOn, setGutterOn] = useState<boolean>(
     () => localStorage.getItem("parker.gutter") === "1"
   );
+  const [wrapOn, setWrapOn] = useState<boolean>(
+    () => localStorage.getItem("parker.wrap") !== "0" // default: wrap on
+  );
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
 
   // Mirror state into refs so the global keydown handler is never stale.
   const stateRef = useRef({ tabs, activeName, themeId });
@@ -233,6 +238,10 @@ export default function App() {
     localStorage.setItem("parker.gutter", gutterOn ? "1" : "0");
   }, [gutterOn]);
 
+  useEffect(() => {
+    localStorage.setItem("parker.wrap", wrapOn ? "1" : "0");
+  }, [wrapOn]);
+
   // ---- Actions -------------------------------------------------------------
 
   const onChange = useCallback(
@@ -295,6 +304,37 @@ export default function App() {
     const next = (i + delta + tabs.length) % tabs.length;
     setActiveName(tabs[next].name);
   }, []);
+
+  // Move the tab at `from` to position `to` (drag-reorder). The active tab is
+  // tracked by name, so it stays selected wherever it lands.
+  const moveTab = useCallback((from: number, to: number) => {
+    setTabs((prev) => {
+      if (
+        from === to ||
+        from < 0 ||
+        to < 0 ||
+        from >= prev.length ||
+        to >= prev.length
+      ) {
+        return prev;
+      }
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }, []);
+
+  // Keyboard reorder: shift the active tab left/right (⌘⇧[ / ⌘⇧]).
+  const moveActiveTab = useCallback(
+    (delta: number) => {
+      const { tabs, activeName } = stateRef.current;
+      const i = tabs.findIndex((t) => t.name === activeName);
+      if (i < 0) return;
+      moveTab(i, i + delta);
+    },
+    [moveTab]
+  );
 
   const cycleTheme = useCallback(() => {
     setThemeId((id) => nextThemeId(id));
@@ -400,6 +440,12 @@ export default function App() {
         e.preventDefault();
         const active = stateRef.current.activeName;
         if (active) flushSave(active);
+      } else if (k === "}") {
+        e.preventDefault();
+        moveActiveTab(1); // ⌘⇧] — move active tab right
+      } else if (k === "{") {
+        e.preventDefault();
+        moveActiveTab(-1); // ⌘⇧[ — move active tab left
       } else if (k === "]") {
         e.preventDefault();
         switchByOffset(1);
@@ -420,6 +466,7 @@ export default function App() {
     cycleTheme,
     switchByOffset,
     switchToIndex,
+    moveActiveTab,
     startRename,
     openPicker,
   ]);
@@ -539,7 +586,7 @@ export default function App() {
   // colors; tags we don't define simply render as plain editor text.
   const cmExtensions: Extension[] = [
     Prec.highest(theme.cm),
-    EditorView.lineWrapping,
+    ...(wrapOn ? [EditorView.lineWrapping] : []),
     todoHighlighter,
     ...langExt,
   ];
@@ -602,6 +649,30 @@ export default function App() {
             </svg>
           </button>
           <button
+            className={"icon-btn" + (wrapOn ? " on" : "")}
+            onClick={() => setWrapOn((v) => !v)}
+            title="Wrap long lines"
+            aria-label="Toggle line wrap"
+            aria-pressed={wrapOn}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M3 12h15a3 3 0 1 1 0 6h-4" />
+              <polyline points="16 16 14 18 16 20" />
+              <line x1="3" y1="18" x2="10" y2="18" />
+            </svg>
+          </button>
+          <button
             className="icon-btn"
             onClick={cycleTheme}
             title={`Theme: ${theme.label} — cycle (Cmd+Shift+T)`}
@@ -652,7 +723,7 @@ export default function App() {
 
       <div className="tabstrip">
         <div className="tabs">
-          {tabs.map((t) =>
+          {tabs.map((t, i) =>
             renamingName === t.name ? (
               <div key={t.name} className="tab active editing">
                 <RenameInput
@@ -664,9 +735,36 @@ export default function App() {
             ) : (
               <button
                 key={t.name}
-                className={"tab" + (t.name === activeName ? " active" : "")}
+                className={
+                  "tab" +
+                  (t.name === activeName ? " active" : "") +
+                  (i === dragIndex ? " dragging" : "") +
+                  (i === overIndex && dragIndex !== null && dragIndex !== i
+                    ? " drag-over"
+                    : "")
+                }
+                draggable
                 onClick={() => setActiveName(t.name)}
                 onDoubleClick={() => startRename(t.name)}
+                onDragStart={(e) => {
+                  setDragIndex(i);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (overIndex !== i) setOverIndex(i);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex !== null) moveTab(dragIndex, i);
+                  setDragIndex(null);
+                  setOverIndex(null);
+                }}
+                onDragEnd={() => {
+                  setDragIndex(null);
+                  setOverIndex(null);
+                }}
                 title={`${t.name}  —  double-click or F2 to rename`}
               >
                 <span className="tab-name">{t.name}</span>

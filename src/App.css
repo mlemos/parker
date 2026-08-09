@@ -180,6 +180,13 @@ body,
   color: var(--text);
   box-shadow: inset 0 0 0 1px var(--border);
 }
+/* Drag-to-reorder */
+.tab.dragging {
+  opacity: 0.4;
+}
+.tab.drag-over {
+  box-shadow: inset 2px 0 0 0 var(--accent);
+}
 
 .tab-name {
   overflow: hidden;
