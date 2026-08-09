@@ -34,6 +34,7 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
     rows: [
       ["Split right", ["⌘\\"]],
       ["Split down", ["⌘⇧\\"]],
+      ["Merge pane into neighbor", ["⌘⇧M"]],
       ["Markdown preview to the side", ["⌘⇧V"]],
     ],
   },

@@ -666,6 +666,9 @@ export default function App() {
         // ⌘\ split right, ⌘⇧\ split down. Shift+\ is "|" on US layouts.
         e.preventDefault();
         splitFocused(fid, e.shiftKey ? "col" : "row");
+      } else if (k === "m" && e.shiftKey) {
+        e.preventDefault();
+        mergeIntoParent(fid); // ⌘⇧M — merge this pane into its neighbor
       } else if (k === "v" && e.shiftKey) {
         e.preventDefault();
         previewToSide(fid); // ⌘⇧V — markdown preview to the side
@@ -732,6 +735,7 @@ export default function App() {
     switchToIndex,
     moveActiveTab,
     splitFocused,
+    mergeIntoParent,
     previewToSide,
     startRename,
     openPicker,
