@@ -228,13 +228,15 @@ body,
 
 .tab-new {
   align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 26px;
   height: 26px;
   border: none;
   border-radius: 6px;
   background: transparent;
   color: var(--secondary);
-  font-size: 18px;
   cursor: pointer;
   -webkit-app-region: no-drag;
 }

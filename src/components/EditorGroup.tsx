@@ -6,6 +6,10 @@ import {
   SquareSplitHorizontal,
   SquareSplitVertical,
   SquaresUnite,
+  Eye,
+  Columns2,
+  X,
+  Plus,
 } from "lucide-react";
 import { languageForName } from "../lib/lang";
 import { todoHighlighter } from "../lib/todo";
@@ -189,7 +193,7 @@ export function EditorGroup({
                   }}
                   title="Close (Cmd+W)"
                 >
-                  ×
+                  <X size={12} strokeWidth={2} />
                 </span>
               </button>
             );
@@ -199,7 +203,7 @@ export function EditorGroup({
             onClick={cb.onNewTab}
             title="New note (Cmd+T)"
           >
-            +
+            <Plus size={14} strokeWidth={2} />
           </button>
         </div>
         <div className="group-actions">
@@ -219,16 +223,9 @@ export function EditorGroup({
               aria-label="Preview"
             >
               {altHeld ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="3" y="4" width="18" height="16" rx="1.5" />
-                  <line x1="13" y1="4" x2="13" y2="20" />
-                  <path d="M16 10l2 2-2 2" />
-                </svg>
+                <Columns2 size={15} strokeWidth={1.8} />
               ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
+                <Eye size={15} strokeWidth={1.8} />
               )}
             </button>
           )}
@@ -264,10 +261,7 @@ export function EditorGroup({
               {altHeld ? (
                 <SquaresUnite size={15} strokeWidth={1.8} />
               ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                </svg>
+                <X size={15} strokeWidth={1.8} />
               )}
             </button>
           )}

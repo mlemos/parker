@@ -1,4 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Search,
+  ListOrdered,
+  WrapText,
+  Contrast,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
@@ -285,7 +292,18 @@ export default function App() {
   const focusGroup = useCallback((id: string) => setFocusedId(id), []);
 
   const selectTab = useCallback((groupId: string, name: string) => {
-    setLayout((l) => updateGroup(l, groupId, { active: name }));
+    setLayout((l) => {
+      const g = findGroup(l, groupId);
+      // Switching to a different tab returns the pane to the editor, so preview
+      // is a deliberate view of the current note rather than a sticky mode.
+      return updateGroup(
+        l,
+        groupId,
+        g && g.active !== name
+          ? { active: name, mode: "edit" }
+          : { active: name }
+      );
+    });
     setFocusedId(groupId);
   }, []);
 
@@ -313,7 +331,11 @@ export default function App() {
       setLayout((l) => {
         const g = findGroup(l, gid);
         if (!g) return l;
-        return updateGroup(l, gid, { tabs: [...g.tabs, name], active: name });
+        return updateGroup(l, gid, {
+          tabs: [...g.tabs, name],
+          active: name,
+          mode: "edit",
+        });
       });
       setFocusedId(gid);
     } catch (e) {
@@ -559,7 +581,7 @@ export default function App() {
       const g = findGroup(l, gid);
       if (!g) return l;
       const tabs = g.tabs.includes(name) ? g.tabs : [...g.tabs, name];
-      return updateGroup(l, gid, { tabs, active: name });
+      return updateGroup(l, gid, { tabs, active: name, mode: "edit" });
     });
     setFocusedId(gid);
   }, []);
@@ -844,20 +866,7 @@ export default function App() {
             onClick={openPicker}
             title="Search notes (Cmd+O)"
           >
-            <svg
-              className="search-icon"
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Search className="search-icon" size={13} strokeWidth={2} aria-hidden="true" />
             <span className="search-text">{activeName ?? "Search notes…"}</span>
             <span className="search-kbd">⌘O</span>
           </button>
@@ -870,14 +879,7 @@ export default function App() {
             aria-label="Toggle line numbers"
             aria-pressed={gutterOn}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="3" y1="6" x2="3" y2="6" />
-              <line x1="3" y1="12" x2="3" y2="12" />
-              <line x1="3" y1="18" x2="3" y2="18" />
-              <line x1="8" y1="6" x2="21" y2="6" />
-              <line x1="8" y1="12" x2="21" y2="12" />
-              <line x1="8" y1="18" x2="21" y2="18" />
-            </svg>
+            <ListOrdered size={16} strokeWidth={1.8} aria-hidden="true" />
           </button>
           <button
             className={"icon-btn" + (wrapOn ? " on" : "")}
@@ -886,12 +888,7 @@ export default function App() {
             aria-label="Toggle line wrap"
             aria-pressed={wrapOn}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <path d="M3 12h15a3 3 0 1 1 0 6h-4" />
-              <polyline points="16 16 14 18 16 20" />
-              <line x1="3" y1="18" x2="10" y2="18" />
-            </svg>
+            <WrapText size={16} strokeWidth={1.8} aria-hidden="true" />
           </button>
           <button
             className="icon-btn"
@@ -899,10 +896,7 @@ export default function App() {
             title={`Theme: ${theme.label} — cycle (Cmd+Shift+T)`}
             aria-label="Cycle theme"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 3 a9 9 0 0 0 0 18 z" fill="currentColor" stroke="none" />
-            </svg>
+            <Contrast size={16} strokeWidth={1.8} aria-hidden="true" />
           </button>
           <button
             className="icon-btn"
@@ -910,10 +904,7 @@ export default function App() {
             title="Settings (Cmd+,)"
             aria-label="Settings"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
+            <SettingsIcon size={16} strokeWidth={1.8} aria-hidden="true" />
           </button>
         </div>
       </div>

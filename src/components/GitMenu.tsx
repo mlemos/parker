@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { GitBranch, Loader2, CloudUpload } from "lucide-react";
 import { api } from "../lib/api";
 import type { GitStatus, GitFileChange, GitLogEntry } from "../lib/api";
 
@@ -34,52 +35,17 @@ function fileKind(status: string): { label: string; cls: string } {
   return { label: "mod", cls: "gm-mod" };
 }
 
-// Small inline icons keep the bundle self-contained.
 function IconGit({ spin }: { spin?: boolean }) {
-  return (
-    <svg
-      className={"gm-icon" + (spin ? " spin" : "")}
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {spin ? (
-        <path d="M21 12a9 9 0 1 1-6.2-8.5" />
-      ) : (
-        <>
-          <circle cx="18" cy="18" r="3" />
-          <circle cx="6" cy="6" r="3" />
-          <path d="M6 9v6a3 3 0 0 0 3 3h6" />
-        </>
-      )}
-    </svg>
+  return spin ? (
+    <Loader2 className="gm-icon spin" size={12} strokeWidth={2} aria-hidden="true" />
+  ) : (
+    <GitBranch className="gm-icon" size={12} strokeWidth={2} aria-hidden="true" />
   );
 }
 
 function IconCloud() {
   return (
-    <svg
-      className="gm-cloud"
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.34 9.5 4 4 0 0 0 7 17.5" />
-      <path d="M12 12v9" />
-      <path d="m8.5 15.5 3.5-3.5 3.5 3.5" />
-    </svg>
+    <CloudUpload className="gm-cloud" size={13} strokeWidth={2} aria-hidden="true" />
   );
 }
 
