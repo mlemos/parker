@@ -14,6 +14,17 @@ function suggestMessage(files: GitFileChange[]): string {
   return `Update ${names.length} notes`;
 }
 
+// Turn a git remote URL into a friendly "host/owner/repo" label.
+function prettyRemote(url: string | null): string {
+  if (!url) return "";
+  const s = url.trim().replace(/\.git$/, "");
+  const scp = s.match(/^[^@]+@([^:]+):(.+)$/); // git@github.com:owner/repo
+  if (scp) return `${scp[1]}/${scp[2]}`;
+  const m = s.match(/^[a-z]+:\/\/(?:[^@/]+@)?([^/]+)\/(.+)$/i); // https://…
+  if (m) return `${m[1]}/${m[2]}`;
+  return s;
+}
+
 function fileKind(status: string): { label: string; cls: string } {
   const t = status.trim();
   if (t === "??") return { label: "new", cls: "gm-add" };
@@ -47,6 +58,27 @@ function IconGit({ spin }: { spin?: boolean }) {
           <path d="M6 9v6a3 3 0 0 0 3 3h6" />
         </>
       )}
+    </svg>
+  );
+}
+
+function IconCloud() {
+  return (
+    <svg
+      className="gm-cloud"
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.34 9.5 4 4 0 0 0 7 17.5" />
+      <path d="M12 12v9" />
+      <path d="m8.5 15.5 3.5-3.5 3.5 3.5" />
     </svg>
   );
 }
@@ -217,13 +249,22 @@ export function GitMenu({
       <button
         className={"status-git" + (clean ? "" : " dirty") + (open ? " open" : "")}
         onClick={toggleOpen}
-        title={chipTitle}
+        title={
+          hasRemote
+            ? `${chipTitle} · backs up to ${prettyRemote(status.remote_url)}`
+            : `${chipTitle} · local only (no remote backup)`
+        }
       >
         <IconGit spin={busy} />
         <span className="git-label">
           {status.branch ?? "git"}
           {badge && <span className="gm-badge">{badge}</span>}
         </span>
+        {hasRemote ? (
+          <IconCloud />
+        ) : (
+          <span className="gm-local">local</span>
+        )}
       </button>
 
       {open && (
@@ -243,6 +284,23 @@ export function GitMenu({
               <span className="gm-totals">
                 <span className="gm-add">+{status.total_added}</span>{" "}
                 <span className="gm-del">−{status.total_deleted}</span>
+              </span>
+            )}
+          </div>
+
+          {/* Destination — where a push goes, or that it's local-only */}
+          <div className={"gm-dest" + (hasRemote ? "" : " local")}>
+            {hasRemote ? (
+              <>
+                <IconCloud />
+                <span className="gm-dest-label">
+                  Backs up to <strong>{prettyRemote(status.remote_url)}</strong>
+                </span>
+              </>
+            ) : (
+              <span className="gm-dest-label">
+                Local only — no remote yet. <code>git remote add origin …</code>{" "}
+                to back up to GitHub.
               </span>
             )}
           </div>

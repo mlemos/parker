@@ -625,6 +625,48 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
   font-size: 10px;
   font-weight: 600;
 }
+/* Remote indicator on the chip: a cloud when backed up, a "local" pill when not */
+.gm-cloud {
+  margin-left: 2px;
+  opacity: 0.8;
+}
+.gm-local {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Destination row inside the popover */
+.gm-dest {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--secondary);
+  font-size: 11.5px;
+}
+.gm-dest .gm-cloud {
+  color: var(--accent);
+  opacity: 1;
+}
+.gm-dest strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.gm-dest.local {
+  color: var(--muted);
+}
+.gm-dest code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
 
 /* Popover — opens upward from the status bar */
 .gm-pop {

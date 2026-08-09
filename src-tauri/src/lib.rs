@@ -375,6 +375,40 @@ fn git_has_remote() -> bool {
         .unwrap_or(false)
 }
 
+/// Push URL of the first remote (usually `origin`), if any.
+fn git_remote_url() -> Option<String> {
+    let name = run_git(&["remote"]).ok().and_then(|o| {
+        String::from_utf8_lossy(&o.stdout)
+            .lines()
+            .next()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+    })?;
+    run_git(&["remote", "get-url", &name])
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+/// Push to the remote, setting upstream on the first push so later pushes
+/// (and the ahead/behind count) work without manual `git push -u`.
+fn git_do_push() -> Result<std::process::Output, String> {
+    let has_upstream = run_git(&["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+    if has_upstream {
+        run_git(&["push"])
+    } else {
+        let branch = run_git(&["rev-parse", "--abbrev-ref", "HEAD"])
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .unwrap_or_else(|| "HEAD".to_string());
+        run_git(&["push", "-u", "origin", &branch])
+    }
+}
+
 /// Count newline bytes in an untracked file (its "added" line count).
 fn count_lines(rel: &str) -> u32 {
     match std::fs::read(notes_dir().join(rel)) {
@@ -396,6 +430,9 @@ struct GitFileChange {
 struct GitStatus {
     is_repo: bool,
     has_remote: bool,
+    /// Push URL of the remote (origin), when one exists. Drives the UI's
+    /// "backed up to GitHub vs. local only" indicator.
+    remote_url: Option<String>,
     branch: Option<String>,
     /// Commits on HEAD not yet on upstream. -1 when no upstream is configured.
     ahead: i32,
@@ -409,6 +446,7 @@ impl GitStatus {
         GitStatus {
             is_repo,
             has_remote: false,
+            remote_url: None,
             branch: None,
             ahead: -1,
             files: Vec::new(),
@@ -494,9 +532,11 @@ fn git_status() -> GitStatus {
         .and_then(|o| String::from_utf8_lossy(&o.stdout).trim().parse().ok())
         .unwrap_or(-1);
 
+    let remote_url = git_remote_url();
     GitStatus {
         is_repo: true,
-        has_remote: git_has_remote(),
+        has_remote: remote_url.is_some(),
+        remote_url,
         branch,
         ahead,
         files,
@@ -614,7 +654,7 @@ fn git_commit(message: String, push: bool) -> CommitResult {
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
 
     if push && git_has_remote() {
-        match run_git(&["push"]) {
+        match git_do_push() {
             Ok(o) if o.status.success() => {}
             Ok(o) => {
                 return CommitResult {
@@ -661,7 +701,7 @@ fn git_push() -> CommitResult {
     if !git_has_remote() {
         return commit_err("No remote configured (add an `origin`).");
     }
-    match run_git(&["push"]) {
+    match git_do_push() {
         Ok(o) if o.status.success() => CommitResult {
             ok: true,
             error: None,
@@ -689,7 +729,7 @@ fn auto_commit_push() {
         let _ = run_git(&["commit", "-m", "Parker auto-sync on quit"]);
     }
     if git_has_remote() {
-        let _ = run_git(&["push"]);
+        let _ = git_do_push();
     }
 }
 

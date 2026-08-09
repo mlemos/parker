@@ -38,6 +38,7 @@ export interface GitFileChange {
 export interface GitStatus {
   is_repo: boolean;
   has_remote: boolean;
+  remote_url: string | null; // push URL of origin, when a remote exists
   branch: string | null;
   ahead: number; // -1 when no upstream is configured
   files: GitFileChange[];
