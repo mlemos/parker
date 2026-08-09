@@ -13,6 +13,7 @@
 </p>
 
 <p align="center">
+  <img alt="Status: beta" src="https://img.shields.io/badge/status-beta-f59e0b">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-10b981"></a>
   <img alt="Platform: macOS" src="https://img.shields.io/badge/platform-macOS-52525b">
   <img alt="Built with Tauri, React, CodeMirror" src="https://img.shields.io/badge/built%20with-Tauri%20%C2%B7%20React%20%C2%B7%20CodeMirror-10b981">
@@ -27,6 +28,11 @@
 </p>
 
 ---
+
+> [!NOTE]
+> **parker is beta, and personal.** It isn't a commercial product — it's a passion
+> project, vibe-coded for my own use and shared with the world. **No guarantees, no
+> support, use at your own risk.** 🙂
 
 ## What is parker?
 
@@ -60,7 +66,7 @@ of* your files, never where they live.
 
 ## ⬇️ Install
 
-> **Status:** early. The first public release is on its way — ⭐ **star the repo** to follow along.
+> **Status:** beta — early and evolving. The first public release is on its way — ⭐ **star the repo** to follow along.
 
 Once released, grab the latest signed `.dmg` from **[Releases](https://github.com/mlemos/parker/releases)**.
 Requires macOS 12+ (Apple Silicon &amp; Intel).
@@ -102,9 +108,17 @@ Issues and pull requests are welcome. For anything substantial, open an issue fi
 so we can talk it through. Keep changes small, focused, and in the spirit of the app:
 fast, minimal, keyboard-first.
 
+## 👤 Author
+
+Built by **Manoel Lemos** —
+[Website](https://manoellemos.com) ·
+[X](https://x.com/mlemos) ·
+[LinkedIn](https://linkedin.com/in/mlemos) ·
+[GitHub](https://github.com/mlemos)
+
 ## 📄 License
 
-[MIT](LICENSE) © 2026 Manoel Lemos.
+[MIT](LICENSE) © 2026 [Manoel Lemos](https://manoellemos.com).
 
 <p align="center">
   <sub>Made for people who think before they type. · <a href="https://getparker.dev">getparker.dev</a></sub>

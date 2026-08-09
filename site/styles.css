@@ -142,6 +142,21 @@ img { max-width: 100%; height: auto; }
   font-size: 18px;
   letter-spacing: -0.045em;
 }
+.beta-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  padding: 3px 6px 2px;
+  border-radius: 999px;
+  margin-left: -2px;
+  align-self: center;
+}
 .nav-links {
   display: flex;
   gap: 26px;
@@ -450,7 +465,15 @@ h1 {
   background: radial-gradient(60% 120% at 50% 0%, var(--glow), transparent 60%);
   pointer-events: none;
 }
-.final h2, .final p, .final .cta-row { position: relative; }
+.final h2, .final p, .final .cta-row, .final .final-note { position: relative; }
+.final-note {
+  color: var(--muted);
+  font-size: 13.5px;
+  font-style: italic;
+  line-height: 1.6;
+  max-width: 52ch;
+  margin: 22px auto 0;
+}
 /* The brand figure — a large, theme-adaptive Parker crowning the closing CTA.
    currentColor single-path SVG via mask → paper on dark, ink on light. */
 .brand-figure {
@@ -485,6 +508,16 @@ h1 {
 .footer-links { display: flex; gap: 24px; font-size: 14px; }
 .footer-links a { color: var(--text-2); transition: color .15s ease; }
 .footer-links a:hover { color: var(--text); }
+.footer-author { color: var(--text-2); font-size: 14px; margin: 4px 0 2px; }
+.footer-author a { color: var(--text); border-bottom: 1px solid var(--border); transition: border-color .15s ease; }
+.footer-author a:hover { border-color: var(--muted); }
+.social { display: flex; gap: 18px; align-items: center; }
+.social a {
+  display: inline-flex;
+  color: var(--muted);
+  transition: color .15s ease, transform .15s ease;
+}
+.social a:hover { color: var(--text); transform: translateY(-1px); }
 .footer-copy {
   color: var(--muted);
   font-size: 13px;
