@@ -1,7 +1,7 @@
 import { Fragment, useRef } from "react";
 import { EditorGroup } from "./EditorGroup";
 import type { GroupCallbacks } from "./EditorGroup";
-import type { Buffer, Direction, LayoutNode, SplitNode } from "../lib/layout";
+import type { Buffer, LayoutNode, SplitNode } from "../lib/layout";
 import type { ThemeDef } from "../lib/themes";
 
 export interface LayoutHandlers {
@@ -14,7 +14,7 @@ export interface LayoutHandlers {
   onCommitRename: (oldName: string, raw: string) => void;
   onCancelRename: () => void;
   onSplit: (groupId: string, dir: "row" | "col") => void;
-  onMerge: (groupId: string, dir: Direction) => void;
+  onMerge: (groupId: string) => void;
   onToggleMode: (groupId: string) => void;
   onPreviewToSide: (groupId: string) => void;
   onDropTab: (
@@ -38,7 +38,6 @@ interface Common {
   multiGroup: boolean;
   altHeld: boolean;
   dragging: boolean;
-  mergeDirs: Record<string, Direction[]>;
   h: LayoutHandlers;
 }
 
@@ -58,7 +57,7 @@ export function LayoutView({
       onCommitRename: common.h.onCommitRename,
       onCancelRename: common.h.onCancelRename,
       onSplit: (dir) => common.h.onSplit(g.id, dir),
-      onMerge: (dir) => common.h.onMerge(g.id, dir),
+      onMerge: () => common.h.onMerge(g.id),
       onToggleMode: () => common.h.onToggleMode(g.id),
       onPreviewToSide: () => common.h.onPreviewToSide(g.id),
       onDropTab: (source, toIndex) =>
@@ -75,7 +74,6 @@ export function LayoutView({
         canClose={common.multiGroup}
         altHeld={common.altHeld}
         dragging={common.dragging}
-        mergeDirs={common.mergeDirs[g.id] ?? []}
         theme={common.theme}
         gutterOn={common.gutterOn}
         wrapOn={common.wrapOn}

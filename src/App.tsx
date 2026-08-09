@@ -11,15 +11,14 @@ import {
   findGroup,
   firstGroup,
   makeGroup,
-  mergeDirections,
-  neighborGroupId,
   pruneLayout,
   removeGroup,
   resizeSplit,
+  siblingGroupId,
   splitGroup,
   updateGroup,
 } from "./lib/layout";
-import type { Buffer, Direction, LayoutNode } from "./lib/layout";
+import type { Buffer, LayoutNode } from "./lib/layout";
 import { isMarkdown } from "./lib/markdown";
 import { NotePicker } from "./components/NotePicker";
 import { GitMenu } from "./components/GitMenu";
@@ -437,25 +436,26 @@ export default function App() {
     setFocusedId(groupId);
   }, []);
 
-  // Merge a pane with its neighbour in `dir`: absorb that pane's tabs, then
-  // collapse the split. The clicked pane survives (keeps focus).
-  const mergeDir = useCallback((groupId: string, dir: Direction) => {
+  // Merge this pane into its neighbouring sibling: the pane's tabs move over
+  // and it collapses (like close, but keeping the tabs). The sibling survives.
+  const mergeIntoParent = useCallback((groupId: string) => {
     const s = stateRef.current;
-    const nbId = neighborGroupId(s.layout, groupId, dir);
-    const me = findGroup(s.layout, groupId);
-    const nb = nbId ? findGroup(s.layout, nbId) : null;
-    if (!me || !nb || !nbId) return;
+    const g = findGroup(s.layout, groupId);
+    const sibId = g ? siblingGroupId(s.layout, groupId) : null;
+    const sib = sibId ? findGroup(s.layout, sibId) : null;
+    if (!g || !sibId || !sib) return;
     const mergedTabs = [
-      ...me.tabs,
-      ...nb.tabs.filter((t) => !me.tabs.includes(t)),
+      ...sib.tabs,
+      ...g.tabs.filter((t) => !sib.tabs.includes(t)),
     ];
-    let next = updateGroup(s.layout, groupId, {
+    let next = updateGroup(s.layout, sibId, {
       tabs: mergedTabs,
-      active: me.active ?? nb.active,
+      active: sib.active ?? g.active,
     });
-    next = removeGroup(next, nbId)!;
+    next = removeGroup(next, groupId)!;
     setLayout(next);
-    setFocusedId(groupId);
+    setBuffers((prev) => gcBuffers(next, prev));
+    setFocusedId(sibId);
   }, []);
 
   // Drop a dragged tab: reorder within a pane, or move it to another pane.
@@ -824,7 +824,7 @@ export default function App() {
     onCommitRename: commitRename,
     onCancelRename: () => setRenamingName(null),
     onSplit: splitFocused,
-    onMerge: mergeDir,
+    onMerge: mergeIntoParent,
     onToggleMode: toggleMode,
     onPreviewToSide: previewToSide,
     onDropTab: dropTab,
@@ -833,12 +833,6 @@ export default function App() {
     onCloseGroup: closeGroup,
     onResize,
   };
-
-  // Which merge arrows to show per pane (only while Option is held).
-  const mergeDirsByGroup: Record<string, Direction[]> = {};
-  if (altHeld && multiGroup) {
-    for (const g of groups) mergeDirsByGroup[g.id] = mergeDirections(layout, g.id);
-  }
 
   return (
     <div className="parker">
@@ -936,7 +930,6 @@ export default function App() {
           multiGroup={multiGroup}
           altHeld={altHeld}
           dragging={tabDragging}
-          mergeDirs={mergeDirsByGroup}
           h={handlers}
         />
       </div>

@@ -191,6 +191,31 @@ export function removeGroup(root: LayoutNode, id: string): LayoutNode | null {
   return { ...root, children: kids, sizes: kids.map(() => 1 / kids.length) };
 }
 
+// The group adjacent to `id` within its immediate parent split (previous
+// sibling preferred, else next) — the target for "merge with parent". Null
+// when the group is the whole tree (no parent split).
+export function siblingGroupId(root: LayoutNode, id: string): string | null {
+  const find = (node: LayoutNode): string | null => {
+    if (node.kind !== "split") return null;
+    const idx = node.children.findIndex(
+      (c) => c.kind === "group" && c.id === id
+    );
+    if (idx >= 0) {
+      const prev = node.children[idx - 1];
+      const next = node.children[idx + 1];
+      if (prev) return lastGroup(prev).id;
+      if (next) return firstGroup(next).id;
+      return null;
+    }
+    for (const c of node.children) {
+      const r = find(c);
+      if (r) return r;
+    }
+    return null;
+  };
+  return find(root);
+}
+
 export type Direction = "left" | "right" | "up" | "down";
 
 export function lastGroup(node: LayoutNode): Group {
