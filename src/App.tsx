@@ -367,19 +367,21 @@ export default function App() {
     if (!g) return;
     let base = s.layout;
     let ng;
-    if (g.active && g.tabs.length > 1) {
-      // Multiple tabs: MOVE the active one into the new pane (no duplication).
+    if (g.active) {
+      // The selected tab moves into the new pane — even if it was the only
+      // one, leaving the original empty. No duplication.
       const active = g.active;
       const idx = g.tabs.indexOf(active);
       const remaining = g.tabs.filter((t) => t !== active);
       base = updateGroup(s.layout, groupId, {
         tabs: remaining,
-        active: remaining[Math.min(idx, remaining.length - 1)],
+        active: remaining.length
+          ? remaining[Math.min(idx, remaining.length - 1)]
+          : null,
       });
       ng = makeGroup([active], active);
     } else {
-      // Single tab (or already empty): open a fresh EMPTY pane, leaving the
-      // original untouched. Fill it with ⌘T / ⌘O / a dragged tab.
+      // No selection (already an empty pane) → a fresh empty pane.
       ng = makeGroup([], null);
     }
     const next = splitGroup(base, groupId, dir, ng);
