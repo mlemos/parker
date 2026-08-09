@@ -11,6 +11,7 @@ import {
   makeGroup,
   removeGroup,
   resizeSplit,
+  siblingGroupId,
   splitGroup,
   updateGroup,
 } from "./lib/layout";
@@ -46,6 +47,8 @@ export default function App() {
   const [wrapOn, setWrapOn] = useState<boolean>(
     () => localStorage.getItem("parker.wrap") !== "0"
   );
+  // Option (⌥) held → the pane's split buttons become a merge (unsplit) button.
+  const [altHeld, setAltHeld] = useState(false);
 
   // Mirror state into a ref so global handlers never read stale values.
   const stateRef = useRef({ buffers, layout, focusedId, themeId });
@@ -365,6 +368,27 @@ export default function App() {
     setFocusedId(ng.id);
   }, []);
 
+  // Merge a pane into its sibling: move its tabs over, then collapse the split.
+  const mergeGroup = useCallback((groupId: string) => {
+    const s = stateRef.current;
+    const g = findGroup(s.layout, groupId);
+    const sibId = g ? siblingGroupId(s.layout, groupId) : null;
+    if (!g || !sibId) return;
+    const sib = findGroup(s.layout, sibId);
+    if (!sib) return;
+    const mergedTabs = [
+      ...sib.tabs,
+      ...g.tabs.filter((t) => !sib.tabs.includes(t)),
+    ];
+    let next = updateGroup(s.layout, sibId, {
+      tabs: mergedTabs,
+      active: sib.active ?? g.active,
+    });
+    next = removeGroup(next, groupId)!;
+    setLayout(next);
+    setFocusedId(sibId);
+  }, []);
+
   const onResize = useCallback(
     (splitId: string, index: number, delta: number) => {
       setLayout((l) => resizeSplit(l, splitId, index, delta));
@@ -572,6 +596,20 @@ export default function App() {
     return () => window.removeEventListener("blur", onBlur);
   }, [flushSave]);
 
+  // Track Option so the pane buttons can flip to "merge" while it's held.
+  useEffect(() => {
+    const sync = (e: KeyboardEvent) => setAltHeld(e.altKey);
+    const clear = () => setAltHeld(false);
+    window.addEventListener("keydown", sync);
+    window.addEventListener("keyup", sync);
+    window.addEventListener("blur", clear);
+    return () => {
+      window.removeEventListener("keydown", sync);
+      window.removeEventListener("keyup", sync);
+      window.removeEventListener("blur", clear);
+    };
+  }, []);
+
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     let disposed = false;
@@ -672,6 +710,7 @@ export default function App() {
     onCommitRename: commitRename,
     onCancelRename: () => setRenamingName(null),
     onSplit: splitFocused,
+    onMerge: mergeGroup,
     onCloseGroup: closeGroup,
     onResize,
   };
@@ -770,6 +809,7 @@ export default function App() {
           wrapOn={wrapOn}
           renamingName={renamingName}
           multiGroup={multiGroup}
+          altHeld={altHeld}
           h={handlers}
         />
       </div>

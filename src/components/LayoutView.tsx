@@ -15,6 +15,7 @@ export interface LayoutHandlers {
   onCommitRename: (oldName: string, raw: string) => void;
   onCancelRename: () => void;
   onSplit: (groupId: string, dir: "row" | "col") => void;
+  onMerge: (groupId: string) => void;
   onCloseGroup: (groupId: string) => void;
   onResize: (splitId: string, index: number, delta: number) => void;
 }
@@ -27,6 +28,7 @@ interface Common {
   wrapOn: boolean;
   renamingName: string | null;
   multiGroup: boolean;
+  altHeld: boolean;
   h: LayoutHandlers;
 }
 
@@ -47,6 +49,7 @@ export function LayoutView({
       onCommitRename: common.h.onCommitRename,
       onCancelRename: common.h.onCancelRename,
       onSplit: (dir) => common.h.onSplit(g.id, dir),
+      onMerge: () => common.h.onMerge(g.id),
       onCloseGroup: () => common.h.onCloseGroup(g.id),
     };
     return (
@@ -55,6 +58,7 @@ export function LayoutView({
         buffers={common.buffers}
         focused={common.focusedId === g.id}
         canClose={common.multiGroup}
+        altHeld={common.altHeld}
         theme={common.theme}
         gutterOn={common.gutterOn}
         wrapOn={common.wrapOn}

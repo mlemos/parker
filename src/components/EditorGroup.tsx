@@ -19,6 +19,7 @@ export interface GroupCallbacks {
   onCommitRename: (oldName: string, raw: string) => void;
   onCancelRename: () => void;
   onSplit: (dir: "row" | "col") => void;
+  onMerge: () => void;
   onCloseGroup: () => void;
 }
 
@@ -27,6 +28,7 @@ export function EditorGroup({
   buffers,
   focused,
   canClose,
+  altHeld,
   theme,
   gutterOn,
   wrapOn,
@@ -37,6 +39,7 @@ export function EditorGroup({
   buffers: Buffer[];
   focused: boolean;
   canClose: boolean; // more than one group exists
+  altHeld: boolean; // Option held → show merge instead of split
   theme: ThemeDef;
   gutterOn: boolean;
   wrapOn: boolean;
@@ -148,29 +151,47 @@ export function EditorGroup({
           </button>
         </div>
         <div className="group-actions">
-          <button
-            className="group-btn"
-            onClick={() => cb.onSplit("row")}
-            title="Split right (Cmd+\)"
-            aria-label="Split right"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="16" rx="1.5" />
-              <line x1="12" y1="4" x2="12" y2="20" />
-            </svg>
-          </button>
-          <button
-            className="group-btn"
-            onClick={() => cb.onSplit("col")}
-            title="Split down (Cmd+Shift+\)"
-            aria-label="Split down"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="16" rx="1.5" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-            </svg>
-          </button>
-          {canClose && (
+          {altHeld && canClose ? (
+            // Option held: the split buttons become a merge (unsplit) button.
+            <button
+              className="group-btn merge"
+              onClick={cb.onMerge}
+              title="Merge into the neighbouring pane (unsplit)"
+              aria-label="Merge pane"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="1.5" />
+                <path d="M14 9l-3 3 3 3" />
+                <path d="M8 9l3 3-3 3" />
+              </svg>
+            </button>
+          ) : (
+            <>
+              <button
+                className="group-btn"
+                onClick={() => cb.onSplit("row")}
+                title="Split right (Cmd+\) — hold ⌥ to merge"
+                aria-label="Split right"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="1.5" />
+                  <line x1="12" y1="4" x2="12" y2="20" />
+                </svg>
+              </button>
+              <button
+                className="group-btn"
+                onClick={() => cb.onSplit("col")}
+                title="Split down (Cmd+Shift+\) — hold ⌥ to merge"
+                aria-label="Split down"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="1.5" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                </svg>
+              </button>
+            </>
+          )}
+          {canClose && !altHeld && (
             <button
               className="group-btn"
               onClick={cb.onCloseGroup}

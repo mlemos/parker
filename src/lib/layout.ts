@@ -129,6 +129,27 @@ export function removeGroup(root: LayoutNode, id: string): LayoutNode | null {
   return { ...root, children: kids, sizes: kids.map(() => 1 / kids.length) };
 }
 
+// The id of a group adjacent to `id` (its merge target). Prefers the next
+// sibling, else the previous. Null when the group has no sibling (root group).
+export function siblingGroupId(root: LayoutNode, id: string): string | null {
+  const find = (node: LayoutNode): string | null => {
+    if (node.kind !== "split") return null;
+    const idx = node.children.findIndex(
+      (c) => c.kind === "group" && c.id === id
+    );
+    if (idx >= 0) {
+      const sib = node.children[idx + 1] ?? node.children[idx - 1];
+      return sib ? firstGroup(sib).id : null;
+    }
+    for (const c of node.children) {
+      const r = find(c);
+      if (r) return r;
+    }
+    return null;
+  };
+  return find(root);
+}
+
 // Resize the divider after child `index` inside a split, shifting `delta`
 // (fraction of the split's length) from the next child to this one.
 export function resizeSplit(
