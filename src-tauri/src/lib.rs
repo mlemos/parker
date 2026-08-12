@@ -105,11 +105,25 @@ fn settings_path() -> PathBuf {
     config_dir().join("settings.json")
 }
 
+/// In-memory settings cache. Every command used to re-read + re-parse
+/// settings.json (via notes_dir()) — thousands of disk hits per session with
+/// a 500ms autosave. All writes go through write_settings, which refreshes
+/// the cache; external edits to settings.json apply on next launch.
+static SETTINGS: std::sync::OnceLock<std::sync::RwLock<Settings>> = std::sync::OnceLock::new();
+
+fn settings_cache() -> &'static std::sync::RwLock<Settings> {
+    SETTINGS.get_or_init(|| {
+        std::sync::RwLock::new(
+            fs::read_to_string(settings_path())
+                .ok()
+                .and_then(|s| serde_json::from_str(&s).ok())
+                .unwrap_or_default(),
+        )
+    })
+}
+
 fn load_settings() -> Settings {
-    fs::read_to_string(settings_path())
-        .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
+    settings_cache().read().map(|s| s.clone()).unwrap_or_default()
 }
 
 fn write_settings(s: &Settings) -> Result<(), String> {
@@ -118,6 +132,9 @@ fn write_settings(s: &Settings) -> Result<(), String> {
     let tmp = path.with_extension("json.tmp");
     fs::write(&tmp, json).map_err(|e| e.to_string())?;
     fs::rename(&tmp, &path).map_err(|e| e.to_string())?;
+    if let Ok(mut cache) = settings_cache().write() {
+        *cache = s.clone();
+    }
     Ok(())
 }
 
@@ -177,7 +194,7 @@ fn home_dir_path() -> String {
 }
 
 #[tauri::command]
-fn list_notes() -> Result<Vec<NoteMeta>, String> {
+async fn list_notes() -> Result<Vec<NoteMeta>, String> {
     let dir = notes_dir();
     let mut notes = Vec::new();
     for entry in fs::read_dir(&dir).map_err(|e| e.to_string())?.flatten() {
@@ -217,7 +234,7 @@ struct NoteHit {
 /// Search notes by filename AND content. Empty query returns all notes.
 /// Filename matches rank first; content matches carry a snippet of the line.
 #[tauri::command]
-fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
+async fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
     let q = query.trim().to_lowercase();
     let dir = notes_dir();
     let mut hits = Vec::new();
@@ -265,13 +282,13 @@ fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
 }
 
 #[tauri::command]
-fn read_note(name: String) -> Result<String, String> {
+async fn read_note(name: String) -> Result<String, String> {
     let path = safe_note_path(&name)?;
     fs::read_to_string(&path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn write_note(name: String, content: String) -> Result<(), String> {
+async fn write_note(name: String, content: String) -> Result<(), String> {
     let path = safe_note_path(&name)?;
     atomic_write(&path, &content)
 }
@@ -475,7 +492,7 @@ impl GitStatus {
 }
 
 #[tauri::command]
-fn git_status() -> GitStatus {
+async fn git_status() -> GitStatus {
     use std::collections::HashMap;
     if !git_is_repo() {
         return GitStatus::empty(false);
@@ -573,7 +590,7 @@ struct GitLogEntry {
 }
 
 #[tauri::command]
-fn git_log(limit: Option<u32>) -> Vec<GitLogEntry> {
+async fn git_log(limit: Option<u32>) -> Vec<GitLogEntry> {
     use std::collections::HashSet;
     if !git_is_repo() {
         return Vec::new();
@@ -638,7 +655,7 @@ fn commit_err(msg: impl Into<String>) -> CommitResult {
 }
 
 #[tauri::command]
-fn git_commit(message: String, push: bool) -> CommitResult {
+async fn git_commit(message: String, push: bool) -> CommitResult {
     if !git_is_repo() {
         return commit_err("Not a git repository — run `git init` in your notes folder first.");
     }
@@ -712,7 +729,7 @@ fn git_commit(message: String, push: bool) -> CommitResult {
 
 /// Push already-made commits without committing anything new.
 #[tauri::command]
-fn git_push() -> CommitResult {
+async fn git_push() -> CommitResult {
     if !git_is_repo() {
         return commit_err("Not a git repository.");
     }
@@ -875,7 +892,7 @@ fn set_notes_dir(
 /// Flush is done on the frontend before this fires. If auto-sync is on and the
 /// notes folder is a git repo, commit & push before exiting (best-effort).
 #[tauri::command]
-fn quit(app: tauri::AppHandle) {
+async fn quit(app: tauri::AppHandle) {
     if load_settings().git_auto_sync {
         auto_commit_push();
     }
@@ -1145,6 +1162,11 @@ fn build_notes_watcher(app: &tauri::AppHandle) -> Option<notify::RecommendedWatc
             }
             for path in event.paths {
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    // Skip our own autosave temp files and dotfiles — they'd
+                    // fire 2-4 spurious emissions per autosave otherwise.
+                    if name.starts_with('.') || name.ends_with(".parker-tmp") {
+                        continue;
+                    }
                     let _ = handle.emit("parker://note-changed", name.to_string());
                 }
             }

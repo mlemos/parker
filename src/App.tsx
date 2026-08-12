@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   ListOrdered,
@@ -84,6 +84,21 @@ export default function App() {
   const activeName = focusedGroup.active;
   const activeBuf = buffers.find((b) => b.name === activeName) ?? null;
   const multiGroup = groups.length > 1;
+  const activeContent = activeBuf?.content ?? null;
+
+  // Status-bar counts. Counting newlines by indexOf avoids split()'s
+  // whole-document array allocation on every keystroke.
+  const statusCounts = useMemo(() => {
+    if (activeContent === null) return "";
+    let lines = 1;
+    for (
+      let i = activeContent.indexOf("\n");
+      i !== -1;
+      i = activeContent.indexOf("\n", i + 1)
+    )
+      lines++;
+    return `${lines} lines · ${activeContent.length} chars`;
+  }, [activeContent]);
 
   // ---- Persistence helpers -------------------------------------------------
 
@@ -929,13 +944,7 @@ export default function App() {
         <span className="status-file">{activeName ?? ""}</span>
         <GitMenu onBeforeCommit={flushAll} />
         <span className="status-spacer" />
-        <span className="status-count">
-          {activeBuf
-            ? `${activeBuf.content.split("\n").length} lines · ${
-                activeBuf.content.length
-              } chars`
-            : ""}
-        </span>
+        <span className="status-count">{statusCounts}</span>
         <span className="status-dir" title={notesDir}>
           {prettyPath(notesDir, homeDir)}
         </span>
