@@ -615,13 +615,6 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // ⌃Tab / ⌃⇧Tab cycle tabs (Chrome / VS Code style, layout-independent).
-      if (e.ctrlKey && e.key === "Tab") {
-        e.preventDefault();
-        e.stopPropagation();
-        switchByOffset(e.shiftKey ? -1 : 1);
-        return;
-      }
       if (!e.metaKey) return;
       const k = e.key.toLowerCase();
       const fid = stateRef.current.focusedId;

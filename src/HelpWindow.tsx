@@ -25,7 +25,6 @@ const APP: Section[] = [
       ["Close tab", ["⌘W"]],
       ["Go to tab 1–9", ["⌘1–9"]],
       ["Previous / next tab", ["⌘⇧[", "⌘⇧]"]],
-      ["Cycle tabs", ["⌃Tab", "⌃⇧Tab"]],
       ["Rename tab", ["⌘⇧R"]],
     ],
   },
