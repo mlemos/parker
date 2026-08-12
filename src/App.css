@@ -501,7 +501,7 @@ body,
 
 .helpwin {
   box-sizing: border-box;
-  min-height: 100vh;
+  height: 100vh; /* exact viewport so the body scrolls, not the window */
   display: flex;
   flex-direction: column;
   background: var(--editor-bg);
@@ -517,31 +517,31 @@ body,
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: 12px;
 }
 .sc-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 28px;
-  padding: 16px 18px 4px;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 2px 36px;
+  align-content: start;
+  padding: 20px 24px 8px;
 }
 .sc-section {
   break-inside: avoid;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
 }
 .sc-title {
   font-size: 10.5px;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   color: var(--muted);
-  margin-bottom: 6px;
+  margin-bottom: 9px;
 }
 .sc-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 3px 0;
+  gap: 14px;
+  min-height: 24px;
   font-size: 12.5px;
 }
 .sc-label {
@@ -565,15 +565,15 @@ body,
   white-space: nowrap;
 }
 .sc-gestures {
-  padding: 8px 18px 4px;
+  padding: 14px 24px 22px;
   border-top: 1px solid var(--border);
 }
 .sc-gestures ul {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   padding-left: 18px;
   color: var(--secondary);
   font-size: 12.5px;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 /* ---- Workspace / split panes -------------------------------------------- */
