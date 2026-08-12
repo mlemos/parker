@@ -986,8 +986,85 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
   text-shadow: 0 0 7px color-mix(in srgb, currentColor 45%, transparent);
 }
 
-/* ---- To-do keywords (TODO / DONE / FAIL) -------------------------------- */
+/* ---- To-dos ------------------------------------------------------------- */
 
+/* Checkbox widget rendered in place of a leading /TODO //DONE //CANCEL tag. */
+:root {
+  --todo-green: #2fd45f;
+  --todo-red: #ff4d4f;
+}
+/* inline-block + vertical-align: middle keeps alignment independent of the
+   box's content — a numeric/baseline align shifts when the glyph changes the
+   widget's internal baseline (empty vs ✓/✕), which is exactly the bug. The
+   glyph is absolutely centered so it can't affect layout at all. */
+/* The outer span is a ZERO-HEIGHT inline anchor: it reserves the tag's width
+   and marks the line's visual middle (vertical-align: middle), but with no
+   height it mathematically cannot stretch the line box — which would drift
+   the text out of sync with the gutter numbers. The visible square is the
+   inner element, drawn from that anchor with an absolute position. */
+.cm-todo-box {
+  display: inline-block;
+  position: relative;
+  width: 0.9em;
+  height: 0;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+}
+.cm-todo-glyph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* The anchor sits at baseline + x-height/2. -100% raises the square so its
+     bottom touches the anchor, +0.39em (≈ x-height/2 in this element's 0.7em
+     units) rests it on the text baseline; +1px optically compensates the
+     rounded corners (pixel-measured against the gutter digits). */
+  transform: translateY(calc(-100% + 0.39em + 1px));
+  box-sizing: border-box;
+  /* 0.9em of the EDITOR font — this element's own font-size is 0.7em (for
+     the ✓/✕ glyph), so compensate: 0.9 / 0.7 ≈ 1.286. */
+  width: 1.286em;
+  height: 1.286em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--muted);
+  border-radius: 4px;
+  font-size: 0.7em;
+  font-weight: 700;
+  line-height: 1;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.cm-todo-box-todo:hover .cm-todo-glyph {
+  border-color: var(--todo-green);
+}
+.cm-todo-box-done .cm-todo-glyph {
+  background: var(--todo-green);
+  border-color: var(--todo-green);
+}
+.cm-todo-box-cancel .cm-todo-glyph {
+  background: var(--todo-red);
+  border-color: var(--todo-red);
+}
+
+/* DONE lines go green, CANCEL lines red — color carries the state, never a
+   strikethrough. The box glyph stays high-contrast over its vivid fill. */
+.cm-todo-line-done,
+.cm-todo-line-done span {
+  color: var(--todo-green);
+}
+.cm-todo-line-cancel,
+.cm-todo-line-cancel span {
+  color: var(--todo-red);
+}
+/* Knockout glyph: painted in the editor's background color, the ✓/✕ reads as
+   punched out of the vivid fill — dark in dark themes, light in light ones. */
+.cm-todo-box-done .cm-todo-glyph,
+.cm-todo-box-cancel .cm-todo-glyph {
+  color: var(--editor-bg);
+}
+
+/* Bare keyword chips (TODO / DONE / CANCEL anywhere in the text). */
 .cm-todo {
   font-weight: 700;
   border-radius: 3px;
