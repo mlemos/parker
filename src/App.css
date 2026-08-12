@@ -993,6 +993,9 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
   --todo-green: #2fd45f;
   --todo-yellow: #ffb224;
   --todo-red: #ff4d4f;
+  /* Ink for text sitting on a vivid to-do fill — dark in every theme, since
+     the fills are mid-tone colors that never go dark. */
+  --todo-ink: #10131a;
 }
 /* inline-block + vertical-align: middle keeps alignment independent of the
    box's content — a numeric/baseline align shifts when the glyph changes the
@@ -1098,25 +1101,37 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
   border-radius: 3px;
   padding: 0 3px;
 }
+/* The line-color rules above paint every span in the line, which would render
+   the chip's label in its own fill color (an unreadable solid block). The chip
+   keeps its ink — higher specificity, so it wins wherever it sits. */
+.cm-todo-line-attn .cm-todo,
+.cm-todo-line-done .cm-todo,
+.cm-todo-line-fail .cm-todo,
+.cm-todo-line-cancel .cm-todo {
+  color: var(--todo-ink);
+}
+
+/* One chip recipe for every state: the state's own color as the fill, dark
+   ink on top — same palette as the checkboxes they turn into. */
 .cm-todo-todo {
   color: var(--on-accent);
   background: var(--accent);
 }
 .cm-todo-attn {
-  color: #1a1a1a;
+  color: var(--todo-ink);
   background: var(--todo-yellow);
 }
+.cm-todo-done {
+  color: var(--todo-ink);
+  background: var(--todo-green);
+}
 .cm-todo-fail {
-  color: var(--on-accent, #fff);
-  background: var(--danger);
+  color: var(--todo-ink);
+  background: var(--todo-red);
 }
 .cm-todo-cancel {
-  color: var(--editor-bg, #fff);
+  color: var(--todo-ink);
   background: var(--muted);
-}
-.cm-todo-done {
-  color: var(--muted);
-  background: color-mix(in srgb, var(--muted) 22%, transparent);
 }
 /* Don't let the neon glow smear the little keyword chips. */
 html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
