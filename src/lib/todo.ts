@@ -55,7 +55,9 @@ class TodoBox extends WidgetType {
       // DOM (no React), and currentColor keeps the knockout coloring.
       const NS = "http://www.w3.org/2000/svg";
       const svg = document.createElementNS(NS, "svg");
-      svg.setAttribute("viewBox", "0 0 24 24");
+      // The check path spans y 6–17 (center 11.5), so shift the viewBox half a
+      // unit to optically center it; the x path is already symmetric.
+      svg.setAttribute("viewBox", kind === "done" ? "0 -0.5 24 24" : "0 0 24 24");
       svg.setAttribute("fill", "none");
       svg.setAttribute("stroke", "currentColor");
       svg.setAttribute("stroke-width", "3.5");

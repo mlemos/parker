@@ -1034,9 +1034,14 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
   line-height: 1;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
+/* Absolutely centered inside the square (margin: auto beats flex here — no
+   fractional-pixel drift from the flex line box at these tiny sizes). */
 .cm-todo-glyph svg {
-  width: 0.95em;
-  height: 0.95em;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0.85em;
+  height: 0.85em;
   display: block;
 }
 .cm-todo-box-todo:hover .cm-todo-glyph {
