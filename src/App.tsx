@@ -545,6 +545,32 @@ export default function App() {
     if (name) setLayout((l) => updateGroup(l, g.id, { active: name }));
   }, []);
 
+  // Move the active tab within its pane (⌃⌘[ / ⌃⌘]). Clamped at the ends.
+  const moveTab = useCallback((delta: number) => {
+    const s = stateRef.current;
+    const g = findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout);
+    const name = g.active;
+    if (!name) return;
+    const i = g.tabs.indexOf(name);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= g.tabs.length) return;
+    const tabs = [...g.tabs];
+    [tabs[i], tabs[j]] = [tabs[j], tabs[i]];
+    setLayout((l) => updateGroup(l, g.id, { tabs }));
+  }, []);
+
+  // Cycle focus through the panes (⌃⌥⌘[ / ⌃⌥⌘]). Focusing a group hands the
+  // keyboard to its editor, since CodeMirror autoFocuses the focused pane.
+  const focusPaneByOffset = useCallback((delta: number) => {
+    const s = stateRef.current;
+    const groups = allGroups(s.layout);
+    if (groups.length < 2) return;
+    const i = groups.findIndex((g) => g.id === s.focusedId);
+    const next =
+      groups[(Math.max(i, 0) + delta + groups.length) % groups.length];
+    setFocusedId(next.id);
+  }, []);
+
   const switchByOffset = useCallback((delta: number) => {
     const s = stateRef.current;
     const g = findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout);
@@ -667,11 +693,22 @@ export default function App() {
         e.preventDefault();
         setSettingsOpen((v) => !v);
       } else if (e.code === "Backslash" && !e.shiftKey) {
-        // ⌘\ split right, ⌘⌥\ split down (matched by physical key so the
-        // Option char doesn't matter). ⌘⇧\ is left to the editor — CodeMirror's
-        // "go to matching bracket".
+        // ⌃⌘\ split right, ⌃⌥⌘\ split down (matched by physical key so the
+        // Option char doesn't matter). Ctrl isn't required — plain ⌘\ still
+        // works — but it's the documented form because 1Password grabs ⌘\
+        // globally for autofill, so that one never reaches us. ⌘⇧\ is left to
+        // the editor — CodeMirror's "go to matching bracket".
         e.preventDefault();
         splitFocused(fid, e.altKey ? "col" : "row");
+      } else if (
+        e.ctrlKey &&
+        (e.code === "BracketLeft" || e.code === "BracketRight")
+      ) {
+        // ⌃⌘[ / ⌃⌘] move the tab; add ⌥ to move focus between panes instead.
+        e.preventDefault();
+        const dir = e.code === "BracketRight" ? 1 : -1;
+        if (e.altKey) focusPaneByOffset(dir);
+        else moveTab(dir);
       } else if (k === "m" && e.shiftKey) {
         e.preventDefault();
         mergeIntoParent(fid); // ⌘⇧M — merge this pane into its neighbor
@@ -729,6 +766,8 @@ export default function App() {
     flushSave,
     switchByOffset,
     switchToIndex,
+    moveTab,
+    focusPaneByOffset,
     splitFocused,
     mergeIntoParent,
     previewToSide,

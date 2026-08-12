@@ -50,14 +50,16 @@ const APP: Section[] = [
       ["Close tab", ["⌘W"]],
       ["Go to tab 1–9", ["⌘1–9"]],
       ["Previous / next tab", ["⌘⇧[", "⌘⇧]"]],
+      ["Move tab left / right", ["⌃⌘[", "⌃⌘]"]],
       ["Rename tab", ["⌘⇧R"]],
     ],
   },
   {
     title: "Panes (split)",
     rows: [
-      ["Split right", ["⌘\\"]],
-      ["Split down", ["⌘⌥\\"]],
+      ["Split right", ["⌃⌘\\"]],
+      ["Split down", ["⌃⌥⌘\\"]],
+      ["Focus previous / next pane", ["⌃⌥⌘[", "⌃⌥⌘]"]],
       ["Merge pane into neighbor", ["⌘⇧M"]],
       ["Markdown preview to the side", ["⌘⇧V"]],
     ],
