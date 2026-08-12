@@ -643,18 +643,6 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "F2") {
-        e.preventDefault();
-        e.stopPropagation();
-        startRename();
-        return;
-      }
-      if (e.key === "F1") {
-        e.preventDefault();
-        e.stopPropagation();
-        setHelpOpen((v) => !v);
-        return;
-      }
       // ⌃Tab / ⌃⇧Tab cycle tabs (Chrome / VS Code style, layout-independent).
       if (e.ctrlKey && e.key === "Tab") {
         e.preventDefault();
@@ -681,9 +669,6 @@ export default function App() {
       } else if (k === "v" && e.shiftKey) {
         e.preventDefault();
         previewToSide(fid); // ⌘⇧V — markdown preview to the side
-      } else if (k === "t" && e.shiftKey) {
-        e.preventDefault();
-        cycleTheme();
       } else if (k === "r" && e.shiftKey) {
         e.preventDefault();
         startRename();
@@ -701,9 +686,9 @@ export default function App() {
       } else if (k === "o") {
         e.preventDefault();
         openPicker();
-      } else if (k === "t") {
+      } else if (k === "n") {
         e.preventDefault();
-        newTab(fid);
+        newTab(fid); // ⌘N — new note
       } else if (k === "w") {
         e.preventDefault();
         const g = findGroup(stateRef.current.layout, fid);
@@ -736,7 +721,6 @@ export default function App() {
     newTab,
     closeTab,
     flushSave,
-    cycleTheme,
     switchByOffset,
     switchToIndex,
     moveActiveTab,

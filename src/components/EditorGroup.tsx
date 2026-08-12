@@ -178,7 +178,7 @@ export function EditorGroup({
                   setOverIndex(null);
                   cb.onTabDragEnd();
                 }}
-                title={`${name}  —  double-click or F2 to rename`}
+                title={`${name}  —  double-click to rename`}
               >
                 <span className="tab-name">{name}</span>
                 <span

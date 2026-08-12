@@ -978,9 +978,8 @@ fn build_menu<R: tauri::Runtime>(
     use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
     // Custom Quit: routes through request_quit so the frontend flushes first.
-    let quit = MenuItemBuilder::with_id("quit", "Quit Parker")
-        .accelerator("CmdOrCtrl+Q")
-        .build(handle)?;
+    // No ⌘Q accelerator — quitting is deliberate (menu / tray), not a stray key.
+    let quit = MenuItemBuilder::with_id("quit", "Quit Parker").build(handle)?;
     // Settings opens the in-app panel (Cmd+, is the macOS convention).
     let settings = MenuItemBuilder::with_id("settings", "Settings…")
         .accelerator("CmdOrCtrl+,")

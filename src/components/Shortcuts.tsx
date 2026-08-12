@@ -19,7 +19,7 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
   {
     title: "Notes & tabs",
     rows: [
-      ["New note", ["⌘T"]],
+      ["New note", ["⌘N"]],
       ["Open / search notes", ["⌘O"]],
       ["Save now", ["⌘S"]],
       ["Close tab", ["⌘W"]],
@@ -27,7 +27,7 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
       ["Previous / next tab", ["⌘⌥←", "⌘⌥→"]],
       ["Cycle tabs", ["⌃Tab", "⌃⇧Tab"]],
       ["Move tab left / right", ["⌘⇧[", "⌘⇧]"]],
-      ["Rename tab", ["F2", "⌘⇧R"]],
+      ["Rename tab", ["⌘⇧R"]],
     ],
   },
   {
@@ -53,7 +53,6 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
       ["Commit & push (quick)", ["⌘⇧S"]],
       ["Settings", ["⌘,"]],
       ["This help", ["⌘K"]],
-      ["Quit", ["⌘Q"]],
     ],
   },
 ];
