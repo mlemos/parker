@@ -124,6 +124,7 @@ export default function HelpWindow() {
       "--accent": u.accent,
       "--danger": u.danger,
       "--editor-bg": u.editorBg,
+      "--header-bg": u.headerBg,
       "--tabbar-bg": u.tabbarBg,
       "--tab-active-bg": u.tabActiveBg,
     };
@@ -145,16 +146,24 @@ export default function HelpWindow() {
 
   return (
     <div className="helpwin">
-      <div className="helpwin-bar" data-tauri-drag-region>
-        <div className="helpwin-tabs">
+      <div className="titlebar" data-tauri-drag-region>
+        <div className="tb-left" data-tauri-drag-region />
+        <div className="tb-center" data-tauri-drag-region>
+          <span className="helpwin-title">Keyboard Shortcuts</span>
+        </div>
+        <div className="tb-right" data-tauri-drag-region />
+      </div>
+
+      <div className="tabstrip">
+        <div className="tabs">
           <button
-            className={"helpwin-tab" + (tab === "app" ? " on" : "")}
+            className={"tab" + (tab === "app" ? " active" : "")}
             onClick={() => setTab("app")}
           >
             App
           </button>
           <button
-            className={"helpwin-tab" + (tab === "editor" ? " on" : "")}
+            className={"tab" + (tab === "editor" ? " active" : "")}
             onClick={() => setTab("editor")}
           >
             Editor

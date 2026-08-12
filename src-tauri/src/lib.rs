@@ -967,7 +967,8 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     {
         b = b
             .title_bar_style(tauri::TitleBarStyle::Overlay)
-            .hidden_title(true);
+            .hidden_title(true)
+            .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
     }
     let _ = b.build();
 }
