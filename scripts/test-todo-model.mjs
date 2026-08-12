@@ -12,9 +12,9 @@ import { Text } from "@codemirror/state";
 import { planRotate } from "../src/lib/todo-model.ts";
 
 const DOCS = {
-  "no trailing newline": "a PDS\n\n\nbanana\npipoca\nguarana",
-  "trailing newline": "a PDS\n\n\nbanana\npipoca\nguarana\n",
-  "already tagged": "/TODO banana\n/ATTN pipoca\n/DONE guarana",
+  "no trailing newline": "# list\n\n\nfirst\nsecond\nthird",
+  "trailing newline": "# list\n\n\nfirst\nsecond\nthird\n",
+  "already tagged": "/TODO first\n/ATTN second\n/DONE third",
   "indented": "  buy milk\n    call bank\nship",
 };
 
