@@ -30,6 +30,7 @@ import {
 import type { Buffer, LayoutNode } from "./lib/layout";
 import { isMarkdown } from "./lib/markdown";
 import { NotePicker } from "./components/NotePicker";
+import { PerfMonitor } from "./components/PerfMonitor";
 import { GitMenu } from "./components/GitMenu";
 import { Settings } from "./components/Settings";
 import { LayoutView } from "./components/LayoutView";
@@ -50,6 +51,7 @@ export default function App() {
   const [renamingName, setRenamingName] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [perfOpen, setPerfOpen] = useState(false);
   const [fontSize, setFontSize] = useState<number>(() => {
     const v = Number(localStorage.getItem("parker.fontSize"));
     return v >= 9 && v <= 40 ? v : 14;
@@ -661,6 +663,9 @@ export default function App() {
       } else if (k === "v" && e.shiftKey) {
         e.preventDefault();
         previewToSide(fid); // ⌘⇧V — markdown preview to the side
+      } else if (k === "d" && e.shiftKey) {
+        e.preventDefault();
+        setPerfOpen((v) => !v); // ⌘⇧D — performance monitor overlay
       } else if (k === "r" && e.shiftKey) {
         e.preventDefault();
         startRename();
@@ -962,6 +967,10 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
           onNotesDirChange={(dir) => setNotesDir(dir)}
         />
+      )}
+
+      {perfOpen && (
+        <PerfMonitor buffers={buffers} onClose={() => setPerfOpen(false)} />
       )}
 
     </div>

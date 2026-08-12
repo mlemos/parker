@@ -1588,3 +1588,90 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
   color: var(--muted);
   font-size: 11px;
 }
+
+/* ---- Performance monitor overlay (⌘⇧D) ---------------------------------- */
+
+.perf-monitor {
+  position: fixed;
+  right: 12px;
+  bottom: 34px;
+  width: 248px;
+  z-index: 120;
+  background: var(--popover-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 10px 12px;
+  font-size: 11px;
+  color: var(--text);
+  user-select: text;
+}
+
+.perf-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.perf-title {
+  font-weight: 600;
+}
+
+.perf-total {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.perf-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.perf-close:hover {
+  color: var(--text);
+}
+
+.perf-spark {
+  width: 100%;
+  height: 36px;
+  margin-bottom: 6px;
+}
+.perf-spark polyline {
+  stroke: var(--accent);
+}
+
+.perf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.perf-table td {
+  padding: 1.5px 0;
+}
+.perf-table td:last-child {
+  text-align: right;
+}
+.perf-row-dim {
+  color: var(--secondary);
+}
+.perf-row-warn {
+  color: var(--danger);
+}
+
+.perf-log {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

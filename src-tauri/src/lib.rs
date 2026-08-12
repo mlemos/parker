@@ -17,6 +17,8 @@ use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 
+mod monitor;
+
 #[derive(Serialize, Deserialize, Clone)]
 struct NoteMeta {
     name: String,
@@ -86,7 +88,7 @@ fn current_shortcut() -> String {
 // ---- Paths ----------------------------------------------------------------
 
 /// ~/Library/Application Support/Parker — created if missing.
-fn config_dir() -> PathBuf {
+pub(crate) fn config_dir() -> PathBuf {
     let base = dirs::config_dir()
         .or_else(dirs::home_dir)
         .unwrap_or_else(|| PathBuf::from("."));
@@ -1254,6 +1256,10 @@ pub fn run() {
                 // pull, another machine/editor), tell the frontend so it can
                 // reload the open tab instead of letting autosave clobber it.
                 rewatch_notes(app.handle());
+
+                // One perf sample a minute into perf.jsonl, so slow memory
+                // growth is diagnosable after the fact (⌘⇧D shows it live).
+                monitor::start_sampler();
             }
             Ok(())
         })
@@ -1292,6 +1298,8 @@ pub fn run() {
             pick_notes_dir,
             set_notes_dir,
             quit,
+            monitor::perf_stats,
+            monitor::perf_log_path,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
