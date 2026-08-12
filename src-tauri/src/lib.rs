@@ -946,6 +946,38 @@ fn show_about_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let _ = b.build();
 }
 
+/// Open (or focus) the standalone Keyboard Shortcuts window.
+fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+    if let Some(w) = app.get_webview_window("help") {
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let theme = load_session().theme.unwrap_or_default();
+    let url = format!("index.html?view=help&theme={theme}");
+    #[allow(unused_mut)]
+    let mut b = WebviewWindowBuilder::new(app, "help", WebviewUrl::App(url.into()))
+        .title("Keyboard Shortcuts")
+        .inner_size(620.0, 560.0)
+        .min_inner_size(460.0, 420.0)
+        .maximizable(false)
+        .center();
+    #[cfg(target_os = "macos")]
+    {
+        b = b
+            .title_bar_style(tauri::TitleBarStyle::Overlay)
+            .hidden_title(true);
+    }
+    let _ = b.build();
+}
+
+/// Command so the in-app (?) button can open the shortcuts window.
+#[tauri::command]
+fn open_help(app: tauri::AppHandle) {
+    show_help_window(&app);
+}
+
 /// Toggle: if the window is visible and focused, hide it; otherwise summon it.
 fn toggle_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     use tauri::Manager;
@@ -1219,11 +1251,7 @@ pub fn run() {
                 let _ = app.emit("parker://open-settings", ());
             }
             "about" => show_about_window(app),
-            "help" => {
-                use tauri::Emitter;
-                show_window(app);
-                let _ = app.emit("parker://open-help", ());
-            }
+            "help" => show_help_window(app),
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
@@ -1241,6 +1269,7 @@ pub fn run() {
             set_shortcut,
             set_autostart,
             set_git_auto_sync,
+            open_help,
             git_status,
             git_commit,
             git_push,

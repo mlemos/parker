@@ -497,45 +497,54 @@ body,
   font-size: 12px;
 }
 
-/* ---- Keyboard shortcuts overlay ----------------------------------------- */
+/* ---- Keyboard shortcuts window ------------------------------------------ */
 
-.shortcuts {
-  width: 560px;
-  max-width: calc(100vw - 2rem);
-  max-height: 80vh;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--popover-bg);
-  color: var(--text);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
-}
-.sc-head {
+.helpwin {
+  box-sizing: border-box;
+  min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
+  flex-direction: column;
+  background: var(--editor-bg);
+  color: var(--text);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.helpwin-bar {
+  display: flex;
+  align-items: flex-end;
+  height: 46px;
+  padding: 0 14px 0 82px; /* left room for the traffic lights */
   border-bottom: 1px solid var(--border);
-  font-size: 14px;
-  font-weight: 600;
+  background: var(--tabbar-bg);
 }
-.sc-x {
-  width: 26px;
-  height: 26px;
+.helpwin-tabs {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
+  gap: 4px;
 }
-.sc-x:hover {
+.helpwin-tab {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.helpwin-tab:hover {
   color: var(--text);
-  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+.helpwin-tab.on {
+  color: var(--text);
+  background: var(--tab-active-bg);
+  box-shadow: inset 0 -2px 0 0 var(--accent);
+}
+.helpwin-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 12px;
 }
 .sc-grid {
   display: grid;
@@ -592,11 +601,6 @@ body,
   color: var(--secondary);
   font-size: 12.5px;
   line-height: 1.7;
-}
-.sc-foot {
-  padding: 10px 18px 16px;
-  color: var(--muted);
-  font-size: 11px;
 }
 
 /* ---- Workspace / split panes -------------------------------------------- */

@@ -91,5 +91,6 @@ export const api = {
   pickNotesDir: () => invoke<string | null>("pick_notes_dir"),
   setNotesDir: (path: string, moveExisting: boolean) =>
     invoke<string>("set_notes_dir", { path, moveExisting }),
+  openHelp: () => invoke<void>("open_help"),
   quit: () => invoke<void>("quit"),
 };

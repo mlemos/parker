@@ -32,7 +32,6 @@ import { isMarkdown } from "./lib/markdown";
 import { NotePicker } from "./components/NotePicker";
 import { GitMenu } from "./components/GitMenu";
 import { Settings } from "./components/Settings";
-import { Shortcuts } from "./components/Shortcuts";
 import { LayoutView } from "./components/LayoutView";
 import type { LayoutHandlers } from "./components/LayoutView";
 import "./App.css";
@@ -51,7 +50,6 @@ export default function App() {
   const [renamingName, setRenamingName] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [fontSize, setFontSize] = useState<number>(() => {
     const v = Number(localStorage.getItem("parker.fontSize"));
     return v >= 9 && v <= 40 ? v : 14;
@@ -765,13 +763,6 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    const p = listen("parker://open-help", () => setHelpOpen(true));
-    return () => {
-      p.then((un) => un());
-    };
-  }, []);
-
   // External-change reload — reload an open buffer when its file changes on
   // disk, but never over unsaved edits, and skip our own autosave writes.
   useEffect(() => {
@@ -925,7 +916,7 @@ export default function App() {
         </span>
         <button
           className="status-help"
-          onClick={() => setHelpOpen(true)}
+          onClick={() => api.openHelp()}
           title="Keyboard shortcuts (Cmd+K)"
           aria-label="Keyboard shortcuts"
         >
@@ -952,7 +943,6 @@ export default function App() {
         />
       )}
 
-      {helpOpen && <Shortcuts onClose={() => setHelpOpen(false)} />}
     </div>
   );
 }
