@@ -311,22 +311,6 @@ export default function App() {
     setFocusedId(groupId);
   }, []);
 
-  const reorderTab = useCallback(
-    (groupId: string, from: number, to: number) => {
-      setLayout((l) => {
-        const g = findGroup(l, groupId);
-        if (!g) return l;
-        if (from === to || from < 0 || to < 0) return l;
-        const tabs = [...g.tabs];
-        if (from >= tabs.length || to >= tabs.length) return l;
-        const [m] = tabs.splice(from, 1);
-        tabs.splice(to, 0, m);
-        return updateGroup(l, groupId, { tabs });
-      });
-    },
-    []
-  );
-
   const newTab = useCallback(async (groupId?: string) => {
     const gid = groupId ?? stateRef.current.focusedId;
     try {
@@ -553,16 +537,6 @@ export default function App() {
     setLayout((l) => updateGroup(l, g.id, { active: name }));
   }, []);
 
-  const moveActiveTab = useCallback(
-    (delta: number) => {
-      const s = stateRef.current;
-      const g = findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout);
-      const i = g.tabs.findIndex((t) => t === g.active);
-      if (i < 0) return;
-      reorderTab(g.id, i, i + delta);
-    },
-    [reorderTab]
-  );
 
   const cycleTheme = useCallback(() => {
     setThemeId((id) => nextThemeId(id));
@@ -697,18 +671,12 @@ export default function App() {
         e.preventDefault();
         const g = findGroup(stateRef.current.layout, fid);
         if (g?.active) flushSave(g.active);
-      } else if (e.altKey && e.key === "ArrowRight") {
-        e.preventDefault();
-        switchByOffset(1); // ⌘⌥→ next tab (frees ⌘] for editor indent)
-      } else if (e.altKey && e.key === "ArrowLeft") {
-        e.preventDefault();
-        switchByOffset(-1); // ⌘⌥← previous tab
       } else if (e.shiftKey && (k === "]" || k === "}")) {
         e.preventDefault();
-        moveActiveTab(1); // ⌘⇧] move tab right
+        switchByOffset(1); // ⌘⇧] next tab (Safari/Chrome style)
       } else if (e.shiftKey && (k === "[" || k === "{")) {
         e.preventDefault();
-        moveActiveTab(-1); // ⌘⇧[ move tab left
+        switchByOffset(-1); // ⌘⇧[ previous tab
       } else if (k >= "1" && k <= "9") {
         e.preventDefault();
         switchToIndex(Number(k) - 1);
@@ -723,7 +691,6 @@ export default function App() {
     flushSave,
     switchByOffset,
     switchToIndex,
-    moveActiveTab,
     splitFocused,
     mergeIntoParent,
     previewToSide,
