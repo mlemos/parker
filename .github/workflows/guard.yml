@@ -1,0 +1,40 @@
+name: guard
+
+# Public repo, public app: every push gets checked for things that shouldn't
+# be published, and for the logic that's easy to break by accident.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # scan the whole tree, not just the tip commit
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Secrets, personal paths, notes, build artifacts — see the script.
+      - name: Repo hygiene
+        run: node scripts/check-repo-hygiene.mjs
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      # Brute-forces every selection the ⌘⏎ to-do rotation can see.
+      - name: To-do model
+        run: node --experimental-strip-types scripts/test-todo-model.mjs

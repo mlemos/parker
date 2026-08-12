@@ -1,0 +1,8 @@
+#!/bin/sh
+# Last check before anything becomes public. Enable it once per clone:
+#
+#   git config core.hooksPath .githooks
+#
+# CI runs the same script, because a hook can be skipped with --no-verify.
+set -e
+node "$(dirname "$0")/../scripts/check-repo-hygiene.mjs"
