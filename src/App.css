@@ -1031,9 +1031,13 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
   border: 1.5px solid var(--muted);
   border-radius: 4px;
   font-size: 0.7em;
-  font-weight: 700;
   line-height: 1;
   transition: border-color 0.12s ease, background 0.12s ease;
+}
+.cm-todo-glyph svg {
+  width: 0.95em;
+  height: 0.95em;
+  display: block;
 }
 .cm-todo-box-todo:hover .cm-todo-glyph {
   border-color: var(--todo-green);

@@ -46,11 +46,30 @@ class TodoBox extends WidgetType {
     const box = document.createElement("span");
     const kind = this.state === "TODO" ? "todo" : this.state === "DONE" ? "done" : "cancel";
     box.className = `cm-todo-box cm-todo-box-${kind}`;
-    // Inner span so the glyph can be scaled down without shrinking the box's
-    // em-based size, and flex-centered without nudging the line's baseline.
+    // The visible square. Inner element so it can be drawn from the zero-height
+    // anchor (see App.css) without nudging the line's baseline.
     const glyph = document.createElement("span");
     glyph.className = "cm-todo-glyph";
-    glyph.textContent = kind === "done" ? "✓" : kind === "cancel" ? "✕" : "";
+    if (kind !== "todo") {
+      // Lucide "check" / "x" icon paths, inlined — the widget lives in plain
+      // DOM (no React), and currentColor keeps the knockout coloring.
+      const NS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor");
+      svg.setAttribute("stroke-width", "3.5");
+      svg.setAttribute("stroke-linecap", "round");
+      svg.setAttribute("stroke-linejoin", "round");
+      const paths =
+        kind === "done" ? ["M20 6 9 17l-5-5"] : ["M18 6 6 18", "m6 6 12 12"];
+      for (const d of paths) {
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("d", d);
+        svg.appendChild(p);
+      }
+      glyph.appendChild(svg);
+    }
     box.appendChild(glyph);
     box.title =
       kind === "todo"
