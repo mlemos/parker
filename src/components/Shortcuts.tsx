@@ -24,7 +24,8 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
       ["Save now", ["⌘S"]],
       ["Close tab", ["⌘W"]],
       ["Go to tab 1–9", ["⌘1–9"]],
-      ["Previous / next tab", ["⌘[", "⌘]"]],
+      ["Previous / next tab", ["⌘⌥←", "⌘⌥→"]],
+      ["Cycle tabs", ["⌃Tab", "⌃⇧Tab"]],
       ["Move tab left / right", ["⌘⇧[", "⌘⇧]"]],
       ["Rename tab", ["F2", "⌘⇧R"]],
     ],
@@ -33,7 +34,7 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
     title: "Panes (split)",
     rows: [
       ["Split right", ["⌘\\"]],
-      ["Split down", ["⌘⇧\\"]],
+      ["Split down", ["⌘⌥\\"]],
       ["Merge pane into neighbor", ["⌘⇧M"]],
       ["Markdown preview to the side", ["⌘⇧V"]],
     ],
@@ -43,7 +44,6 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
     rows: [
       ["Font size up / down", ["⌘=", "⌘-"]],
       ["Reset font size", ["⌘0"]],
-      ["Toggle line numbers", ["⌘⇧L"]],
       ["Cycle theme", ["⌘⇧T"]],
     ],
   },

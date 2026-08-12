@@ -655,6 +655,13 @@ export default function App() {
         setHelpOpen((v) => !v);
         return;
       }
+      // ⌃Tab / ⌃⇧Tab cycle tabs (Chrome / VS Code style, layout-independent).
+      if (e.ctrlKey && e.key === "Tab") {
+        e.preventDefault();
+        e.stopPropagation();
+        switchByOffset(e.shiftKey ? -1 : 1);
+        return;
+      }
       if (!e.metaKey) return;
       const k = e.key.toLowerCase();
       const fid = stateRef.current.focusedId;
@@ -662,10 +669,12 @@ export default function App() {
       if (k === ",") {
         e.preventDefault();
         setSettingsOpen((v) => !v);
-      } else if (k === "\\" || k === "|") {
-        // ⌘\ split right, ⌘⇧\ split down. Shift+\ is "|" on US layouts.
+      } else if (e.code === "Backslash" && !e.shiftKey) {
+        // ⌘\ split right, ⌘⌥\ split down (matched by physical key so the
+        // Option char doesn't matter). ⌘⇧\ is left to the editor — CodeMirror's
+        // "go to matching bracket".
         e.preventDefault();
-        splitFocused(fid, e.shiftKey ? "col" : "row");
+        splitFocused(fid, e.altKey ? "col" : "row");
       } else if (k === "m" && e.shiftKey) {
         e.preventDefault();
         mergeIntoParent(fid); // ⌘⇧M — merge this pane into its neighbor
@@ -678,9 +687,6 @@ export default function App() {
       } else if (k === "r" && e.shiftKey) {
         e.preventDefault();
         startRename();
-      } else if (k === "l" && e.shiftKey) {
-        e.preventDefault();
-        setGutterOn((v) => !v);
       } else if (k === "s" && e.shiftKey) {
         e.preventDefault(); // GitMenu handles quick commit & push
       } else if (k === "=" || k === "+") {
@@ -706,18 +712,18 @@ export default function App() {
         e.preventDefault();
         const g = findGroup(stateRef.current.layout, fid);
         if (g?.active) flushSave(g.active);
+      } else if (e.altKey && e.key === "ArrowRight") {
+        e.preventDefault();
+        switchByOffset(1); // ⌘⌥→ next tab (frees ⌘] for editor indent)
+      } else if (e.altKey && e.key === "ArrowLeft") {
+        e.preventDefault();
+        switchByOffset(-1); // ⌘⌥← previous tab
       } else if (e.shiftKey && (k === "]" || k === "}")) {
         e.preventDefault();
-        moveActiveTab(1);
+        moveActiveTab(1); // ⌘⇧] move tab right
       } else if (e.shiftKey && (k === "[" || k === "{")) {
         e.preventDefault();
-        moveActiveTab(-1);
-      } else if (k === "]" || k === "}") {
-        e.preventDefault();
-        switchByOffset(1);
-      } else if (k === "[" || k === "{") {
-        e.preventDefault();
-        switchByOffset(-1);
+        moveActiveTab(-1); // ⌘⇧[ move tab left
       } else if (k >= "1" && k <= "9") {
         e.preventDefault();
         switchToIndex(Number(k) - 1);
@@ -901,7 +907,7 @@ export default function App() {
           <button
             className={"icon-btn" + (gutterOn ? " on" : "")}
             onClick={() => setGutterOn((v) => !v)}
-            title="Line numbers (Cmd+Shift+L)"
+            title="Line numbers"
             aria-label="Toggle line numbers"
             aria-pressed={gutterOn}
           >
