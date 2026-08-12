@@ -274,6 +274,16 @@ fn write_note(name: String, content: String) -> Result<(), String> {
     atomic_write(&path, &content)
 }
 
+/// Move a note to the OS Trash (recoverable), never a hard unlink.
+#[tauri::command]
+fn delete_note(name: String) -> Result<(), String> {
+    let path = safe_note_path(&name)?;
+    if !path.exists() {
+        return Ok(()); // already gone — treat as success
+    }
+    trash::delete(&path).map_err(|e| format!("couldn't move to Trash: {e}"))
+}
+
 /// Create a new empty note "Untitled-N.<ext>" (ext defaults to "md") and
 /// return its name. N is the first integer that doesn't collide.
 #[tauri::command]
@@ -962,6 +972,9 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         .inner_size(620.0, 560.0)
         .min_inner_size(460.0, 420.0)
         .maximizable(false)
+        // Start hidden: the frontend applies the theme, then shows the window on
+        // the first painted frame so it never flashes an unstyled (white) frame.
+        .visible(false)
         .center();
     #[cfg(target_os = "macos")]
     {
@@ -1262,6 +1275,7 @@ pub fn run() {
             search_notes,
             read_note,
             write_note,
+            delete_note,
             create_note,
             rename_note,
             load_session,

@@ -73,6 +73,7 @@ export const api = {
   createNote: (ext?: string) => invoke<string>("create_note", { ext }),
   renameNote: (from: string, to: string) =>
     invoke<void>("rename_note", { from, to }),
+  deleteNote: (name: string) => invoke<void>("delete_note", { name }),
   loadSession: () => invoke<Session>("load_session"),
   saveSession: (session: Session) => invoke<void>("save_session", { session }),
 

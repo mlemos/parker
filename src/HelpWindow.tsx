@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { api } from "./lib/api";
 import { themeById, DEFAULT_THEME_ID } from "./lib/themes";
 import "./App.css";
@@ -124,6 +125,10 @@ const GESTURES: string[] = [
 const initialTheme =
   new URLSearchParams(window.location.search).get("theme") || DEFAULT_THEME_ID;
 
+// Paint the theme onto the document before React's first render so the very
+// first frame is already styled (the window itself is created hidden in Rust).
+applyTheme(initialTheme);
+
 export default function HelpWindow() {
   const [tab, setTab] = useState<"app" | "editor">("app");
   const [summon, setSummon] = useState<string>("");
@@ -135,11 +140,16 @@ export default function HelpWindow() {
       .catch(() => {});
   }, []);
 
-  // Apply the theme now, then follow the main window's live theme changes.
+  // The theme is already applied at module load; here we just reveal the
+  // window once the themed content has painted, then follow live theme changes.
   useEffect(() => {
-    applyTheme(initialTheme);
+    const raf = requestAnimationFrame(() => {
+      getCurrentWindow().show().catch(() => {});
+      getCurrentWindow().setFocus().catch(() => {});
+    });
     const p = listen<string>("parker://theme", (e) => applyTheme(e.payload));
     return () => {
+      cancelAnimationFrame(raf);
       p.then((un) => un());
     };
   }, []);

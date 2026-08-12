@@ -31,6 +31,8 @@ tauri-plugin-dialog = "2"
 # Watch the notes folder so external edits (git pull, another machine, another
 # editor) reload in the app instead of being silently clobbered by autosave.
 notify = "6"
+# Move deleted notes to the OS Trash instead of unlinking (recoverable).
+trash = "5"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # Raw Obj-C messaging to tweak the NSWindow collection behavior (already in the

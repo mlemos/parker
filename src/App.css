@@ -1517,6 +1517,66 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
   color: var(--muted);
   flex: none;
 }
+/* Per-row "move to Trash" affordance — hidden until the row is hovered or
+   selected so the list stays clean. */
+.picker-trash {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s ease, color 0.1s ease, background 0.1s ease;
+}
+.picker-item:hover .picker-trash,
+.picker-item.sel .picker-trash {
+  opacity: 1;
+}
+.picker-trash:hover {
+  color: #ef4444;
+  background: color-mix(in srgb, #ef4444 14%, transparent);
+}
+
+/* Inline delete confirmation, replacing the row's right-hand metadata. */
+.picker-confirm {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.picker-confirm-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.picker-del-yes,
+.picker-del-no {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg);
+}
+.picker-del-yes {
+  border-color: #ef4444;
+  background: #ef4444;
+  color: #fff;
+}
+.picker-del-yes:hover {
+  background: #dc2626;
+}
+.picker-del-no:hover {
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+
 .picker-empty {
   padding: 20px;
   text-align: center;

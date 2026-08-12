@@ -570,6 +570,31 @@ export default function App() {
 
   const openPicker = useCallback(() => setPickerOpen(true), []);
 
+  // A note was moved to Trash from the picker: drop its buffer, cancel any
+  // pending autosave (so it isn't recreated), and remove it from every pane.
+  const onNoteDeleted = useCallback((name: string) => {
+    const timers = saveTimers.current;
+    const pending = timers.get(name);
+    if (pending) {
+      clearTimeout(pending);
+      timers.delete(name);
+    }
+    const s = stateRef.current;
+    let next = s.layout;
+    for (const g of allGroups(s.layout)) {
+      if (!g.tabs.includes(name)) continue;
+      const idx = g.tabs.indexOf(name);
+      const remaining = g.tabs.filter((t) => t !== name);
+      const active =
+        g.active === name
+          ? remaining[Math.min(idx, remaining.length - 1)] ?? null
+          : g.active;
+      next = updateGroup(next, g.id, { tabs: remaining, active });
+    }
+    setLayout(next);
+    setBuffers((prev) => prev.filter((b) => b.name !== name));
+  }, []);
+
   const startRename = useCallback((name?: string) => {
     const s = stateRef.current;
     const n =
@@ -926,6 +951,7 @@ export default function App() {
             setPickerOpen(false);
             openNote(name);
           }}
+          onDeleted={onNoteDeleted}
           onClose={() => setPickerOpen(false)}
         />
       )}

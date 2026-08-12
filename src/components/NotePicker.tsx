@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import type { NoteHit } from "../lib/api";
 
@@ -30,15 +31,18 @@ function Highlight({ text, query }: { text: string; query: string }) {
 export function NotePicker({
   openNames,
   onOpen,
+  onDeleted,
   onClose,
 }: {
   openNames: string[];
   onOpen: (name: string) => void;
+  onDeleted: (name: string) => void;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<NoteHit[]>([]);
   const [sel, setSel] = useState(0);
+  const [confirming, setConfirming] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const selRef = useRef<HTMLDivElement>(null);
   const reqId = useRef(0);
@@ -58,6 +62,7 @@ export function NotePicker({
             if (reqId.current === id) {
               setResults(hits);
               setSel(0);
+              setConfirming(null);
             }
           })
           .catch(() => {});
@@ -76,6 +81,20 @@ export function NotePicker({
     if (n) onOpen(n.name);
   };
 
+  const doDelete = async (name: string) => {
+    setConfirming(null);
+    try {
+      await api.deleteNote(name);
+    } catch (e) {
+      console.error("delete failed", name, e);
+      return;
+    }
+    setResults((r) => r.filter((x) => x.name !== name));
+    setSel((s) => Math.max(0, Math.min(s, results.length - 2)));
+    onDeleted(name);
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="picker-overlay" onMouseDown={onClose}>
       <div className="picker" onMouseDown={(e) => e.stopPropagation()}>
@@ -88,6 +107,16 @@ export function NotePicker({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
             e.stopPropagation();
+            if (confirming) {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                doDelete(confirming);
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                setConfirming(null);
+              }
+              return;
+            }
             if (e.key === "ArrowDown") {
               e.preventDefault();
               setSel((s) => Math.min(s + 1, results.length - 1));
@@ -100,22 +129,31 @@ export function NotePicker({
             } else if (e.key === "Escape") {
               e.preventDefault();
               onClose();
+            } else if (
+              e.metaKey &&
+              (e.key === "Backspace" || e.key === "Delete")
+            ) {
+              e.preventDefault();
+              const n = results[sel];
+              if (n) setConfirming(n.name);
             }
           }}
         />
         <div className="picker-list">
-          {results.length === 0 && (
-            <div className="picker-empty">No matches</div>
-          )}
+          {results.length === 0 && <div className="picker-empty">No matches</div>}
           {results.map((n, i) => (
             <div
               key={n.name}
               ref={i === sel ? selRef : undefined}
-              className={"picker-item" + (i === sel ? " sel" : "")}
+              className={
+                "picker-item" +
+                (i === sel ? " sel" : "") +
+                (confirming === n.name ? " confirming" : "")
+              }
               onMouseEnter={() => setSel(i)}
               onMouseDown={(e) => {
                 e.preventDefault();
-                onOpen(n.name);
+                if (confirming !== n.name) onOpen(n.name);
               }}
             >
               <div className="picker-main">
@@ -128,15 +166,57 @@ export function NotePicker({
                   </span>
                 )}
               </div>
-              {openNames.includes(n.name) && (
-                <span className="picker-open">open</span>
+
+              {confirming === n.name ? (
+                <div className="picker-confirm">
+                  <span className="picker-confirm-label">Move to Trash?</span>
+                  <button
+                    className="picker-del-yes"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      doDelete(n.name);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    className="picker-del-no"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setConfirming(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {openNames.includes(n.name) && (
+                    <span className="picker-open">open</span>
+                  )}
+                  <span className="picker-time">{relTime(n.modified)}</span>
+                  <button
+                    className="picker-trash"
+                    title="Move to Trash (⌘⌫)"
+                    aria-label="Move to Trash"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSel(i);
+                      setConfirming(n.name);
+                    }}
+                  >
+                    <Trash2 size={14} strokeWidth={1.8} />
+                  </button>
+                </>
               )}
-              <span className="picker-time">{relTime(n.modified)}</span>
             </div>
           ))}
         </div>
         <div className="picker-hint">
-          ↑↓ navigate · ↵ open · esc close · matches name &amp; text
+          ↑↓ navigate · ↵ open · ⌘⌫ delete · esc close
         </div>
       </div>
     </div>
