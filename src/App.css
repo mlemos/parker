@@ -991,6 +991,7 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
 /* Checkbox widget rendered in place of a leading /TODO //DONE //CANCEL tag. */
 :root {
   --todo-green: #2fd45f;
+  --todo-yellow: #ffb224;
   --todo-red: #ff4d4f;
 }
 /* inline-block + vertical-align: middle keeps alignment independent of the
@@ -1047,6 +1048,10 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
 .cm-todo-box-todo:hover .cm-todo-glyph {
   border-color: var(--todo-green);
 }
+.cm-todo-box-attn .cm-todo-glyph {
+  background: var(--todo-yellow);
+  border-color: var(--todo-yellow);
+}
 .cm-todo-box-done .cm-todo-glyph {
   background: var(--todo-green);
   border-color: var(--todo-green);
@@ -1058,6 +1063,10 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
 
 /* DONE lines go green, CANCEL lines red — color carries the state, never a
    strikethrough. The box glyph stays high-contrast over its vivid fill. */
+.cm-todo-line-attn,
+.cm-todo-line-attn span {
+  color: var(--todo-yellow);
+}
 .cm-todo-line-done,
 .cm-todo-line-done span {
   color: var(--todo-green);
@@ -1066,8 +1075,9 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
 .cm-todo-line-cancel span {
   color: var(--todo-red);
 }
-/* Knockout glyph: painted in the editor's background color, the ✓/✕ reads as
+/* Knockout glyph: painted in the editor's background color, the icon reads as
    punched out of the vivid fill — dark in dark themes, light in light ones. */
+.cm-todo-box-attn .cm-todo-glyph,
 .cm-todo-box-done .cm-todo-glyph,
 .cm-todo-box-cancel .cm-todo-glyph {
   color: var(--editor-bg);
@@ -1082,6 +1092,10 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
 .cm-todo-todo {
   color: var(--on-accent);
   background: var(--accent);
+}
+.cm-todo-attn {
+  color: #1a1a1a;
+  background: var(--todo-yellow);
 }
 .cm-todo-fail {
   color: var(--on-accent, #fff);

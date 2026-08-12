@@ -12,7 +12,7 @@ import {
   Plus,
 } from "lucide-react";
 import { languageForName } from "../lib/lang";
-import { todoHighlighter } from "../lib/todo";
+import { todoHighlighter, todoKeymap } from "../lib/todo";
 import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Group } from "../lib/layout";
 import { isMarkdown } from "../lib/markdown";
@@ -98,6 +98,7 @@ export function EditorGroup({
       Prec.highest(theme.cm),
       ...(wrapOn ? [EditorView.lineWrapping] : []),
       todoHighlighter,
+      todoKeymap,
       ...langExt,
     ],
     [theme, wrapOn, langExt]

@@ -82,7 +82,7 @@ const EDITOR: Section[] = [
       ["Outdent / Indent", ["⌘[", "⌘]"]],
       ["Indent / outdent selection", ["Tab", "⇧Tab"]],
       ["Delete line", ["⌘⇧K"]],
-      ["Insert line below", ["⌘⏎"]],
+      ["To-do: rotate line state (→ todo → attention → done → cancel →)", ["⌘⏎"]],
       ["Copy line up / down", ["⌘⌥↑", "⌘⌥↓"]],
       ["Move line up / down", ["⌥↑", "⌥↓"]],
     ],
