@@ -87,14 +87,37 @@ export function GitMenu({
     }
   }, []);
 
-  // Initial load + light polling + refresh on window focus.
+  // Initial load + light polling + refresh on window focus. The poll pauses
+  // while the window is hidden ("closing" Parker only hides it, so an always-on
+  // interval would keep spawning git subprocesses forever in the background)
+  // and catches up immediately when it becomes visible again.
   useEffect(() => {
+    let id: number | null = null;
+    const start = () => {
+      if (id === null) id = window.setInterval(refresh, POLL_MS);
+    };
+    const stop = () => {
+      if (id !== null) {
+        window.clearInterval(id);
+        id = null;
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+        start();
+      } else {
+        stop();
+      }
+    };
     refresh();
-    const id = window.setInterval(refresh, POLL_MS);
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
     const onFocus = () => refresh();
     window.addEventListener("focus", onFocus);
     return () => {
-      window.clearInterval(id);
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", onFocus);
     };
   }, [refresh]);
