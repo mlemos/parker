@@ -16,8 +16,13 @@
 // Interactions:
 //   click     TODO/ATTN → DONE; DONE/FAIL/CANCEL → TODO (complete / reopen)
 //   ⌥-click   TODO → ATTN → FAIL → CANCEL → TODO; DONE → ATTN
-//   ⌘↩        rotate the cursor line (Roam-style):
+//   ⌘↩        rotate the line (Roam-style):
 //             no tag → /TODO → /ATTN → /DONE → /FAIL → /CANCEL → tag removed
+//             Over a multi-line selection: untagged lines become /TODO, or if
+//             every line is tagged they all advance together — one transaction.
+//
+// The tag grammar and the edits these produce live in todo-model.ts (no DOM),
+// which is where the selection→lines rules are unit-tested.
 //
 // Bare TODO/DONE elsewhere in the text is left alone (a #tag chip system may
 // come later). This is a plain decoration pass over the visible range — no
@@ -32,15 +37,13 @@ import {
   keymap,
 } from "@uiw/react-codemirror";
 import type { DecorationSet, ViewUpdate } from "@uiw/react-codemirror";
-
-/** Slash tag at the start of a line (after optional indent). */
-const LINE_TAG = /^(\s*)\/(TODO|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(?=\s|$)/;
-
-/** ⌘↩ rotation order. MISSED/DISMISSED normalize on any interaction. */
-const ORDER = ["TODO", "ATTN", "DONE", "FAIL", "CANCEL"] as const;
-
-const norm = (s: string) =>
-  s === "MISSED" ? "FAIL" : s === "DISMISSED" ? "CANCEL" : s;
+import {
+  LINE_TAG,
+  nextOnClick,
+  norm,
+  planRotate,
+  tagChange,
+} from "./todo-model";
 
 /** Raw-tag highlight while the cursor is on the line. */
 const MARKS: Record<string, Decoration> = {
@@ -164,67 +167,32 @@ function build(view: EditorView): DecorationSet {
   return builder.finish();
 }
 
-/** Rewrite the tag on `line` to `next` (null removes it, incl. one trailing space). */
 function writeTag(
   view: EditorView,
   line: { from: number; text: string },
   tag: RegExpExecArray,
   next: string | null
 ) {
-  const from = line.from + tag[1].length;
-  const tagEnd = from + 1 + tag[2].length;
-  if (next) {
-    view.dispatch({
-      changes: { from, to: tagEnd, insert: "/" + next },
-      userEvent: "input",
-    });
-  } else {
-    const hasSpace = line.text[tag[0].length] === " ";
-    view.dispatch({
-      changes: { from, to: tagEnd + (hasSpace ? 1 : 0) },
-      userEvent: "delete",
-    });
-  }
+  view.dispatch({
+    changes: tagChange(line, tag, next),
+    userEvent: next ? "input" : "delete",
+  });
 }
 
-/** Checkbox click: complete/reopen; ⌥ cycles the attention/cancel states. */
+/** Checkbox click: complete/reopen; ⌥ cycles the attention/fail/cancel states. */
 function toggle(view: EditorView, pos: number, alt: boolean): boolean {
   const line = view.state.doc.lineAt(pos);
   const tag = LINE_TAG.exec(line.text);
   if (!tag) return false;
-  const cur = norm(tag[2]);
-  const next = alt
-    ? cur === "TODO"
-      ? "ATTN"
-      : cur === "ATTN"
-        ? "FAIL"
-        : cur === "FAIL"
-          ? "CANCEL"
-          : cur === "CANCEL"
-            ? "TODO"
-            : "ATTN" // DONE → needs another look
-    : cur === "TODO" || cur === "ATTN"
-      ? "DONE"
-      : "TODO";
-  writeTag(view, line, tag, next);
+  writeTag(view, line, tag, nextOnClick(norm(tag[2]), alt));
   return true;
 }
 
-/** ⌘↩ — rotate the cursor line through the four states (Roam-style). */
+/** ⌘↩ — see planRotate for the rules. One transaction, so one undo reverts. */
 function rotateLine(view: EditorView): boolean {
-  const line = view.state.doc.lineAt(view.state.selection.main.head);
-  const tag = LINE_TAG.exec(line.text);
-  if (!tag) {
-    const indent = /^\s*/.exec(line.text)![0];
-    view.dispatch({
-      changes: { from: line.from + indent.length, insert: "/TODO " },
-      userEvent: "input",
-    });
-    return true;
-  }
-  const idx = ORDER.indexOf(norm(tag[2]) as (typeof ORDER)[number]);
-  const next = idx + 1 < ORDER.length ? ORDER[idx + 1] : null;
-  writeTag(view, line, tag, next);
+  const sel = view.state.selection.main;
+  const changes = planRotate(view.state.doc, sel.from, sel.to);
+  if (changes.length) view.dispatch({ changes, userEvent: "input" });
   return true;
 }
 
