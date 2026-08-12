@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import type { Extension } from "@uiw/react-codemirror";
 import { EditorView, Prec } from "@uiw/react-codemirror";
@@ -74,6 +74,9 @@ export function EditorGroup({
   const activeBuf = buffers.find((b) => b.name === active) ?? null;
   const isMd = isMarkdown(active);
   const showPreview = group.mode === "preview" && isMd && !!activeBuf;
+  // Deferred so a side-by-side preview re-renders at low priority instead of
+  // running markdown-it over the whole document inside every keystroke.
+  const previewContent = useDeferredValue(activeBuf?.content ?? "");
 
   useEffect(() => {
     if (!active) return;
@@ -86,12 +89,38 @@ export function EditorGroup({
     };
   }, [active]);
 
-  const cmExtensions: Extension[] = [
-    Prec.highest(theme.cm),
-    ...(wrapOn ? [EditorView.lineWrapping] : []),
-    todoHighlighter,
-    ...langExt,
-  ];
+  // All three of these MUST be identity-stable across renders: react-codemirror
+  // dispatches a full StateEffect.reconfigure whenever extensions, basicSetup
+  // or onChange change identity — inline literals here meant a top-level
+  // reconfigure per keystroke in every pane.
+  const cmExtensions: Extension[] = useMemo(
+    () => [
+      Prec.highest(theme.cm),
+      ...(wrapOn ? [EditorView.lineWrapping] : []),
+      todoHighlighter,
+      ...langExt,
+    ],
+    [theme, wrapOn, langExt]
+  );
+
+  const cmSetup = useMemo(
+    () => ({
+      lineNumbers: gutterOn,
+      foldGutter: false,
+      highlightActiveLine: true,
+      highlightActiveLineGutter: gutterOn,
+      highlightSelectionMatches: false,
+      syntaxHighlighting: false,
+    }),
+    [gutterOn]
+  );
+
+  const onCmChange = useCallback(
+    (v: string) => {
+      if (active) cb.onChange(active, v);
+    },
+    [cb.onChange, active]
+  );
 
   return (
     <div className={"egroup" + (focused ? " focused" : "")} onMouseDown={cb.onFocus}>
@@ -270,24 +299,17 @@ export function EditorGroup({
 
       <div className="editor-wrap">
         {activeBuf && showPreview ? (
-          <MarkdownPreview content={activeBuf.content} />
+          <MarkdownPreview content={previewContent} />
         ) : activeBuf ? (
           <CodeMirror
             key={`${group.id}:${activeBuf.name}`}
             value={activeBuf.content}
-            onChange={(v) => cb.onChange(activeBuf.name, v)}
+            onChange={onCmChange}
             theme={theme.mode}
             extensions={cmExtensions}
             height="100%"
             autoFocus={focused}
-            basicSetup={{
-              lineNumbers: gutterOn,
-              foldGutter: false,
-              highlightActiveLine: true,
-              highlightActiveLineGutter: gutterOn,
-              highlightSelectionMatches: false,
-              syntaxHighlighting: false,
-            }}
+            basicSetup={cmSetup}
           />
         ) : (
           <div className="empty-pane">
