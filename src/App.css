@@ -1056,9 +1056,13 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
   background: var(--todo-green);
   border-color: var(--todo-green);
 }
-.cm-todo-box-cancel .cm-todo-glyph {
+.cm-todo-box-fail .cm-todo-glyph {
   background: var(--todo-red);
   border-color: var(--todo-red);
+}
+.cm-todo-box-cancel .cm-todo-glyph {
+  background: var(--muted);
+  border-color: var(--muted);
 }
 
 /* DONE lines go green, CANCEL lines red — color carries the state, never a
@@ -1071,14 +1075,19 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
 .cm-todo-line-done span {
   color: var(--todo-green);
 }
+.cm-todo-line-fail,
+.cm-todo-line-fail span {
+  color: var(--todo-red);
+}
 .cm-todo-line-cancel,
 .cm-todo-line-cancel span {
-  color: var(--todo-red);
+  color: var(--muted);
 }
 /* Knockout glyph: painted in the editor's background color, the icon reads as
    punched out of the vivid fill — dark in dark themes, light in light ones. */
 .cm-todo-box-attn .cm-todo-glyph,
 .cm-todo-box-done .cm-todo-glyph,
+.cm-todo-box-fail .cm-todo-glyph,
 .cm-todo-box-cancel .cm-todo-glyph {
   color: var(--editor-bg);
 }
@@ -1100,6 +1109,10 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
 .cm-todo-fail {
   color: var(--on-accent, #fff);
   background: var(--danger);
+}
+.cm-todo-cancel {
+  color: var(--editor-bg, #fff);
+  background: var(--muted);
 }
 .cm-todo-done {
   color: var(--muted);

@@ -1,9 +1,10 @@
-// To-do rendering and interaction. Four states, one per leading slash tag:
+// To-do rendering and interaction. Five states, one per leading slash tag:
 //
 //   /TODO   open       — empty box
 //   /ATTN   attention  — yellow box, "!" glyph
 //   /DONE   done       — green box, check; line goes green
-//   /CANCEL canceled   — red box, x; line goes red   (/FAIL = legacy alias)
+//   /FAIL   failed     — red box, x; line goes red      (/MISSED = alias)
+//   /CANCEL dismissed  — gray box, minus; line goes muted (/DISMISSED = alias)
 //
 // A tag at the start of a line renders as a clickable checkbox widget in place
 // of the tag. The document stays plain text — every interaction rewrites the
@@ -13,10 +14,10 @@
 // state — never a strikethrough.
 //
 // Interactions:
-//   click     TODO/ATTN → DONE; DONE/CANCEL → TODO (complete / reopen)
-//   ⌥-click   TODO → ATTN → CANCEL → TODO; DONE → ATTN
+//   click     TODO/ATTN → DONE; DONE/FAIL/CANCEL → TODO (complete / reopen)
+//   ⌥-click   TODO → ATTN → FAIL → CANCEL → TODO; DONE → ATTN
 //   ⌘↩        rotate the cursor line (Roam-style):
-//             no tag → /TODO → /ATTN → /DONE → /CANCEL → tag removed
+//             no tag → /TODO → /ATTN → /DONE → /FAIL → /CANCEL → tag removed
 //
 // Bare TODO/DONE elsewhere in the text is left alone (a #tag chip system may
 // come later). This is a plain decoration pass over the visible range — no
@@ -33,12 +34,13 @@ import {
 import type { DecorationSet, ViewUpdate } from "@uiw/react-codemirror";
 
 /** Slash tag at the start of a line (after optional indent). */
-const LINE_TAG = /^(\s*)\/(TODO|ATTN|DONE|CANCEL|FAIL)(?=\s|$)/;
+const LINE_TAG = /^(\s*)\/(TODO|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(?=\s|$)/;
 
-/** ⌘↩ rotation order. FAIL normalizes to CANCEL on any interaction. */
-const ORDER = ["TODO", "ATTN", "DONE", "CANCEL"] as const;
+/** ⌘↩ rotation order. MISSED/DISMISSED normalize on any interaction. */
+const ORDER = ["TODO", "ATTN", "DONE", "FAIL", "CANCEL"] as const;
 
-const norm = (s: string) => (s === "FAIL" ? "CANCEL" : s);
+const norm = (s: string) =>
+  s === "MISSED" ? "FAIL" : s === "DISMISSED" ? "CANCEL" : s;
 
 /** Raw-tag highlight while the cursor is on the line. */
 const MARKS: Record<string, Decoration> = {
@@ -46,14 +48,18 @@ const MARKS: Record<string, Decoration> = {
   ATTN: Decoration.mark({ class: "cm-todo cm-todo-attn" }),
   DONE: Decoration.mark({ class: "cm-todo cm-todo-done" }),
   FAIL: Decoration.mark({ class: "cm-todo cm-todo-fail" }),
-  CANCEL: Decoration.mark({ class: "cm-todo cm-todo-fail" }),
+  MISSED: Decoration.mark({ class: "cm-todo cm-todo-fail" }),
+  CANCEL: Decoration.mark({ class: "cm-todo cm-todo-cancel" }),
+  DISMISSED: Decoration.mark({ class: "cm-todo cm-todo-cancel" }),
 };
 
 const LINE_DECOS: Record<string, Decoration> = {
   ATTN: Decoration.line({ class: "cm-todo-line-attn" }),
   DONE: Decoration.line({ class: "cm-todo-line-done" }),
+  FAIL: Decoration.line({ class: "cm-todo-line-fail" }),
+  MISSED: Decoration.line({ class: "cm-todo-line-fail" }),
   CANCEL: Decoration.line({ class: "cm-todo-line-cancel" }),
-  FAIL: Decoration.line({ class: "cm-todo-line-cancel" }),
+  DISMISSED: Decoration.line({ class: "cm-todo-line-cancel" }),
 };
 
 /** Lucide icon paths (inlined — the widget is plain DOM, no React). */
@@ -61,7 +67,9 @@ const GLYPH_PATHS: Record<string, string[]> = {
   // check — path spans y 6–17 (center 11.5), viewBox shifted to compensate
   done: ["M20 6 9 17l-5-5"],
   // x
-  cancel: ["M18 6 6 18", "m6 6 12 12"],
+  fail: ["M18 6 6 18", "m6 6 12 12"],
+  // minus — the classic "dismissed / not applicable"
+  cancel: ["M5 12h14"],
   // exclamation (circle-alert's inner strokes)
   attn: ["M12 6v7", "M12 17.5h.01"],
 };
@@ -75,14 +83,17 @@ class TodoBox extends WidgetType {
   }
   toDOM() {
     const box = document.createElement("span");
+    const state = norm(this.state);
     const kind =
-      this.state === "TODO"
+      state === "TODO"
         ? "todo"
-        : this.state === "ATTN"
+        : state === "ATTN"
           ? "attn"
-          : this.state === "DONE"
+          : state === "DONE"
             ? "done"
-            : "cancel";
+            : state === "FAIL"
+              ? "fail"
+              : "cancel";
     box.className = `cm-todo-box cm-todo-box-${kind}`;
     // The visible square. Inner element so it can be drawn from the zero-height
     // anchor (see App.css) without nudging the line's baseline.
@@ -106,9 +117,9 @@ class TodoBox extends WidgetType {
     }
     box.appendChild(glyph);
     box.title =
-      kind === "done" || kind === "cancel"
-        ? "Reopen (⌥-click: needs attention)"
-        : "Mark done (⌥-click: cycle attention/cancel · ⌘↩ rotate)";
+      kind === "todo" || kind === "attn"
+        ? "Mark done (⌥-click: cycle attention/fail/cancel · ⌘↩ rotate)"
+        : "Reopen (⌥-click: needs attention)";
     box.setAttribute("role", "checkbox");
     box.setAttribute("aria-checked", kind === "done" ? "true" : "false");
     return box;
@@ -186,10 +197,12 @@ function toggle(view: EditorView, pos: number, alt: boolean): boolean {
     ? cur === "TODO"
       ? "ATTN"
       : cur === "ATTN"
-        ? "CANCEL"
-        : cur === "CANCEL"
-          ? "TODO"
-          : "ATTN" // DONE → needs another look
+        ? "FAIL"
+        : cur === "FAIL"
+          ? "CANCEL"
+          : cur === "CANCEL"
+            ? "TODO"
+            : "ATTN" // DONE → needs another look
     : cur === "TODO" || cur === "ATTN"
       ? "DONE"
       : "TODO";

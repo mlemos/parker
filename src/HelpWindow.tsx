@@ -82,9 +82,16 @@ const EDITOR: Section[] = [
       ["Outdent / Indent", ["⌘[", "⌘]"]],
       ["Indent / outdent selection", ["Tab", "⇧Tab"]],
       ["Delete line", ["⌘⇧K"]],
-      ["To-do: rotate line state (→ todo → attention → done → cancel →)", ["⌘⏎"]],
       ["Copy line up / down", ["⌘⌥↑", "⌘⌥↓"]],
       ["Move line up / down", ["⌥↑", "⌥↓"]],
+    ],
+  },
+  {
+    title: "To-dos — /TODO /ATTN /DONE /FAIL /CANCEL",
+    rows: [
+      ["Rotate line: todo → attention → done → fail → cancel → clear", ["⌘⏎"]],
+      ["Complete / reopen (on the checkbox)", ["Click"]],
+      ["Cycle attention / fail / cancel", ["⌥Click"]],
     ],
   },
   {
