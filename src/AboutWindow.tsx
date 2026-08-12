@@ -1,24 +1,33 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
+import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { themeById, DEFAULT_THEME_ID } from "./lib/themes";
 import "./App.css";
 
 const REPO = "https://github.com/mlemos/parker";
 
-// Follow the editor's theme (passed in the URL when the window opens).
-const themeId =
+const initialTheme =
   new URLSearchParams(window.location.search).get("theme") || DEFAULT_THEME_ID;
-const theme = themeById(themeId);
 
 // Standalone About window (its own Tauri window).
 export default function AboutWindow() {
   const [version, setVersion] = useState("");
+  const [themeId, setThemeId] = useState(initialTheme);
+  const theme = themeById(themeId);
 
   useEffect(() => {
     getVersion()
       .then(setVersion)
       .catch(() => {});
+  }, []);
+
+  // Follow the main window's live theme changes.
+  useEffect(() => {
+    const p = listen<string>("parker://theme", (e) => setThemeId(e.payload));
+    return () => {
+      p.then((un) => un());
+    };
   }, []);
 
   useEffect(() => {
@@ -38,7 +47,7 @@ export default function AboutWindow() {
     root.dataset.mode = theme.mode;
     root.dataset.theme = theme.id;
     document.body.style.background = u.editorBg;
-  }, []);
+  }, [theme]);
 
   const open = (url: string) => (e: React.MouseEvent) => {
     e.preventDefault();

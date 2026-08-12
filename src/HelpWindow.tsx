@@ -1,7 +1,31 @@
 import { useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
 import { themeById, DEFAULT_THEME_ID } from "./lib/themes";
 import "./App.css";
+
+// Apply a theme's palette to this standalone window.
+function applyTheme(id: string) {
+  const t = themeById(id);
+  const u = t.ui;
+  const root = document.documentElement;
+  const vars: Record<string, string> = {
+    "--text": u.text,
+    "--secondary": u.secondary,
+    "--muted": u.muted,
+    "--border": u.border,
+    "--accent": u.accent,
+    "--danger": u.danger,
+    "--editor-bg": u.editorBg,
+    "--header-bg": u.headerBg,
+    "--tabbar-bg": u.tabbarBg,
+    "--tab-active-bg": u.tabActiveBg,
+  };
+  for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
+  root.dataset.mode = t.mode;
+  root.dataset.theme = t.id;
+  document.body.style.background = u.editorBg;
+}
 
 function pretty(accel: string): string {
   return accel
@@ -97,9 +121,8 @@ const GESTURES: string[] = [
   "Double-click the palette icon to reset the theme to Vercel Dark.",
 ];
 
-const themeId =
+const initialTheme =
   new URLSearchParams(window.location.search).get("theme") || DEFAULT_THEME_ID;
-const theme = themeById(themeId);
 
 export default function HelpWindow() {
   const [tab, setTab] = useState<"app" | "editor">("app");
@@ -112,25 +135,13 @@ export default function HelpWindow() {
       .catch(() => {});
   }, []);
 
+  // Apply the theme now, then follow the main window's live theme changes.
   useEffect(() => {
-    const u = theme.ui;
-    const root = document.documentElement;
-    const vars: Record<string, string> = {
-      "--text": u.text,
-      "--secondary": u.secondary,
-      "--muted": u.muted,
-      "--border": u.border,
-      "--accent": u.accent,
-      "--danger": u.danger,
-      "--editor-bg": u.editorBg,
-      "--header-bg": u.headerBg,
-      "--tabbar-bg": u.tabbarBg,
-      "--tab-active-bg": u.tabActiveBg,
+    applyTheme(initialTheme);
+    const p = listen<string>("parker://theme", (e) => applyTheme(e.payload));
+    return () => {
+      p.then((un) => un());
     };
-    for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
-    root.dataset.mode = theme.mode;
-    root.dataset.theme = theme.id;
-    document.body.style.background = u.editorBg;
   }, []);
 
   const appSections: Section[] = APP.map((s) =>

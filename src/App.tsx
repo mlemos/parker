@@ -8,7 +8,7 @@ import {
   CircleQuestionMark,
 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { listen } from "@tauri-apps/api/event";
+import { listen, emit } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
 import { prettyPath } from "./lib/path";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
@@ -255,6 +255,8 @@ export default function App() {
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
     root.dataset.theme = theme.id;
+    // Broadcast so the secondary windows (About, Help) follow the theme live.
+    emit("parker://theme", theme.id).catch(() => {});
   }, [theme]);
 
   useEffect(() => {
