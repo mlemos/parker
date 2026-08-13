@@ -8,7 +8,12 @@ import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { Buffer } from "../lib/layout";
 import type { ThemeDef } from "../lib/themes";
-import { latencyStats, resetLatency, runEditorBenchmark } from "../lib/latency";
+import {
+  latencyStats,
+  resetLatency,
+  runEditorBenchmark,
+  tabSwitchStats,
+} from "../lib/latency";
 import type { BenchRow, LatencyStats } from "../lib/latency";
 
 interface ProcStats {
@@ -75,6 +80,7 @@ export function PerfMonitor({
   const [bench, setBench] = useState<BenchRow[] | null>(null);
   const [benchRunning, setBenchRunning] = useState(false);
   const [lat, setLat] = useState<LatencyStats>(() => latencyStats());
+  const [tabs, setTabs] = useState(() => tabSwitchStats());
   const prevRef = useRef<{ cpu: number; ts: number } | null>(null);
 
   useEffect(() => {
@@ -86,6 +92,7 @@ export function PerfMonitor({
     let cancelled = false;
     const tick = async () => {
       setLat(latencyStats());
+      setTabs(tabSwitchStats());
       let stats: PerfStats;
       try {
         stats = await invoke<PerfStats>("perf_stats");
@@ -197,6 +204,7 @@ export function PerfMonitor({
           onClick={() => {
             resetLatency();
             setLat(latencyStats());
+      setTabs(tabSwitchStats());
           }}
         >
           reset
@@ -210,6 +218,26 @@ export function PerfMonitor({
               {lat.n
                 ? `${lat.p50.toFixed(0)} / ${lat.p95.toFixed(0)} / ${lat.max.toFixed(0)} ms`
                 : "type to measure"}
+            </td>
+          </tr>
+          {lat.n > 0 && (
+            <tr className="perf-row-dim">
+              <td>├ waiting for the key</td>
+              <td>{lat.queue.toFixed(0)} ms</td>
+            </tr>
+          )}
+          {lat.n > 0 && (
+            <tr className="perf-row-dim">
+              <td>└ rendering it</td>
+              <td>{lat.paint.toFixed(0)} ms</td>
+            </tr>
+          )}
+          <tr className={tabs.p50 > 80 ? "perf-row-warn" : undefined}>
+            <td>tab switch p50 / max</td>
+            <td>
+              {tabs.n
+                ? `${tabs.p50.toFixed(0)} / ${tabs.max.toFixed(0)} ms`
+                : "switch tabs to measure"}
             </td>
           </tr>
         </tbody>

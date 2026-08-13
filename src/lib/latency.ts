@@ -30,7 +30,10 @@ export const getActiveView = () => activeView;
 // ---- Passive tracking ------------------------------------------------------
 
 const MAX_SAMPLES = 240;
-const samples: number[] = [];
+/** Time from the key event being created to our handler running (ms). */
+const queued: number[] = [];
+/** Time from our handler to the frame that painted the result (ms). */
+const painted: number[] = [];
 
 /** Keys that change what's on screen. Modifiers alone repaint nothing. */
 const MEASURED = /^(?:[\x20-\x7e]|Arrow|Page|Home|End|Backspace|Delete|Enter|Tab)/;
@@ -40,6 +43,9 @@ export interface LatencyStats {
   p50: number;
   p95: number;
   max: number;
+  /** Median of the two halves: waiting to be delivered vs. rendering. */
+  queue: number;
+  paint: number;
 }
 
 function percentile(sorted: number[], p: number): number {
@@ -48,17 +54,22 @@ function percentile(sorted: number[], p: number): number {
 }
 
 export function latencyStats(): LatencyStats {
-  const s = [...samples].sort((a, b) => a - b);
+  const total = queued.map((q, i) => q + (painted[i] ?? 0)).sort((a, b) => a - b);
+  const q = [...queued].sort((a, b) => a - b);
+  const p = [...painted].sort((a, b) => a - b);
   return {
-    n: s.length,
-    p50: percentile(s, 0.5),
-    p95: percentile(s, 0.95),
-    max: s.length ? s[s.length - 1] : 0,
+    n: total.length,
+    p50: percentile(total, 0.5),
+    p95: percentile(total, 0.95),
+    max: total.length ? total[total.length - 1] : 0,
+    queue: percentile(q, 0.5),
+    paint: percentile(p, 0.5),
   };
 }
 
 export function resetLatency() {
-  samples.length = 0;
+  queued.length = 0;
+  painted.length = 0;
 }
 
 /** Start measuring keydown → painted frame. Returns a cleanup function. */
@@ -66,17 +77,53 @@ export function trackLatency(): () => void {
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || !MEASURED.test(e.key)) return;
     const t0 = performance.now();
+    // e.timeStamp is when WebKit created the event, on the same clock as
+    // performance.now() — so this is how long the key waited to reach us.
+    // A busy main thread shows up here and nowhere else.
+    const wait = e.timeStamp > 0 ? Math.max(0, t0 - e.timeStamp) : 0;
     // First rAF runs before paint; the second one runs after the frame that
     // carried our change was composited.
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
-        samples.push(performance.now() - t0);
-        if (samples.length > MAX_SAMPLES) samples.shift();
+        queued.push(wait);
+        painted.push(performance.now() - t0);
+        if (queued.length > MAX_SAMPLES) {
+          queued.shift();
+          painted.shift();
+        }
       })
     );
   };
   window.addEventListener("keydown", onKey, true);
   return () => window.removeEventListener("keydown", onKey, true);
+}
+
+// ---- Tab switching ---------------------------------------------------------
+
+const tabSwitches: number[] = [];
+
+/**
+ * Time a tab switch from the click/shortcut to the frame that shows the new
+ * note. Switching remounts the editor today, so this is where the hitch that
+ * per-keystroke latency can't explain would appear.
+ */
+export function markTabSwitch() {
+  const t0 = performance.now();
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      tabSwitches.push(performance.now() - t0);
+      if (tabSwitches.length > 40) tabSwitches.shift();
+    })
+  );
+}
+
+export function tabSwitchStats() {
+  const s = [...tabSwitches].sort((a, b) => a - b);
+  return {
+    n: s.length,
+    p50: percentile(s, 0.5),
+    max: s.length ? s[s.length - 1] : 0,
+  };
 }
 
 // ---- Active benchmark ------------------------------------------------------

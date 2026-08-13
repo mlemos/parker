@@ -31,7 +31,7 @@ import type { Buffer, LayoutNode } from "./lib/layout";
 import { isMarkdown } from "./lib/markdown";
 import { NotePicker } from "./components/NotePicker";
 import { PerfMonitor } from "./components/PerfMonitor";
-import { trackLatency } from "./lib/latency";
+import { markTabSwitch, trackLatency } from "./lib/latency";
 import { GitMenu } from "./components/GitMenu";
 import { Settings } from "./components/Settings";
 import { LayoutView } from "./components/LayoutView";
@@ -314,6 +314,7 @@ export default function App() {
   const focusGroup = useCallback((id: string) => setFocusedId(id), []);
 
   const selectTab = useCallback((groupId: string, name: string) => {
+    markTabSwitch();
     setLayout((l) => {
       const g = findGroup(l, groupId);
       // Switching to a different tab returns the pane to the editor, so preview

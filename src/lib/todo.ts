@@ -9,9 +9,11 @@
 // A tag at the start of a line renders as a clickable checkbox widget in place
 // of the tag. The document stays plain text — every interaction rewrites the
 // tag through a normal editor transaction, so autosave and git sync see an
-// ordinary edit. When the cursor is on the line the tag shows as raw text
-// (highlighted) so it can be edited like anything else. Color carries the
-// state — never a strikethrough.
+// ordinary edit. Put the cursor *on the tag* (line start, ⌘←/Home) and it
+// shows as raw text so it can be edited like anything else — but only then:
+// revealing it for the whole line made every line jump sideways while
+// arrowing through a list, which reads as a stutter. Color carries the state —
+// never a strikethrough.
 //
 // Interactions:
 //   click     TODO/ATTN → DONE; DONE/FAIL/CANCEL → TODO (complete / reopen)
@@ -45,7 +47,7 @@ import {
   tagChange,
 } from "./todo-model";
 
-/** Raw-tag highlight while the cursor is on the line. */
+/** Raw-tag highlight, shown while the selection touches the tag. */
 const MARKS: Record<string, Decoration> = {
   TODO: Decoration.mark({ class: "cm-todo cm-todo-todo" }),
   ATTN: Decoration.mark({ class: "cm-todo cm-todo-attn" }),
@@ -136,7 +138,7 @@ class TodoBox extends WidgetType {
 function build(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const { doc, selection } = view.state;
-  const cursorLine = doc.lineAt(selection.main.head).number;
+  const sel = selection.main;
 
   for (const { from, to } of view.visibleRanges) {
     let pos = from;
@@ -149,8 +151,8 @@ function build(view: EditorView): DecorationSet {
         const tagTo = tagFrom + 1 + state.length;
         const lineDeco = LINE_DECOS[state];
         if (lineDeco) builder.add(line.from, line.from, lineDeco);
-        if (line.number === cursorLine) {
-          // Cursor here: show the raw tag (highlighted) so it's editable.
+        if (sel.from <= tagTo && sel.to >= tagFrom) {
+          // The selection touches the tag: show it raw so it can be edited.
           builder.add(tagFrom, tagTo, MARKS[state]);
         } else {
           builder.add(
@@ -200,26 +202,35 @@ export const todoKeymap = Prec.highest(
   keymap.of([{ key: "Mod-Enter", run: rotateLine }])
 );
 
-/** The line the cursor is on — the only part of the selection this cares about. */
-const cursorLine = (view: EditorView) =>
-  view.state.doc.lineAt(view.state.selection.main.head).number;
+/**
+ * Identifies the tag the selection is currently revealing, if any — the only
+ * thing about the selection that changes what's rendered. Moving down a list
+ * of to-dos leaves this unchanged (""), so no rescan and, more importantly,
+ * no widget swapping in and out under the cursor.
+ */
+function revealKey(view: EditorView): string {
+  const sel = view.state.selection.main;
+  const line = view.state.doc.lineAt(sel.head);
+  const tag = LINE_TAG.exec(line.text);
+  if (!tag) return "";
+  const from = line.from + tag[1].length;
+  const to = from + 1 + tag[2].length;
+  return sel.from <= to && sel.to >= from ? String(from) : "";
+}
 
 export const todoHighlighter = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
-    line: number;
+    reveal: string;
     constructor(view: EditorView) {
       this.decorations = build(view);
-      this.line = cursorLine(view);
+      this.reveal = revealKey(view);
     }
     update(u: ViewUpdate) {
-      // Only the cursor's *line* changes what's rendered (its tag shows raw),
-      // so moving within a line — every left/right arrow, every click — must
-      // not re-scan the viewport.
-      const line = cursorLine(u.view);
-      if (u.docChanged || u.viewportChanged || line !== this.line) {
+      const reveal = revealKey(u.view);
+      if (u.docChanged || u.viewportChanged || reveal !== this.reveal) {
         this.decorations = build(u.view);
-        this.line = line;
+        this.reveal = reveal;
       }
     }
   },
