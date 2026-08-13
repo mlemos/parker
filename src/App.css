@@ -1010,7 +1010,12 @@ body.resizing {
   height: 0.95em;
   margin-left: 3px; /* room for the caret before the marker */
   margin-right: 1px;
-  vertical-align: -0.12em; /* bottom rests on the text baseline */
+  /* overflow:hidden makes an inline-block take its baseline from its bottom
+     margin edge instead of from whatever it contains — without it the empty
+     TODO box aligns one way and the ones holding an icon another, so the
+     checkbox jumped 2.5px every time the state changed. */
+  overflow: hidden;
+  vertical-align: -0.07em; /* bottom sits 1px under the text baseline */
   cursor: pointer;
   user-select: none;
 }
