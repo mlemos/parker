@@ -41,6 +41,7 @@ import {
 import type { DecorationSet, ViewUpdate } from "@uiw/react-codemirror";
 import {
   LINE_TAG,
+  cursorAfterRotate,
   nextOnClick,
   norm,
   planRotate,
@@ -194,7 +195,13 @@ function toggle(view: EditorView, pos: number, alt: boolean): boolean {
 function rotateLine(view: EditorView): boolean {
   const sel = view.state.selection.main;
   const changes = planRotate(view.state.doc, sel.from, sel.to);
-  if (changes.length) view.dispatch({ changes, userEvent: "input" });
+  if (!changes.length) return true;
+  const cursor = cursorAfterRotate(changes, sel.head);
+  view.dispatch({
+    changes,
+    ...(cursor === null ? {} : { selection: { anchor: cursor } }),
+    userEvent: "input",
+  });
   return true;
 }
 

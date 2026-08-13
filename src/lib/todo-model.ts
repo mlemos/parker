@@ -106,3 +106,24 @@ export function planRotate(doc: DocLike, from: number, to: number): Change[] {
     tagChange(line, tag!, nextInRotation(tag![2]))
   );
 }
+
+/**
+ * Where the cursor belongs after `changes` are applied, or null to let the
+ * editor map it as usual.
+ *
+ * Inserting a tag at the start of the cursor's own line is the case that needs
+ * help: the editor maps a position to *before* text inserted at it, which would
+ * leave the cursor in front of "/TODO " — so the next thing typed lands outside
+ * the tag. Park it after the tag (and its space) instead, ready to type.
+ */
+export function cursorAfterRotate(
+  changes: Change[],
+  head: number
+): number | null {
+  if (changes.length !== 1) return null; // multi-line: keep the selection
+  const c = changes[0];
+  if (c.to !== undefined || !c.insert) return null; // rewrote/removed a tag
+  const inserted = c.insert.length;
+  const mapped = head >= c.from ? head + inserted : head;
+  return Math.max(mapped, c.from + inserted);
+}

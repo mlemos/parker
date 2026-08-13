@@ -9,7 +9,7 @@
 // "tag lands on the line below" bug was found — selections ending at the start
 // of the next line used to act on that next line.
 import { Text } from "@codemirror/state";
-import { planRotate } from "../src/lib/todo-model.ts";
+import { cursorAfterRotate, planRotate } from "../src/lib/todo-model.ts";
 
 const DOCS = {
   "no trailing newline": "# list\n\n\nfirst\nsecond\nthird",
@@ -31,6 +31,23 @@ function expected(doc, from, to) {
   }
   return out;
 }
+
+// Where the cursor lands after ⌘⏎ — it must never sit in front of the tag it
+// just created, or the next keystroke lands outside it.
+const cursorCases = [
+  ["empty line, cursor at start", "", 0, 6],
+  ["existing text, cursor at start", "buy milk", 0, 6],
+  ["existing text, cursor mid-word", "buy milk", 5, 11],
+];
+for (const [name, text, head, want] of cursorCases) {
+  const doc = Text.of([text]);
+  const got = cursorAfterRotate(planRotate(doc, head, head), head);
+  if (got !== want) {
+    console.log(`✗ cursor: ${name} — want ${want}, got ${got}`);
+    process.exitCode = 1;
+  }
+}
+console.log(`cursor placement: ${cursorCases.length} cases checked`);
 
 let checked = 0;
 const failures = [];
