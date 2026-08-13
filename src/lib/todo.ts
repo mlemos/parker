@@ -9,11 +9,15 @@
 // A tag at the start of a line renders as a clickable checkbox widget in place
 // of the tag. The document stays plain text — every interaction rewrites the
 // tag through a normal editor transaction, so autosave and git sync see an
-// ordinary edit. Put the cursor *on the tag* (line start, ⌘←/Home) and it
-// shows as raw text so it can be edited like anything else — but only then:
-// revealing it for the whole line made every line jump sideways while
-// arrowing through a list, which reads as a stutter. Color carries the state —
-// never a strikethrough.
+// ordinary edit. Color carries the state — never a strikethrough.
+//
+// The checkbox is an ATOMIC range: arrows step over the whole tag in one go
+// instead of walking its hidden characters, and Backspace after it removes the
+// marker. This matters more than it sounds — the tag used to expand into raw
+// text whenever the cursor was near it, which moved the line under the caret
+// and left vertical movement measuring against a layout that had just changed
+// (down from column 9 landed on column 0). The raw tag now appears only while
+// you are actually typing it, never while navigating.
 //
 // Interactions:
 //   click     TODO/ATTN → DONE; DONE/FAIL/CANCEL → TODO (complete / reopen)
@@ -136,8 +140,15 @@ class TodoBox extends WidgetType {
   }
 }
 
-function build(view: EditorView): DecorationSet {
+interface Built {
+  decorations: DecorationSet;
+  /** The widget ranges, so the editor can treat them as single units. */
+  atomic: DecorationSet;
+}
+
+function build(view: EditorView, typingLine: number | null): Built {
   const builder = new RangeSetBuilder<Decoration>();
+  const atomic = new RangeSetBuilder<Decoration>();
   const { doc, selection } = view.state;
   const sel = selection.main;
 
@@ -152,22 +163,26 @@ function build(view: EditorView): DecorationSet {
         const tagTo = tagFrom + 1 + state.length;
         const lineDeco = LINE_DECOS[state];
         if (lineDeco) builder.add(line.from, line.from, lineDeco);
-        if (sel.from <= tagTo && sel.to >= tagFrom) {
-          // The selection touches the tag: show it raw so it can be edited.
+        // Raw only while this very line is being typed and the caret sits in
+        // the tag — i.e. you are writing "/TODO" by hand. Never on navigation.
+        const editing =
+          typingLine === line.number &&
+          sel.empty &&
+          sel.head >= tagFrom &&
+          sel.head <= tagTo;
+        if (editing) {
           builder.add(tagFrom, tagTo, MARKS[state]);
         } else {
-          builder.add(
-            tagFrom,
-            tagTo,
-            Decoration.replace({ widget: new TodoBox(state) })
-          );
+          const widget = Decoration.replace({ widget: new TodoBox(state) });
+          builder.add(tagFrom, tagTo, widget);
+          atomic.add(tagFrom, tagTo, widget);
         }
       }
 
       pos = line.to + 1;
     }
   }
-  return builder.finish();
+  return { decorations: builder.finish(), atomic: atomic.finish() };
 }
 
 function writeTag(
@@ -205,51 +220,80 @@ function rotateLine(view: EditorView): boolean {
   return true;
 }
 
-export const todoKeymap = Prec.highest(
-  keymap.of([{ key: "Mod-Enter", run: rotateLine }])
-);
-
 /**
- * Identifies the tag the selection is currently revealing, if any — the only
- * thing about the selection that changes what's rendered. Moving down a list
- * of to-dos leaves this unchanged (""), so no rescan and, more importantly,
- * no widget swapping in and out under the cursor.
+ * Backspace right after a checkbox removes the whole marker (and the space
+ * that separated it from the text). The editor only skips an atomic range
+ * when the caret is *inside* it, so without this the keystroke would eat the
+ * tag's last letter, silently turning "/TODO" into text that no longer marks
+ * anything.
  */
-function revealKey(view: EditorView): string {
+function deleteTagBackward(view: EditorView): boolean {
   const sel = view.state.selection.main;
+  if (!sel.empty) return false;
   const line = view.state.doc.lineAt(sel.head);
   const tag = LINE_TAG.exec(line.text);
-  if (!tag) return "";
+  if (!tag) return false;
   const from = line.from + tag[1].length;
   const to = from + 1 + tag[2].length;
-  return sel.from <= to && sel.to >= from ? String(from) : "";
+  if (sel.head !== to) return false; // only immediately after the marker
+  const hasSpace = line.text[tag[0].length] === " ";
+  view.dispatch({
+    changes: { from, to: to + (hasSpace ? 1 : 0) },
+    userEvent: "delete",
+  });
+  return true;
 }
 
-export const todoHighlighter = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet;
-    reveal: string;
-    constructor(view: EditorView) {
-      this.decorations = build(view);
-      this.reveal = revealKey(view);
-    }
-    update(u: ViewUpdate) {
-      const reveal = revealKey(u.view);
-      if (u.docChanged || u.viewportChanged || reveal !== this.reveal) {
-        this.decorations = build(u.view);
-        this.reveal = reveal;
-      }
-    }
-  },
-  {
-    decorations: (v) => v.decorations,
-    eventHandlers: {
-      mousedown(e, view) {
-        const box = (e.target as HTMLElement).closest?.(".cm-todo-box");
-        if (!box) return false;
-        e.preventDefault();
-        return toggle(view, view.posAtDOM(box), e.altKey);
-      },
-    },
-  }
+export const todoKeymap = Prec.highest(
+  keymap.of([
+    { key: "Mod-Enter", run: rotateLine },
+    { key: "Backspace", run: deleteTagBackward },
+  ])
 );
+
+/** Line number the caret is on, or null if the document is empty. */
+const caretLine = (view: EditorView) =>
+  view.state.doc.lineAt(view.state.selection.main.head).number;
+
+class TodoPlugin {
+  decorations: DecorationSet;
+  atomic: DecorationSet;
+  /** The line currently being typed into, or null when merely navigating. */
+  typingLine: number | null = null;
+
+  constructor(view: EditorView) {
+    const built = build(view, null);
+    this.decorations = built.decorations;
+    this.atomic = built.atomic;
+  }
+
+  update(u: ViewUpdate) {
+    const typing = u.transactions.some(
+      (tr) => tr.docChanged && !tr.isUserEvent("undo") && !tr.isUserEvent("redo")
+    );
+    const next = typing ? caretLine(u.view) : null;
+    if (u.docChanged || u.viewportChanged || next !== this.typingLine) {
+      this.typingLine = next;
+      const built = build(u.view, next);
+      this.decorations = built.decorations;
+      this.atomic = built.atomic;
+    }
+  }
+}
+
+export const todoHighlighter = ViewPlugin.fromClass(TodoPlugin, {
+  decorations: (v) => v.decorations,
+  // Cursor motion and deletion treat each checkbox as one unit.
+  provide: (plugin) =>
+    EditorView.atomicRanges.of(
+      (view) => view.plugin(plugin)?.atomic ?? Decoration.none
+    ),
+  eventHandlers: {
+    mousedown(e, view) {
+      const box = (e.target as HTMLElement).closest?.(".cm-todo-box");
+      if (!box) return false;
+      e.preventDefault();
+      return toggle(view, view.posAtDOM(box), e.altKey);
+    },
+  },
+});
