@@ -11,13 +11,14 @@
 // tag through a normal editor transaction, so autosave and git sync see an
 // ordinary edit. Color carries the state — never a strikethrough.
 //
-// The checkbox is an ATOMIC range: arrows step over the whole tag in one go
-// instead of walking its hidden characters, and Backspace after it removes the
-// marker. This matters more than it sounds — the tag used to expand into raw
-// text whenever the cursor was near it, which moved the line under the caret
-// and left vertical movement measuring against a layout that had just changed
-// (down from column 9 landed on column 0). The raw tag now appears only while
-// you are actually typing it, never while navigating.
+// The checkbox behaves as ONE character that owns the start of the line: it
+// never expands back into text on its own, arrows step over it in a single
+// press (EditorView.atomicRanges), and Backspace after it / Delete before it
+// remove the whole marker. Earlier versions revealed the raw tag whenever the
+// caret came near, which shifted the line under the cursor and left vertical
+// movement measuring against a layout that had just changed. The caret can
+// still sit before the box — the file is plain text and nothing is off-limits;
+// typing there simply stops the line matching, and the text reappears.
 //
 // Interactions:
 //   click     TODO/ATTN → DONE; DONE/FAIL/CANCEL → TODO (complete / reopen)
@@ -51,17 +52,6 @@ import {
   planRotate,
   tagChange,
 } from "./todo-model";
-
-/** Raw-tag highlight, shown while the selection touches the tag. */
-const MARKS: Record<string, Decoration> = {
-  TODO: Decoration.mark({ class: "cm-todo cm-todo-todo" }),
-  ATTN: Decoration.mark({ class: "cm-todo cm-todo-attn" }),
-  DONE: Decoration.mark({ class: "cm-todo cm-todo-done" }),
-  FAIL: Decoration.mark({ class: "cm-todo cm-todo-fail" }),
-  MISSED: Decoration.mark({ class: "cm-todo cm-todo-fail" }),
-  CANCEL: Decoration.mark({ class: "cm-todo cm-todo-cancel" }),
-  DISMISSED: Decoration.mark({ class: "cm-todo cm-todo-cancel" }),
-};
 
 const LINE_DECOS: Record<string, Decoration> = {
   ATTN: Decoration.line({ class: "cm-todo-line-attn" }),
@@ -146,11 +136,10 @@ interface Built {
   atomic: DecorationSet;
 }
 
-function build(view: EditorView, typingLine: number | null): Built {
+function build(view: EditorView): Built {
   const builder = new RangeSetBuilder<Decoration>();
   const atomic = new RangeSetBuilder<Decoration>();
-  const { doc, selection } = view.state;
-  const sel = selection.main;
+  const { doc } = view.state;
 
   for (const { from, to } of view.visibleRanges) {
     let pos = from;
@@ -163,20 +152,9 @@ function build(view: EditorView, typingLine: number | null): Built {
         const tagTo = tagFrom + 1 + state.length;
         const lineDeco = LINE_DECOS[state];
         if (lineDeco) builder.add(line.from, line.from, lineDeco);
-        // Raw only while this very line is being typed and the caret sits in
-        // the tag — i.e. you are writing "/TODO" by hand. Never on navigation.
-        const editing =
-          typingLine === line.number &&
-          sel.empty &&
-          sel.head >= tagFrom &&
-          sel.head <= tagTo;
-        if (editing) {
-          builder.add(tagFrom, tagTo, MARKS[state]);
-        } else {
-          const widget = Decoration.replace({ widget: new TodoBox(state) });
-          builder.add(tagFrom, tagTo, widget);
-          atomic.add(tagFrom, tagTo, widget);
-        }
+        const widget = Decoration.replace({ widget: new TodoBox(state) });
+        builder.add(tagFrom, tagTo, widget);
+        atomic.add(tagFrom, tagTo, widget);
       }
 
       pos = line.to + 1;
@@ -221,13 +199,13 @@ function rotateLine(view: EditorView): boolean {
 }
 
 /**
- * Backspace right after a checkbox removes the whole marker (and the space
- * that separated it from the text). The editor only skips an atomic range
- * when the caret is *inside* it, so without this the keystroke would eat the
- * tag's last letter, silently turning "/TODO" into text that no longer marks
- * anything.
+ * Deleting into the checkbox removes the whole marker (and the space that
+ * separated it from the text) rather than one character of it. The editor only
+ * skips an atomic range when the caret is *inside* it, so without this,
+ * Backspace after the box — or Delete before it — would eat a single letter
+ * and silently turn "/TODO" into text that no longer marks anything.
  */
-function deleteTagBackward(view: EditorView): boolean {
+const deleteMarker = (backward: boolean) => (view: EditorView): boolean => {
   const sel = view.state.selection.main;
   if (!sel.empty) return false;
   const line = view.state.doc.lineAt(sel.head);
@@ -235,49 +213,36 @@ function deleteTagBackward(view: EditorView): boolean {
   if (!tag) return false;
   const from = line.from + tag[1].length;
   const to = from + 1 + tag[2].length;
-  if (sel.head !== to) return false; // only immediately after the marker
+  if (sel.head !== (backward ? to : from)) return false;
   const hasSpace = line.text[tag[0].length] === " ";
   view.dispatch({
     changes: { from, to: to + (hasSpace ? 1 : 0) },
     userEvent: "delete",
   });
   return true;
-}
+};
 
 export const todoKeymap = Prec.highest(
   keymap.of([
     { key: "Mod-Enter", run: rotateLine },
-    { key: "Backspace", run: deleteTagBackward },
+    { key: "Backspace", run: deleteMarker(true) },
+    { key: "Delete", run: deleteMarker(false) },
   ])
 );
-
-/** Line number the caret is on, or null if the document is empty. */
-const caretLine = (view: EditorView) =>
-  view.state.doc.lineAt(view.state.selection.main.head).number;
 
 class TodoPlugin {
   decorations: DecorationSet;
   atomic: DecorationSet;
-  /** The line currently being typed into, or null when merely navigating. */
-  typingLine: number | null = null;
 
   constructor(view: EditorView) {
-    const built = build(view, null);
-    this.decorations = built.decorations;
-    this.atomic = built.atomic;
+    ({ decorations: this.decorations, atomic: this.atomic } = build(view));
   }
 
+  // Nothing here depends on the selection, so moving the cursor — by any
+  // means, in any direction — costs nothing and changes nothing on screen.
   update(u: ViewUpdate) {
-    const typing = u.transactions.some(
-      (tr) => tr.docChanged && !tr.isUserEvent("undo") && !tr.isUserEvent("redo")
-    );
-    const next = typing ? caretLine(u.view) : null;
-    if (u.docChanged || u.viewportChanged || next !== this.typingLine) {
-      this.typingLine = next;
-      const built = build(u.view, next);
-      this.decorations = built.decorations;
-      this.atomic = built.atomic;
-    }
+    if (u.docChanged || u.viewportChanged)
+      ({ decorations: this.decorations, atomic: this.atomic } = build(u.view));
   }
 }
 

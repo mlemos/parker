@@ -1001,49 +1001,39 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
    box's content — a numeric/baseline align shifts when the glyph changes the
    widget's internal baseline (empty vs ✓/✕), which is exactly the bug. The
    glyph is absolutely centered so it can't affect layout at all. */
-/* The outer span is a ZERO-HEIGHT inline anchor: it reserves the tag's width
-   and marks the line's visual middle (vertical-align: middle), but with no
-   height it mathematically cannot stretch the line box — which would drift
-   the text out of sync with the gutter numbers. The visible square is the
-   inner element, drawn from that anchor with an absolute position. */
+/* The checkbox is laid out as a real inline box, one character-ish wide and
+   tall, sitting on the text baseline. It used to be a zero-height anchor with
+   the square drawn from it absolutely — which kept line heights stable but
+   broke two things: hit-testing found no box at the line's vertical middle, so
+   moving the cursor up or down into a to-do line landed *after* the marker
+   instead of at the start of the line, and the square was painted right where
+   the caret at column 0 goes, hiding it. A real box with a little breathing
+   room on the left fixes both, and lines stay exactly as tall as before. */
 .cm-todo-box {
   display: inline-block;
-  position: relative;
-  width: 0.9em;
-  height: 0;
-  vertical-align: middle;
+  box-sizing: border-box;
+  width: 0.95em;
+  height: 0.95em;
+  margin-left: 3px; /* room for the caret before the marker */
+  margin-right: 1px;
+  vertical-align: -0.12em; /* bottom rests on the text baseline */
   cursor: pointer;
   user-select: none;
 }
 .cm-todo-glyph {
-  position: absolute;
-  left: 0;
-  top: 0;
-  /* The anchor sits at baseline + x-height/2. -100% raises the square so its
-     bottom touches the anchor, +0.39em (≈ x-height/2 in this element's 0.7em
-     units) rests it on the text baseline; +1px optically compensates the
-     rounded corners (pixel-measured against the gutter digits). */
-  transform: translateY(calc(-100% + 0.39em + 1px));
   box-sizing: border-box;
-  /* 0.9em of the EDITOR font — this element's own font-size is 0.7em (for
-     the ✓/✕ glyph), so compensate: 0.9 / 0.7 ≈ 1.286. */
-  width: 1.286em;
-  height: 1.286em;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
   border: 1.5px solid var(--muted);
   border-radius: 4px;
   font-size: 0.7em;
   line-height: 1;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
-/* Absolutely centered inside the square (margin: auto beats flex here — no
-   fractional-pixel drift from the flex line box at these tiny sizes). */
 .cm-todo-glyph svg {
-  position: absolute;
-  inset: 0;
-  margin: auto;
   width: 0.85em;
   height: 0.85em;
   display: block;
@@ -1095,48 +1085,6 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
   color: var(--editor-bg);
 }
 
-/* Bare keyword chips (TODO / DONE / CANCEL anywhere in the text). */
-.cm-todo {
-  font-weight: 700;
-  border-radius: 3px;
-  padding: 0 3px;
-}
-/* The line-color rules above paint every span in the line, which would render
-   the chip's label in its own fill color (an unreadable solid block). The chip
-   keeps its ink — higher specificity, so it wins wherever it sits. */
-.cm-todo-line-attn .cm-todo,
-.cm-todo-line-done .cm-todo,
-.cm-todo-line-fail .cm-todo,
-.cm-todo-line-cancel .cm-todo {
-  color: var(--todo-ink);
-}
-
-/* One chip recipe for every state: the state's own color as the fill, dark
-   ink on top — same palette as the checkboxes they turn into. */
-.cm-todo-todo {
-  color: var(--on-accent);
-  background: var(--accent);
-}
-.cm-todo-attn {
-  color: var(--todo-ink);
-  background: var(--todo-yellow);
-}
-.cm-todo-done {
-  color: var(--todo-ink);
-  background: var(--todo-green);
-}
-.cm-todo-fail {
-  color: var(--todo-ink);
-  background: var(--todo-red);
-}
-.cm-todo-cancel {
-  color: var(--todo-ink);
-  background: var(--muted);
-}
-/* Don't let the neon glow smear the little keyword chips. */
-html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
-  text-shadow: none;
-}
 
 /* ---- Status bar --------------------------------------------------------- */
 
