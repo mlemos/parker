@@ -179,9 +179,8 @@ async function burst(op: (i: number) => void, n: number): Promise<number> {
 
 /**
  * Sustained-load test: one operation per frame for `n` frames, reporting the
- * mean interval between frames. Small edits always fit in a frame, so this
- * only says something when the operation repaints a large area — scrolling,
- * where a per-glyph text-shadow has to be redrawn for the whole viewport.
+ * median interval between frames. Small edits always fit in a frame, so this
+ * only says something when the operation repaints a large area — scrolling.
  */
 async function paced(op: (i: number) => void, n: number): Promise<number> {
   let prev = await nextFrame();
@@ -218,9 +217,10 @@ const scrollOp = (view: EditorView) => (i: number) => {
 };
 
 /**
- * Benchmark the editor as configured, isolating the neon glow (a text-shadow
- * on every glyph) and the to-do decoration plugin. Runs on a throwaway editor
- * so no open note is touched; the host is on-screen so paint is real.
+ * Benchmark the editor as configured: the JS cost of editing and navigating,
+ * the frame interval under continuous scrolling (where paint shows up), and
+ * the live editor's React round-trip. Runs on a throwaway editor so no open
+ * note is touched; its host is on-screen so paint is real.
  */
 export async function runEditorBenchmark(
   theme: ThemeDef,
@@ -243,10 +243,8 @@ export async function runEditorBenchmark(
 
   const withView = async (
     extensions: Extension[],
-    noGlow: boolean,
     fn: (v: EditorView) => Promise<number>
   ) => {
-    document.documentElement.classList.toggle("bench-noglow", noGlow);
     const view = new EditorView({
       state: EditorState.create({ doc: DOC, extensions }),
       parent: host,
@@ -263,29 +261,24 @@ export async function runEditorBenchmark(
     rows.push({
       label: "type ×40",
       unit: "js",
-      value: await withView(full, false, (v) => burst(typeOp(v), N)),
+      value: await withView(full, (v) => burst(typeOp(v), N)),
     });
     rows.push({
       label: "navigate ×40",
       unit: "js",
-      value: await withView(full, false, (v) => burst(navOp(v), N)),
+      value: await withView(full, (v) => burst(navOp(v), N)),
     });
     rows.push({
       label: "navigate · no to-dos",
       unit: "js",
-      value: await withView(base, false, (v) => burst(navOp(v), N)),
+      value: await withView(base, (v) => burst(navOp(v), N)),
     });
 
-    // Paint cost: scrolling repaints everything, so the glow shows up here.
+    // Paint cost: scrolling repaints the whole viewport every frame.
     rows.push({
       label: "scroll (frame)",
       unit: "frame",
-      value: await withView(full, false, (v) => paced(scrollOp(v), 60)),
-    });
-    rows.push({
-      label: "scroll · no glow",
-      unit: "frame",
-      value: await withView(full, true, (v) => paced(scrollOp(v), 60)),
+      value: await withView(full, (v) => paced(scrollOp(v), 60)),
     });
 
     // The path the fingers actually take: the live editor, so React's
@@ -311,7 +304,6 @@ export async function runEditorBenchmark(
       });
     }
   } finally {
-    document.documentElement.classList.remove("bench-noglow");
     host.remove();
   }
   if (framesTimedOut)

@@ -980,12 +980,6 @@ body.resizing {
   outline: none;
 }
 
-/* Neon glow — Vercel Night editor content. currentColor is inherited, so each
-   token glows in its own color (pink keyword, green string, …). */
-html[data-theme="vercel-night"] .editor-wrap .cm-content {
-  text-shadow: 0 0 7px color-mix(in srgb, currentColor 45%, transparent);
-}
-
 /* ---- To-dos ------------------------------------------------------------- */
 
 /* Checkbox widget rendered in place of a leading /TODO //DONE //CANCEL tag. */
@@ -1765,10 +1759,6 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content {
   opacity: 0.35;
   pointer-events: none;
   z-index: 110;
-}
-/* Variant switch: drops the Vercel Night glow so its cost can be measured. */
-html.bench-noglow .editor-wrap .cm-content {
-  text-shadow: none;
 }
 
 .perf-section {
