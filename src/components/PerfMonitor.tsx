@@ -7,6 +7,9 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { Buffer } from "../lib/layout";
+import type { ThemeDef } from "../lib/themes";
+import { latencyStats, resetLatency, runEditorBenchmark } from "../lib/latency";
+import type { BenchRow, LatencyStats } from "../lib/latency";
 
 interface ProcStats {
   pid: number;
@@ -58,22 +61,31 @@ function Sparkline({ values }: { values: number[] }) {
 
 export function PerfMonitor({
   buffers,
+  theme,
+  wrapOn,
   onClose,
 }: {
   buffers: Buffer[];
+  theme: ThemeDef;
+  wrapOn: boolean;
   onClose: () => void;
 }) {
   const [samples, setSamples] = useState<Sample[]>([]);
   const [logPath, setLogPath] = useState("");
+  const [bench, setBench] = useState<BenchRow[] | null>(null);
+  const [benchRunning, setBenchRunning] = useState(false);
+  const [lat, setLat] = useState<LatencyStats>(() => latencyStats());
   const prevRef = useRef<{ cpu: number; ts: number } | null>(null);
 
   useEffect(() => {
     invoke<string>("perf_log_path").then(setLogPath).catch(() => {});
   }, []);
 
+
   useEffect(() => {
     let cancelled = false;
     const tick = async () => {
+      setLat(latencyStats());
       let stats: PerfStats;
       try {
         stats = await invoke<PerfStats>("perf_stats");
@@ -173,10 +185,74 @@ export function PerfMonitor({
               )}
             </tbody>
           </table>
-          <div className="perf-log" title={logPath}>
-            1 sample/min → {logPath.replace(/^.*\//, "")}
-          </div>
         </>
+      )}
+
+      {/* Webview-side numbers: these don't need the backend, so they stay
+          visible even if perf_stats is unavailable. */}
+      <div className="perf-section">
+        <span>Typing latency</span>
+        <button
+          className="perf-mini"
+          onClick={() => {
+            resetLatency();
+            setLat(latencyStats());
+          }}
+        >
+          reset
+        </button>
+      </div>
+      <table className="perf-table">
+        <tbody>
+          <tr className={lat.p95 > 60 ? "perf-row-warn" : undefined}>
+            <td>p50 / p95 / max</td>
+            <td>
+              {lat.n
+                ? `${lat.p50.toFixed(0)} / ${lat.p95.toFixed(0)} / ${lat.max.toFixed(0)} ms`
+                : "type to measure"}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="perf-section">
+        <span>Benchmark</span>
+        <button
+          className="perf-mini"
+          disabled={benchRunning}
+          onClick={async () => {
+            setBenchRunning(true);
+            setBench(null);
+            try {
+              setBench(await runEditorBenchmark(theme, wrapOn));
+            } finally {
+              setBenchRunning(false);
+            }
+          }}
+        >
+          {benchRunning ? "running…" : "run"}
+        </button>
+      </div>
+      {bench && (
+        <table className="perf-table perf-bench">
+          <tbody>
+            {bench.map((r) => (
+              <tr key={r.label} className={r.unit === "frame" && r.value > 20 ? "perf-row-warn" : undefined}>
+                <td>{r.label}</td>
+                <td>
+                  {r.value.toFixed(1)} ms
+                  <span className="perf-dim"> {r.unit}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {logPath && (
+        <div className="perf-log" title={logPath}>
+          1 sample/min → {logPath.replace(/^.*\//, "")}
+        </div>
       )}
     </div>
   );

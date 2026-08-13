@@ -200,15 +200,27 @@ export const todoKeymap = Prec.highest(
   keymap.of([{ key: "Mod-Enter", run: rotateLine }])
 );
 
+/** The line the cursor is on — the only part of the selection this cares about. */
+const cursorLine = (view: EditorView) =>
+  view.state.doc.lineAt(view.state.selection.main.head).number;
+
 export const todoHighlighter = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
+    line: number;
     constructor(view: EditorView) {
       this.decorations = build(view);
+      this.line = cursorLine(view);
     }
     update(u: ViewUpdate) {
-      if (u.docChanged || u.viewportChanged || u.selectionSet)
+      // Only the cursor's *line* changes what's rendered (its tag shows raw),
+      // so moving within a line — every left/right arrow, every click — must
+      // not re-scan the viewport.
+      const line = cursorLine(u.view);
+      if (u.docChanged || u.viewportChanged || line !== this.line) {
         this.decorations = build(u.view);
+        this.line = line;
+      }
     }
   },
   {

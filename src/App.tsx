@@ -31,6 +31,7 @@ import type { Buffer, LayoutNode } from "./lib/layout";
 import { isMarkdown } from "./lib/markdown";
 import { NotePicker } from "./components/NotePicker";
 import { PerfMonitor } from "./components/PerfMonitor";
+import { trackLatency } from "./lib/latency";
 import { GitMenu } from "./components/GitMenu";
 import { Settings } from "./components/Settings";
 import { LayoutView } from "./components/LayoutView";
@@ -775,6 +776,10 @@ export default function App() {
     openPicker,
   ]);
 
+  // Measure keydown → painted frame for real typing, all the time: the cost
+  // is one listener, and it means the ⌘⇧D overlay always has honest numbers.
+  useEffect(() => trackLatency(), []);
+
   useEffect(() => {
     const onBlur = () => {
       for (const b of stateRef.current.buffers) {
@@ -1018,7 +1023,12 @@ export default function App() {
       )}
 
       {perfOpen && (
-        <PerfMonitor buffers={buffers} onClose={() => setPerfOpen(false)} />
+        <PerfMonitor
+          buffers={buffers}
+          theme={theme}
+          wrapOn={wrapOn}
+          onClose={() => setPerfOpen(false)}
+        />
       )}
 
     </div>

@@ -1803,3 +1803,61 @@ html[data-theme="vercel-night"] .editor-wrap .cm-content .cm-todo {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ---- Benchmark host (⌘⇧D → Run benchmark) ------------------------------- */
+
+/* On-screen so paint is real, but out of the way and non-interactive. */
+.bench-host {
+  position: fixed;
+  right: 12px;
+  bottom: 34px;
+  width: 420px;
+  height: 300px;
+  overflow: hidden;
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 110;
+}
+/* Variant switch: drops the Vercel Night glow so its cost can be measured. */
+html.bench-noglow .editor-wrap .cm-content {
+  text-shadow: none;
+}
+
+.perf-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  color: var(--secondary);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.perf-mini {
+  margin-left: auto;
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--secondary);
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+.perf-mini:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.perf-mini:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.perf-bench td:first-child {
+  color: var(--secondary);
+}
+.perf-dim {
+  color: var(--muted);
+}

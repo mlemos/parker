@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { languageForName } from "../lib/lang";
 import { todoHighlighter, todoKeymap } from "../lib/todo";
+import { setActiveView } from "../lib/latency";
 import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Group } from "../lib/layout";
 import { isMarkdown } from "../lib/markdown";
@@ -310,6 +311,7 @@ export function EditorGroup({
             extensions={cmExtensions}
             height="100%"
             autoFocus={focused}
+            onCreateEditor={(view) => setActiveView(view)}
             basicSetup={cmSetup}
           />
         ) : (
