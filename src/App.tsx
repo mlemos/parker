@@ -490,6 +490,7 @@ export default function App() {
   // Drop a dragged tab: reorder within a pane, or move it to another pane.
   const dropTab = useCallback(
     (source: { from: string; name: string }, toGroupId: string, toIndex: number) => {
+      setTabDragging(false);
       const s = stateRef.current;
       const { from, name } = source;
       if (from === toGroupId) {
@@ -790,6 +791,22 @@ export default function App() {
     window.addEventListener("blur", onBlur);
     return () => window.removeEventListener("blur", onBlur);
   }, [flushSave]);
+
+  // A tab dropped onto another pane is unmounted at the source, and a removed
+  // element never fires dragend — which used to leave `tabDragging` stuck on,
+  // covering every pane with an invisible drop catcher that swallowed clicks
+  // and keystrokes. The window hears the end of the drag either way.
+  useEffect(() => {
+    const clear = () => setTabDragging(false);
+    window.addEventListener("dragend", clear, true);
+    window.addEventListener("drop", clear, true);
+    window.addEventListener("blur", clear);
+    return () => {
+      window.removeEventListener("dragend", clear, true);
+      window.removeEventListener("drop", clear, true);
+      window.removeEventListener("blur", clear);
+    };
+  }, []);
 
   // Track Option so the pane buttons can flip to "merge" while it's held.
   useEffect(() => {

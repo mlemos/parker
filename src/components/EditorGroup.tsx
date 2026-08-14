@@ -332,6 +332,9 @@ export function EditorGroup({
         {dragging && (
           <div
             className={"drop-catcher" + (dropActive ? " active" : "")}
+            // Last resort: if a catcher ever outlives its drag, clicking the
+            // editor dismisses it instead of leaving the pane unresponsive.
+            onMouseDown={cb.onTabDragEnd}
             onDragOver={(e) => {
               if (!e.dataTransfer.types.includes(TAB_MIME)) return;
               e.preventDefault();
