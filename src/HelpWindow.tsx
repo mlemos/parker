@@ -89,11 +89,11 @@ const EDITOR: Section[] = [
     ],
   },
   {
-    title: "To-dos — /TODO /ATTN /DONE /FAIL /CANCEL",
+    title: "To-dos — /TODO /DOING /ATTN /DONE /FAIL /CANCEL",
     rows: [
-      ["Rotate line: todo → attention → done → fail → cancel → clear", ["⌘⏎"]],
+      ["Rotate line: todo → doing → attention → done → fail → cancel", ["⌘⏎"]],
       ["Complete / reopen (on the checkbox)", ["Click"]],
-      ["Cycle attention / fail / cancel", ["⌥Click"]],
+      ["Cycle doing / attention / fail / cancel", ["⌥Click"]],
     ],
   },
   {

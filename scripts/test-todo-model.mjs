@@ -14,7 +14,7 @@ import { cursorAfterRotate, planRotate } from "../src/lib/todo-model.ts";
 const DOCS = {
   "no trailing newline": "# list\n\n\nfirst\nsecond\nthird",
   "trailing newline": "# list\n\n\nfirst\nsecond\nthird\n",
-  "already tagged": "/TODO first\n/ATTN second\n/DONE third",
+  "already tagged": "/TODO first\n/DOING second\n/ATTN third\n/DONE fourth",
   "indented": "  buy milk\n    call bank\nship",
 };
 

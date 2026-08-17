@@ -4,14 +4,22 @@
 // headlessly. todo.ts owns the rendering and wires these into transactions.
 
 /** Slash tag at the start of a line (after optional indent). */
-export const LINE_TAG = /^(\s*)\/(TODO|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(?=\s|$)/;
+export const LINE_TAG =
+  /^(\s*)\/(TODO|DOING|WIP|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(?=\s|$)/;
 
-/** ⌘⏎ rotation order. MISSED/DISMISSED normalize on any interaction. */
-export const ORDER = ["TODO", "ATTN", "DONE", "FAIL", "CANCEL"] as const;
+/** ⌘⏎ rotation order: the states you pass through, then the outcomes.
+    WIP/MISSED/DISMISSED normalize to their canonical state on any interaction. */
+export const ORDER = ["TODO", "DOING", "ATTN", "DONE", "FAIL", "CANCEL"] as const;
 export type State = (typeof ORDER)[number];
 
 export const norm = (s: string): State =>
-  (s === "MISSED" ? "FAIL" : s === "DISMISSED" ? "CANCEL" : s) as State;
+  (s === "WIP"
+    ? "DOING"
+    : s === "MISSED"
+      ? "FAIL"
+      : s === "DISMISSED"
+        ? "CANCEL"
+        : s) as State;
 
 export interface DocLine {
   from: number;
@@ -45,9 +53,14 @@ export function tagChange(
 /** The state a checkbox click moves to: plain click completes/reopens, ⌥-click
     cycles the attention/fail/cancel outcomes. */
 export function nextOnClick(cur: State, alt: boolean): State {
-  if (!alt) return cur === "TODO" || cur === "ATTN" ? "DONE" : "TODO";
+  if (!alt)
+    return cur === "TODO" || cur === "DOING" || cur === "ATTN"
+      ? "DONE"
+      : "TODO";
   switch (cur) {
     case "TODO":
+      return "DOING";
+    case "DOING":
       return "ATTN";
     case "ATTN":
       return "FAIL";

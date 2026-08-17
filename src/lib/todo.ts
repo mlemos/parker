@@ -1,6 +1,7 @@
-// To-do rendering and interaction. Five states, one per leading slash tag:
+// To-do rendering and interaction. Six states, one per leading slash tag:
 //
 //   /TODO   open       — empty box
+//   /DOING  in progress — cyan box, dot           (/WIP = alias)
 //   /ATTN   attention  — yellow box, "!" glyph
 //   /DONE   done       — green box, check; line goes green
 //   /FAIL   failed     — red box, x; line goes red      (/MISSED = alias)
@@ -21,10 +22,10 @@
 // typing there simply stops the line matching, and the text reappears.
 //
 // Interactions:
-//   click     TODO/ATTN → DONE; DONE/FAIL/CANCEL → TODO (complete / reopen)
-//   ⌥-click   TODO → ATTN → FAIL → CANCEL → TODO; DONE → ATTN
-//   ⌘↩        rotate the line (Roam-style):
-//             no tag → /TODO → /ATTN → /DONE → /FAIL → /CANCEL → tag removed
+//   click     TODO/DOING/ATTN → DONE; DONE/FAIL/CANCEL → TODO (complete/reopen)
+//   ⌥-click   TODO → DOING → ATTN → FAIL → CANCEL → TODO; DONE → ATTN
+//   ⌘↩        rotate the line (Roam-style): no tag → /TODO → /DOING → /ATTN
+//             → /DONE → /FAIL → /CANCEL → tag removed
 //             Over a multi-line selection: untagged lines become /TODO, or if
 //             every line is tagged they all advance together — one transaction.
 //
@@ -54,6 +55,8 @@ import {
 } from "./todo-model";
 
 const LINE_DECOS: Record<string, Decoration> = {
+  DOING: Decoration.line({ class: "cm-todo-line-doing" }),
+  WIP: Decoration.line({ class: "cm-todo-line-doing" }),
   ATTN: Decoration.line({ class: "cm-todo-line-attn" }),
   DONE: Decoration.line({ class: "cm-todo-line-done" }),
   FAIL: Decoration.line({ class: "cm-todo-line-fail" }),
@@ -87,13 +90,15 @@ class TodoBox extends WidgetType {
     const kind =
       state === "TODO"
         ? "todo"
-        : state === "ATTN"
-          ? "attn"
-          : state === "DONE"
-            ? "done"
-            : state === "FAIL"
-              ? "fail"
-              : "cancel";
+        : state === "DOING"
+          ? "doing"
+          : state === "ATTN"
+            ? "attn"
+            : state === "DONE"
+              ? "done"
+              : state === "FAIL"
+                ? "fail"
+                : "cancel";
     box.className = `cm-todo-box cm-todo-box-${kind}`;
     // The visible square. Inner element so it can be drawn from the zero-height
     // anchor (see App.css) without nudging the line's baseline.
@@ -108,17 +113,28 @@ class TodoBox extends WidgetType {
       svg.setAttribute("stroke-width", "3.5");
       svg.setAttribute("stroke-linecap", "round");
       svg.setAttribute("stroke-linejoin", "round");
-      for (const d of GLYPH_PATHS[kind]) {
-        const p = document.createElementNS(NS, "path");
-        p.setAttribute("d", d);
-        svg.appendChild(p);
+      if (kind === "doing") {
+        // A stroked mark turns to mush at this size; a solid dot reads clean.
+        const dot = document.createElementNS(NS, "circle");
+        dot.setAttribute("cx", "12");
+        dot.setAttribute("cy", "12");
+        dot.setAttribute("r", "6.5");
+        dot.setAttribute("fill", "currentColor");
+        dot.setAttribute("stroke", "none");
+        svg.appendChild(dot);
+      } else {
+        for (const d of GLYPH_PATHS[kind]) {
+          const p = document.createElementNS(NS, "path");
+          p.setAttribute("d", d);
+          svg.appendChild(p);
+        }
       }
       glyph.appendChild(svg);
     }
     box.appendChild(glyph);
     box.title =
-      kind === "todo" || kind === "attn"
-        ? "Mark done (⌥-click: cycle attention/fail/cancel · ⌘↩ rotate)"
+      kind === "todo" || kind === "doing" || kind === "attn"
+        ? "Mark done (⌥-click: cycle doing/attention/fail/cancel · ⌘↩ rotate)"
         : "Reopen (⌥-click: needs attention)";
     box.setAttribute("role", "checkbox");
     box.setAttribute("aria-checked", kind === "done" ? "true" : "false");
