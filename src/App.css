@@ -984,10 +984,19 @@ body.resizing {
 
 /* Checkbox widget rendered in place of a leading /TODO //DONE //CANCEL tag. */
 :root {
-  --todo-green: #2fd45f;
-  --todo-cyan: #22c5f0;
-  --todo-yellow: #ffb224;
-  --todo-red: #ff4d4f;
+  /* The to-do palette is derived from the state machine, not picked by eye.
+     /TODO is the origin (no fill, no hue) and DONE/FAIL/CANCEL are the three
+     poles; every live state carries a diluted version of the outcome it is
+     drifting toward. DOING is green-not-yet-arrived (cyan), ATTN is
+     red-not-yet-arrived (amber), and the two stalled states decay from cyan
+     toward CANCEL's grey by losing saturation — PAUSE still near motion,
+     WAIT further from it. Move one and you break the story. */
+  --todo-green: #2fd45f; /* DONE — the good pole */
+  --todo-cyan: #22c5f0; /* DOING — on the way to green */
+  --todo-blue: #62a0da; /* PAUSE — motion, suspended by you */
+  --todo-slate: #8e9fcc; /* WAIT — suspended by someone else, nearer grey */
+  --todo-yellow: #ffb224; /* ATTN — on the way to red */
+  --todo-red: #ff4d4f; /* FAIL — the bad pole */
   /* Ink for text sitting on a vivid to-do fill — dark in every theme, since
      the fills are mid-tone colors that never go dark. */
   --todo-ink: #10131a;
@@ -1045,6 +1054,14 @@ body.resizing {
   background: var(--todo-cyan);
   border-color: var(--todo-cyan);
 }
+.cm-todo-box-pause .cm-todo-glyph {
+  background: var(--todo-blue);
+  border-color: var(--todo-blue);
+}
+.cm-todo-box-wait .cm-todo-glyph {
+  background: var(--todo-slate);
+  border-color: var(--todo-slate);
+}
 .cm-todo-box-attn .cm-todo-glyph {
   background: var(--todo-yellow);
   border-color: var(--todo-yellow);
@@ -1068,6 +1085,14 @@ body.resizing {
 .cm-todo-line-doing span {
   color: var(--todo-cyan);
 }
+.cm-todo-line-pause,
+.cm-todo-line-pause span {
+  color: var(--todo-blue);
+}
+.cm-todo-line-wait,
+.cm-todo-line-wait span {
+  color: var(--todo-slate);
+}
 .cm-todo-line-attn,
 .cm-todo-line-attn span {
   color: var(--todo-yellow);
@@ -1087,6 +1112,8 @@ body.resizing {
 /* Knockout glyph: painted in the editor's background color, the icon reads as
    punched out of the vivid fill — dark in dark themes, light in light ones. */
 .cm-todo-box-doing .cm-todo-glyph,
+.cm-todo-box-pause .cm-todo-glyph,
+.cm-todo-box-wait .cm-todo-glyph,
 .cm-todo-box-attn .cm-todo-glyph,
 .cm-todo-box-done .cm-todo-glyph,
 .cm-todo-box-fail .cm-todo-glyph,
