@@ -63,6 +63,11 @@ export default function App() {
   const [wrapOn, setWrapOn] = useState<boolean>(
     () => localStorage.getItem("parker.wrap") !== "0"
   );
+  // Coding ligatures in the editor (→ ⇒ ≠ …). Off by default: in prose a "->"
+  // silently becoming an arrow is a surprise, not a feature.
+  const [ligaturesOn, setLigaturesOn] = useState<boolean>(
+    () => localStorage.getItem("parker.ligatures") === "1"
+  );
   // Option (⌥) held → the pane's split buttons become a merge (unsplit) button.
   const [altHeld, setAltHeld] = useState(false);
   // True while a tab is being dragged — lets every pane show a full-body drop
@@ -290,6 +295,9 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("parker.wrap", wrapOn ? "1" : "0");
   }, [wrapOn]);
+  useEffect(() => {
+    localStorage.setItem("parker.ligatures", ligaturesOn ? "1" : "0");
+  }, [ligaturesOn]);
 
   // ---- Buffer / tab actions -----------------------------------------------
 
@@ -933,7 +941,7 @@ export default function App() {
   };
 
   return (
-    <div className="parker">
+    <div className={"parker" + (ligaturesOn ? " ligatures" : "")}>
       <div className="titlebar" data-tauri-drag-region>
         <div className="tb-left" data-tauri-drag-region />
         <div className="tb-center" data-tauri-drag-region>
@@ -1035,6 +1043,8 @@ export default function App() {
       {settingsOpen && (
         <Settings
           homeDir={homeDir}
+          ligaturesOn={ligaturesOn}
+          onToggleLigatures={() => setLigaturesOn((v) => !v)}
           onClose={() => setSettingsOpen(false)}
           onNotesDirChange={(dir) => setNotesDir(dir)}
         />
