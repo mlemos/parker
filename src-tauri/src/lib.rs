@@ -1027,14 +1027,32 @@ fn toggle_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 
 /// Ask the frontend to flush and then quit. If there's no window to flush
 /// through, exit immediately.
-fn request_quit<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+///
+/// `confirm` marks a quit the *user* asked for (⌘Q, the menu, the tray): the
+/// frontend puts up a confirmation first. Every other path — a quit Parker
+/// itself decided on, or one the system imposes at logout/reboot — flushes and
+/// goes, because there is nobody there to answer a dialog.
+fn request_quit<R: tauri::Runtime>(app: &tauri::AppHandle<R>, confirm: bool) {
     use tauri::{Emitter, Manager};
     if let Some(w) = app.get_webview_window("main") {
-        let _ = w.emit("parker://quit", ());
+        // A quit request with the window hidden would pop a dialog nobody can
+        // see — show the window first so the question is answerable.
+        if confirm && !w.is_visible().unwrap_or(false) {
+            show_window(app);
+        }
+        let _ = w.emit(
+            if confirm {
+                "parker://confirm-quit"
+            } else {
+                "parker://quit"
+            },
+            (),
+        );
     } else {
         app.exit(0);
     }
 }
+
 
 #[cfg(desktop)]
 fn build_menu<R: tauri::Runtime>(
@@ -1042,9 +1060,13 @@ fn build_menu<R: tauri::Runtime>(
 ) -> tauri::Result<tauri::menu::Menu<R>> {
     use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
-    // Custom Quit: routes through request_quit so the frontend flushes first.
-    // No ⌘Q accelerator — quitting is deliberate (menu / tray), not a stray key.
-    let quit = MenuItemBuilder::with_id("quit", "Quit Parker").build(handle)?;
+    // Custom Quit: routes through request_quit so the frontend confirms and
+    // flushes first. ⌘Q is the macOS convention and Parker now answers to it —
+    // the confirmation dialog is what keeps a stray press from costing you the
+    // window you were mid-thought in.
+    let quit = MenuItemBuilder::with_id("quit", "Quit Parker")
+        .accelerator("CmdOrCtrl+Q")
+        .build(handle)?;
     // Settings opens the in-app panel (Cmd+, is the macOS convention).
     let settings = MenuItemBuilder::with_id("settings", "Settings…")
         .accelerator("CmdOrCtrl+,")
@@ -1120,7 +1142,7 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
                 let _ = app.emit("parker://open-settings", ());
             }
             "tray_about" => show_about_window(app),
-            "tray_quit" => request_quit(app),
+            "tray_quit" => request_quit(app, true),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
@@ -1287,7 +1309,7 @@ pub fn run() {
         })
         .on_menu_event(|app, event| match event.id().as_ref() {
             // Real quit — flush on the frontend, then exit.
-            "quit" => request_quit(app),
+            "quit" => request_quit(app, true),
             "settings" => {
                 use tauri::Emitter;
                 let _ = app.emit("parker://open-settings", ());
