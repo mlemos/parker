@@ -417,6 +417,42 @@ body,
 .settings-row:last-child {
   border-bottom: none;
 }
+
+/* Segmented control — a small set of exclusive choices (sync interval). */
+.seg {
+  display: flex;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.seg-btn {
+  padding: 5px 9px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--secondary);
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg-btn:first-child {
+  border-left: none;
+}
+.seg-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.seg-btn.on {
+  color: var(--on-accent);
+  background: var(--accent);
+  font-weight: 600;
+}
+.seg-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
 .settings-label {
   flex: 1;
   min-width: 0;
