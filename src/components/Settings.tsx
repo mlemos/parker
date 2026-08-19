@@ -60,10 +60,14 @@ function accelFromEvent(e: KeyboardEvent): string | null {
 
 export function Settings({
   homeDir,
+  ligaturesOn,
+  onToggleLigatures,
   onClose,
   onNotesDirChange,
 }: {
   homeDir: string;
+  ligaturesOn: boolean;
+  onToggleLigatures: () => void;
   onClose: () => void;
   onNotesDirChange: (dir: string) => void;
 }) {
@@ -290,6 +294,26 @@ export function Settings({
               </div>
             </div>
 
+            {/* Ligatures — editor only, stored client-side like font size */}
+            <div className="settings-row">
+              <div className="settings-label">
+                <div className="settings-title">Ligatures</div>
+                <div className="settings-sub">
+                  Let the editor draw <code>-&gt;</code> and <code>!=</code> as
+                  single glyphs. Off by default — in prose it can surprise you.
+                </div>
+              </div>
+              <button
+                className={"switch" + (ligaturesOn ? " on" : "")}
+                onClick={onToggleLigatures}
+                role="switch"
+                aria-checked={ligaturesOn}
+                title="Toggle editor ligatures"
+              >
+                <span className="switch-knob" />
+              </button>
+            </div>
+
             {/* Git auto-sync — commit & push the notes folder on quit */}
             <div className="settings-row">
               <div className="settings-label">
@@ -310,6 +334,7 @@ export function Settings({
                 <span className="switch-knob" />
               </button>
             </div>
+
           </div>
         )}
 

@@ -1,3 +1,23 @@
+/* Geist Mono, the full upstream release — the @fontsource build we use for the
+   UI is subset and has had its OpenType features stripped (no `liga`), so the
+   editor loads the complete variable font instead. Same typeface, plus the
+   contextual ligature lookups behind the ligature toggle. SIL OFL 1.1;
+   license text next to the files. */
+@font-face {
+  font-family: "Geist Mono Ligatures";
+  src: url("./assets/fonts/GeistMono-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono Ligatures";
+  src: url("./assets/fonts/GeistMono-Italic-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
   /* Chrome mini-theme tokens (defaults = Vercel Night; JS overrides per theme) */
   --canvas: #000000;
@@ -967,11 +987,19 @@ body.resizing {
 .editor-wrap .cm-scroller {
   /* !important beats the per-theme rule createTheme injects
      (&.cm-editor .cm-scroller { font-family }), so the content is always
-     Geist Mono regardless of the active theme. */
-  font-family: "Geist Mono Variable", "SF Mono", ui-monospace, SFMono-Regular,
-    Menlo, Consolas, monospace !important;
+     Geist Mono regardless of the active theme. The full build comes first so
+     the ligature toggle has something to switch on; the subset is the
+     identical typeface without the feature table. */
+  font-family: "Geist Mono Ligatures", "Geist Mono Variable", "SF Mono",
+    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
   line-height: 1.6;
   padding: 8px 4px;
+  /* Off by default — in prose, "->" turning into an arrow is a surprise. The
+     toggle flips this to `normal` (see App.tsx / Settings). */
+  font-variant-ligatures: none;
+}
+.parker.ligatures .editor-wrap .cm-scroller {
+  font-variant-ligatures: normal;
 }
 .editor-wrap .cm-content {
   max-width: 900px; /* comfortable measure for prose & prompts */
