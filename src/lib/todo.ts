@@ -1,8 +1,11 @@
 // To-do rendering and interaction. Six states, one per leading slash tag:
 //
 //   /TODO   open       — empty box
-//   /DOING  in progress — cyan box, dot           (/WIP = alias)
-//   /ATTN   attention  — yellow box, "!" glyph
+//   /DOING  in progress — cyan box, play           (/WIP = alias)
+//   /PAUSE  parked by you — blue box, pause        (/PAUSED, /HOLD = aliases)
+//   /WAIT   parked by someone else — slate box, hourglass
+//                                                  (/WAITING, /BLOCKED = aliases)
+//   /ATTN   attention  — amber box, asterisk
 //   /DONE   done       — green box, check; line goes green
 //   /FAIL   failed     — red box, x; line goes red      (/MISSED = alias)
 //   /CANCEL dismissed  — gray box, minus; line goes muted (/DISMISSED = alias)
@@ -11,6 +14,12 @@
 // of the tag. The document stays plain text — every interaction rewrites the
 // tag through a normal editor transaction, so autosave and git sync see an
 // ordinary edit. Color carries the state — never a strikethrough.
+//
+// The colors are derived from the machine rather than picked: /TODO is the
+// origin (no fill), DONE/FAIL/CANCEL are the three poles, and every live state
+// wears a diluted version of the pole it is drifting toward — DOING is green
+// not yet arrived, ATTN is red not yet arrived, and PAUSE/WAIT decay from
+// DOING's cyan toward CANCEL's grey. App.css holds the values.
 //
 // The checkbox behaves as ONE character that owns the start of the line: it
 // never expands back into text on its own, arrows step over it in a single
@@ -22,10 +31,11 @@
 // typing there simply stops the line matching, and the text reappears.
 //
 // Interactions:
-//   click     TODO/DOING/ATTN → DONE; DONE/FAIL/CANCEL → TODO (complete/reopen)
-//   ⌥-click   TODO → DOING → ATTN → FAIL → CANCEL → TODO; DONE → ATTN
-//   ⌘↩        rotate the line (Roam-style): no tag → /TODO → /DOING → /ATTN
-//             → /DONE → /FAIL → /CANCEL → tag removed
+//   click     any open state → DONE; DONE/FAIL/CANCEL → TODO
+//   ⌥-click   TODO → DOING → PAUSE → WAIT → ATTN → FAIL → CANCEL → TODO;
+//             DONE → ATTN
+//   ⌘↩        rotate the line (Roam-style): no tag → /TODO → /DOING → /PAUSE
+//             → /WAIT → /ATTN → /DONE → /FAIL → /CANCEL → tag removed
 //             Over a multi-line selection: untagged lines become /TODO, or if
 //             every line is tagged they all advance together — one transaction.
 //
@@ -57,6 +67,12 @@ import {
 const LINE_DECOS: Record<string, Decoration> = {
   DOING: Decoration.line({ class: "cm-todo-line-doing" }),
   WIP: Decoration.line({ class: "cm-todo-line-doing" }),
+  PAUSE: Decoration.line({ class: "cm-todo-line-pause" }),
+  PAUSED: Decoration.line({ class: "cm-todo-line-pause" }),
+  HOLD: Decoration.line({ class: "cm-todo-line-pause" }),
+  WAIT: Decoration.line({ class: "cm-todo-line-wait" }),
+  WAITING: Decoration.line({ class: "cm-todo-line-wait" }),
+  BLOCKED: Decoration.line({ class: "cm-todo-line-wait" }),
   ATTN: Decoration.line({ class: "cm-todo-line-attn" }),
   DONE: Decoration.line({ class: "cm-todo-line-done" }),
   FAIL: Decoration.line({ class: "cm-todo-line-fail" }),
@@ -65,7 +81,23 @@ const LINE_DECOS: Record<string, Decoration> = {
   DISMISSED: Decoration.line({ class: "cm-todo-line-cancel" }),
 };
 
-/** Lucide icon paths (inlined — the widget is plain DOM, no React). */
+/** State → the CSS/glyph name used for it. */
+const KINDS: Record<string, string> = {
+  TODO: "todo",
+  DOING: "doing",
+  PAUSE: "pause",
+  WAIT: "wait",
+  ATTN: "attn",
+  DONE: "done",
+  FAIL: "fail",
+  CANCEL: "cancel",
+};
+
+/**
+ * Every glyph is Lucide, verbatim, inlined as raw path data because the widget
+ * is plain DOM (no React) — and drawn the way Lucide draws it: stroked
+ * outline, round caps and joins, nothing filled.
+ */
 const GLYPH_PATHS: Record<string, string[]> = {
   // check — path spans y 6–17 (center 11.5), viewBox shifted to compensate
   done: ["M20 6 9 17l-5-5"],
@@ -73,9 +105,69 @@ const GLYPH_PATHS: Record<string, string[]> = {
   fail: ["M18 6 6 18", "m6 6 12 12"],
   // minus — the classic "dismissed / not applicable"
   cancel: ["M5 12h14"],
-  // exclamation (circle-alert's inner strokes)
-  attn: ["M12 6v7", "M12 17.5h.01"],
+  // asterisk — "look at this one"
+  attn: ["M12 6v12", "M17.196 9 6.804 15", "m6.804 9 10.392 6"],
+  // play
+  doing: [
+    "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z",
+  ],
+  // hourglass — time passing, and not by your hand. The only glyph with
+  // enough internal detail to need a thinner stroke (see STROKE).
+  wait: [
+    "M5 22h14",
+    "M5 2h14",
+    "M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22",
+    "M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2",
+  ],
 };
+
+/** One stroke weight for every glyph — a set of icons that disagree about line
+    width stops looking like a set. It is heavier than Lucide's own 2 because
+    the glyph renders at ~8px here, and no heavier than this because the
+    shapes that enclose space (play, pause, hourglass, asterisk) close up. */
+const STROKE = 2.5;
+
+/**
+ * Where each glyph's ink actually sits in Lucide's 24-unit grid — [x0,y0,x1,y1],
+ * read off the path data above.
+ *
+ * Lucide draws every icon on the same grid but none of them fill it the same
+ * way: the hourglass runs the full 20 units tall while the x spans 12, so at
+ * this size the hourglass renders half again as big as the x sitting right
+ * under it. Inside a checkbox that reads as sloppiness, not as variety. So each
+ * glyph is scaled to put its longest side at the same length and centered on
+ * the box — and the stroke is divided by that scale, so normalizing the size
+ * does not un-normalize the line weight.
+ */
+const INK: Record<string, [number, number, number, number]> = {
+  doing: [5, 3.27, 20.01, 20.73],
+  pause: [5, 3, 19, 21],
+  wait: [5, 2, 19, 22],
+  attn: [6.8, 6, 17.2, 18],
+  done: [4, 6, 20, 17],
+  fail: [6, 6, 18, 18],
+  cancel: [5, 12, 19, 12],
+};
+
+/** Units the longest side of every glyph ends up at, of the 24-unit grid. */
+const INK_TARGET = 16;
+
+/** The transform that lands a glyph's ink on INK_TARGET, centered, and the
+    scale it used (the caller divides the stroke by it). */
+function fit(kind: string): { transform: string; scale: number } {
+  const [x0, y0, x1, y1] = INK[kind] ?? [0, 0, 24, 24];
+  const scale = INK_TARGET / Math.max(x1 - x0, y1 - y0);
+  const r = (n: number) => Math.round(n * 1000) / 1000;
+  const tx = r(12 - (scale * (x0 + x1)) / 2);
+  const ty = r(12 - (scale * (y0 + y1)) / 2);
+  return { transform: `translate(${tx} ${ty}) scale(${r(scale)})`, scale };
+}
+
+/** Lucide `pause` — two rounded bars, stroked like the rest. */
+const PAUSE_BARS: [number, number][] = [
+  [5, 3],
+  [14, 3],
+];
 
 class TodoBox extends WidgetType {
   constructor(readonly state: string) {
@@ -87,18 +179,7 @@ class TodoBox extends WidgetType {
   toDOM() {
     const box = document.createElement("span");
     const state = norm(this.state);
-    const kind =
-      state === "TODO"
-        ? "todo"
-        : state === "DOING"
-          ? "doing"
-          : state === "ATTN"
-            ? "attn"
-            : state === "DONE"
-              ? "done"
-              : state === "FAIL"
-                ? "fail"
-                : "cancel";
+    const kind = KINDS[state] ?? "cancel";
     box.className = `cm-todo-box cm-todo-box-${kind}`;
     // The visible square. Inner element so it can be drawn from the zero-height
     // anchor (see App.css) without nudging the line's baseline.
@@ -107,35 +188,43 @@ class TodoBox extends WidgetType {
     if (kind !== "todo") {
       const NS = "http://www.w3.org/2000/svg";
       const svg = document.createElementNS(NS, "svg");
-      svg.setAttribute("viewBox", kind === "done" ? "0 -0.5 24 24" : "0 0 24 24");
+      svg.setAttribute("viewBox", "0 0 24 24");
       svg.setAttribute("fill", "none");
       svg.setAttribute("stroke", "currentColor");
-      svg.setAttribute("stroke-width", "3.5");
       svg.setAttribute("stroke-linecap", "round");
       svg.setAttribute("stroke-linejoin", "round");
-      if (kind === "doing") {
-        // A stroked mark turns to mush at this size; a solid dot reads clean.
-        const dot = document.createElementNS(NS, "circle");
-        dot.setAttribute("cx", "12");
-        dot.setAttribute("cy", "12");
-        dot.setAttribute("r", "6.5");
-        dot.setAttribute("fill", "currentColor");
-        dot.setAttribute("stroke", "none");
-        svg.appendChild(dot);
+      // Everything is drawn inside this group: it carries the size
+      // normalization, and the stroke divided by that scale so the rendered
+      // line weight comes out the same for every glyph.
+      const { transform, scale } = fit(kind);
+      const g = document.createElementNS(NS, "g");
+      g.setAttribute("transform", transform);
+      g.setAttribute("stroke-width", String(Math.round((STROKE / scale) * 1000) / 1000));
+      svg.appendChild(g);
+      if (kind === "pause") {
+        for (const [x, y] of PAUSE_BARS) {
+          const bar = document.createElementNS(NS, "rect");
+          bar.setAttribute("x", String(x));
+          bar.setAttribute("y", String(y));
+          bar.setAttribute("width", "5");
+          bar.setAttribute("height", "18");
+          bar.setAttribute("rx", "1");
+          g.appendChild(bar);
+        }
       } else {
         for (const d of GLYPH_PATHS[kind]) {
           const p = document.createElementNS(NS, "path");
           p.setAttribute("d", d);
-          svg.appendChild(p);
+          g.appendChild(p);
         }
       }
       glyph.appendChild(svg);
     }
     box.appendChild(glyph);
     box.title =
-      kind === "todo" || kind === "doing" || kind === "attn"
-        ? "Mark done (⌥-click: cycle doing/attention/fail/cancel · ⌘↩ rotate)"
-        : "Reopen (⌥-click: needs attention)";
+      kind === "done" || kind === "fail" || kind === "cancel"
+        ? "Reopen (⌥-click: needs attention)"
+        : "Mark done (⌥-click: cycle doing/paused/waiting/attention/fail/cancel · ⌘↩ rotate)";
     box.setAttribute("role", "checkbox");
     box.setAttribute("aria-checked", kind === "done" ? "true" : "false");
     return box;

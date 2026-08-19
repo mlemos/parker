@@ -5,21 +5,41 @@
 
 /** Slash tag at the start of a line (after optional indent). */
 export const LINE_TAG =
-  /^(\s*)\/(TODO|DOING|WIP|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(?=\s|$)/;
+  /^(\s*)\/(TODO|DOING|WIP|PAUSED|PAUSE|HOLD|WAITING|WAIT|BLOCKED|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(?=\s|$)/;
 
 /** ⌘⏎ rotation order: the states you pass through, then the outcomes.
-    WIP/MISSED/DISMISSED normalize to their canonical state on any interaction. */
-export const ORDER = ["TODO", "DOING", "ATTN", "DONE", "FAIL", "CANCEL"] as const;
+    The aliases (WIP, WAITING/BLOCKED, MISSED, DISMISSED) normalize to their
+    canonical state on any interaction. */
+export const ORDER = [
+  "TODO",
+  "DOING",
+  "PAUSE",
+  "WAIT",
+  "ATTN",
+  "DONE",
+  "FAIL",
+  "CANCEL",
+] as const;
 export type State = (typeof ORDER)[number];
 
-export const norm = (s: string): State =>
-  (s === "WIP"
-    ? "DOING"
-    : s === "MISSED"
-      ? "FAIL"
-      : s === "DISMISSED"
-        ? "CANCEL"
-        : s) as State;
+/** Alias → canonical state. Canonical tags are the short form; the longer
+    spellings people reach for are aliases that normalize on any interaction.
+
+    Three ways a task can be "not moving", and they are genuinely different:
+      /PAUSE  you stopped it — nothing external is missing, you chose to park it
+      /WAIT   someone else has it — you cannot move it even if you wanted to
+      /ATTN   it needs *you* — the next move is yours and you haven't made it */
+const ALIASES: Record<string, State> = {
+  WIP: "DOING",
+  PAUSED: "PAUSE",
+  HOLD: "PAUSE",
+  WAITING: "WAIT",
+  BLOCKED: "WAIT",
+  MISSED: "FAIL",
+  DISMISSED: "CANCEL",
+};
+
+export const norm = (s: string): State => ALIASES[s] ?? (s as State);
 
 export interface DocLine {
   from: number;
@@ -50,17 +70,22 @@ export function tagChange(
   return { from, to: tagEnd + (hasSpace ? 1 : 0) };
 }
 
+/** The states that mean "still on your plate" — a plain click completes them,
+    and anything else is an outcome a plain click reopens. */
+const OPEN = new Set<State>(["TODO", "DOING", "PAUSE", "WAIT", "ATTN"]);
+
 /** The state a checkbox click moves to: plain click completes/reopens, ⌥-click
-    cycles the attention/fail/cancel outcomes. */
+    cycles the paused/waiting/attention/fail/cancel states. */
 export function nextOnClick(cur: State, alt: boolean): State {
-  if (!alt)
-    return cur === "TODO" || cur === "DOING" || cur === "ATTN"
-      ? "DONE"
-      : "TODO";
+  if (!alt) return OPEN.has(cur) ? "DONE" : "TODO";
   switch (cur) {
     case "TODO":
       return "DOING";
     case "DOING":
+      return "PAUSE";
+    case "PAUSE":
+      return "WAIT";
+    case "WAIT":
       return "ATTN";
     case "ATTN":
       return "FAIL";

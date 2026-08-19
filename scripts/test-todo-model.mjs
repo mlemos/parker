@@ -9,14 +9,104 @@
 // "tag lands on the line below" bug was found — selections ending at the start
 // of the next line used to act on that next line.
 import { Text } from "@codemirror/state";
-import { cursorAfterRotate, planRotate } from "../src/lib/todo-model.ts";
+import {
+  LINE_TAG,
+  ORDER,
+  cursorAfterRotate,
+  nextInRotation,
+  nextOnClick,
+  norm,
+  planRotate,
+} from "../src/lib/todo-model.ts";
 
 const DOCS = {
   "no trailing newline": "# list\n\n\nfirst\nsecond\nthird",
   "trailing newline": "# list\n\n\nfirst\nsecond\nthird\n",
-  "already tagged": "/TODO first\n/DOING second\n/ATTN third\n/DONE fourth",
+  "already tagged":
+    "/TODO first\n/DOING second\n/PAUSE third\n/WAIT fourth\n/ATTN fifth\n/DONE sixth",
   "indented": "  buy milk\n    call bank\nship",
 };
+
+// ---- State machine -------------------------------------------------------
+// Every state must be reachable and every cycle must close, or a state becomes
+// a trap the user can only leave by editing the raw text.
+const stateFailures = [];
+const check = (what, got, want) => {
+  if (JSON.stringify(got) !== JSON.stringify(want))
+    stateFailures.push(`${what} — want ${JSON.stringify(want)}, got ${JSON.stringify(got)}`);
+};
+
+// Aliases normalize, and every canonical state survives normalization.
+for (const [alias, canonical] of [
+  ["WIP", "DOING"],
+  ["PAUSED", "PAUSE"],
+  ["HOLD", "PAUSE"],
+  ["WAITING", "WAIT"],
+  ["BLOCKED", "WAIT"],
+  ["MISSED", "FAIL"],
+  ["DISMISSED", "CANCEL"],
+])
+  check(`norm(${alias})`, norm(alias), canonical);
+for (const st of ORDER) check(`norm(${st})`, norm(st), st);
+
+// The tag grammar recognizes every state and alias, and nothing adjacent.
+for (const tag of [
+  ...ORDER,
+  "WIP",
+  "PAUSED",
+  "HOLD",
+  "WAITING",
+  "BLOCKED",
+  "MISSED",
+  "DISMISSED",
+]) {
+  const m = LINE_TAG.exec(`/${tag} something`);
+  check(`LINE_TAG /${tag}`, m && m[2], tag);
+}
+for (const notATag of [
+  "/WAITER x",
+  "/PAUSES x",
+  "/HOLDING x",
+  "/DO x",
+  "/TODOS x",
+  "TODO x",
+  "x /TODO",
+])
+  check(`LINE_TAG rejects ${notATag}`, LINE_TAG.exec(notATag), null);
+
+// ⌘⏎ walks the whole order once and then clears the tag — no state skipped,
+// no loop that never lets go.
+const walk = [];
+for (let st = ORDER[0]; st !== null; st = nextInRotation(st)) walk.push(st);
+check("⌘⏎ rotation", walk, [...ORDER]);
+
+// Plain click: every open state completes, every closed state reopens.
+for (const st of ["TODO", "DOING", "PAUSE", "WAIT", "ATTN"])
+  check(`click ${st}`, nextOnClick(st, false), "DONE");
+for (const st of ["DONE", "FAIL", "CANCEL"])
+  check(`click ${st}`, nextOnClick(st, false), "TODO");
+
+// ⌥-click cycles the open states and returns to where it started.
+const cycle = [];
+let cur = "TODO";
+do {
+  cycle.push(cur);
+  cur = nextOnClick(cur, true);
+} while (cur !== "TODO" && cycle.length <= ORDER.length + 1);
+check("⌥-click cycle", cycle, [
+  "TODO",
+  "DOING",
+  "PAUSE",
+  "WAIT",
+  "ATTN",
+  "FAIL",
+  "CANCEL",
+]);
+check("⌥-click on DONE", nextOnClick("DONE", true), "ATTN");
+
+for (const f of stateFailures) console.log(`✗ ${f}`);
+if (stateFailures.length) process.exitCode = 1;
+console.log(`state machine: ${stateFailures.length ? stateFailures.length + " wrong" : "OK"}`);
 
 function expected(doc, from, to) {
   const start = doc.lineAt(from);
@@ -73,4 +163,5 @@ console.log(
     ? `\n${failures.length} of ${checked} selections wrong`
     : `all ${checked} selections OK`
 );
-process.exit(failures.length ? 1 : 0);
+// A state-machine failure must not be masked by a clean selection sweep.
+process.exit(failures.length || stateFailures.length ? 1 : 0);
