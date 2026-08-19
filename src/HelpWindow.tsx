@@ -72,6 +72,7 @@ const APP: Section[] = [
       ["Commit & push (quick)", ["⌘⇧S"]],
       ["Settings", ["⌘,"]],
       ["This help", ["⌘K"]],
+      ["Quit (asks first)", ["⌘Q"]],
     ],
   },
 ];

@@ -33,6 +33,7 @@ import { NotePicker } from "./components/NotePicker";
 import { PerfMonitor } from "./components/PerfMonitor";
 import { markTabSwitch, trackLatency } from "./lib/latency";
 import { GitMenu } from "./components/GitMenu";
+import { QuitConfirm } from "./components/QuitConfirm";
 import { Settings } from "./components/Settings";
 import { LayoutView } from "./components/LayoutView";
 import type { LayoutHandlers } from "./components/LayoutView";
@@ -53,6 +54,8 @@ export default function App() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [perfOpen, setPerfOpen] = useState(false);
+  // ⌘Q / menu / tray asked to quit — waiting on the user's answer.
+  const [quitAsk, setQuitAsk] = useState(false);
   const [fontSize, setFontSize] = useState<number>(() => {
     const v = Number(localStorage.getItem("parker.fontSize"));
     return v >= 9 && v <= 40 ? v : 14;
@@ -866,6 +869,15 @@ export default function App() {
     };
   }, [flushAll]);
 
+  // A quit the user asked for gets a question first. The silent path above is
+  // still the one that actually leaves — this only decides whether to take it.
+  useEffect(() => {
+    const p = listen("parker://confirm-quit", () => setQuitAsk(true));
+    return () => {
+      p.then((un) => un());
+    };
+  }, []);
+
   useEffect(() => {
     const p = listen("parker://open-settings", () => setSettingsOpen(true));
     return () => {
@@ -1047,6 +1059,20 @@ export default function App() {
           onToggleLigatures={() => setLigaturesOn((v) => !v)}
           onClose={() => setSettingsOpen(false)}
           onNotesDirChange={(dir) => setNotesDir(dir)}
+        />
+      )}
+
+      {quitAsk && (
+        <QuitConfirm
+          onCancel={() => setQuitAsk(false)}
+          onQuit={async () => {
+            setQuitAsk(false);
+            try {
+              await flushAll();
+            } finally {
+              await api.quit().catch(() => {});
+            }
+          }}
         />
       )}
 
