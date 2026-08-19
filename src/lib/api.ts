@@ -27,6 +27,8 @@ export interface SettingsInfo {
   shortcut: string;
   default_shortcut: string;
   git_auto_sync: boolean;
+  /** Minutes between timed commit+push runs; 0 = off. */
+  git_sync_interval: number;
 }
 
 export interface GitFileChange {
@@ -84,6 +86,8 @@ export const api = {
     invoke<void>("set_autostart", { enabled }),
   setGitAutoSync: (enabled: boolean) =>
     invoke<void>("set_git_auto_sync", { enabled }),
+  setGitSyncInterval: (minutes: number) =>
+    invoke<void>("set_git_sync_interval", { minutes }),
   gitStatus: () => invoke<GitStatus>("git_status"),
   gitLog: (limit?: number) => invoke<GitLogEntry[]>("git_log", { limit }),
   gitCommit: (message: string, push: boolean) =>

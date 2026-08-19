@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { api } from "../lib/api";
+import { SYNC_INTERVAL_EVENT } from "./GitMenu";
 import type { SettingsInfo } from "../lib/api";
 import { prettyPath } from "../lib/path";
 
@@ -57,6 +58,11 @@ function accelFromEvent(e: KeyboardEvent): string | null {
   if (!key || mods.length === 0) return null;
   return [...mods, key].join("+");
 }
+
+/** Timed-sync choices, in minutes. 0 = off. */
+const SYNC_INTERVALS = [0, 5, 15, 30, 60] as const;
+const intervalLabel = (m: number) =>
+  m === 0 ? "Off" : m === 60 ? "1 h" : `${m} min`;
 
 export function Settings({
   homeDir,
@@ -123,6 +129,21 @@ export function Settings({
       setInfo({ ...info, autostart: next });
     } catch (e) {
       setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const chooseSyncInterval = async (minutes: number) => {
+    if (!info || busy || minutes === info.git_sync_interval) return;
+    setBusy(true);
+    try {
+      await api.setGitSyncInterval(minutes);
+      setInfo({ ...info, git_sync_interval: minutes });
+      // Tell the running timer, so a new choice takes effect now.
+      window.dispatchEvent(new Event(SYNC_INTERVAL_EVENT));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -335,6 +356,32 @@ export function Settings({
               </button>
             </div>
 
+            {/* Timed sync — the third leg, next to manual (⌘⇧S) and on-quit */}
+            <div className="settings-row">
+              <div className="settings-label">
+                <div className="settings-title">Sync every (Git)</div>
+                <div className="settings-sub">
+                  Commit &amp; push on a timer while Parker runs. Skipped when
+                  there is nothing to sync, or while the commit menu is open.
+                </div>
+              </div>
+              <div className="seg" role="radiogroup" aria-label="Sync interval">
+                {SYNC_INTERVALS.map((m) => (
+                  <button
+                    key={m}
+                    className={
+                      "seg-btn" + (info.git_sync_interval === m ? " on" : "")
+                    }
+                    onClick={() => chooseSyncInterval(m)}
+                    disabled={busy}
+                    role="radio"
+                    aria-checked={info.git_sync_interval === m}
+                  >
+                    {intervalLabel(m)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

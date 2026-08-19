@@ -52,6 +52,9 @@ struct Settings {
     /// Auto commit+push the notes repo when quitting.
     #[serde(default)]
     git_auto_sync: bool,
+    /// Minutes between timed commit+push runs. 0 (the default) = off.
+    #[serde(default)]
+    git_sync_interval: u32,
 }
 
 /// Dev vs release identity. `debug_assertions` is on for `tauri dev` and off
@@ -359,6 +362,7 @@ struct SettingsInfo {
     shortcut: String,
     default_shortcut: String,
     git_auto_sync: bool,
+    git_sync_interval: u32,
 }
 
 #[tauri::command]
@@ -371,6 +375,7 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
         shortcut: current_shortcut(),
         default_shortcut: TOGGLE_SHORTCUT.to_string(),
         git_auto_sync: s.git_auto_sync,
+        git_sync_interval: s.git_sync_interval,
     }
 }
 
@@ -378,6 +383,16 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
 fn set_git_auto_sync(enabled: bool) -> Result<(), String> {
     let mut s = load_settings();
     s.git_auto_sync = enabled;
+    write_settings(&s)
+}
+
+/// Minutes between timed syncs; 0 turns the timer off. The timer itself lives
+/// in the frontend (GitMenu), which already owns the status poll and the
+/// flush-before-commit step — this only persists the choice.
+#[tauri::command]
+fn set_git_sync_interval(minutes: u32) -> Result<(), String> {
+    let mut s = load_settings();
+    s.git_sync_interval = minutes;
     write_settings(&s)
 }
 
@@ -1334,6 +1349,7 @@ pub fn run() {
             set_shortcut,
             set_autostart,
             set_git_auto_sync,
+            set_git_sync_interval,
             open_help,
             git_status,
             git_commit,

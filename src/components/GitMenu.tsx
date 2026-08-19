@@ -4,6 +4,13 @@ import { api } from "../lib/api";
 import type { GitStatus, GitFileChange, GitLogEntry } from "../lib/api";
 
 const POLL_MS = 15000;
+// How often the timed-sync clock is examined. The interval the user picks is
+// in minutes, so checking once a minute is as fine-grained as it needs to be.
+const TICK_MS = 60000;
+
+/** Settings broadcasts this when the timed-sync interval changes, so the timer
+    picks up a new choice without waiting for a restart. */
+export const SYNC_INTERVAL_EVENT = "parker:git-sync-interval";
 
 // A smart default commit message from the changed notes (the folder is flat).
 function suggestMessage(files: GitFileChange[]): string {
@@ -63,9 +70,19 @@ export function GitMenu({
   const [error, setError] = useState<string | null>(null);
   const [okFlash, setOkFlash] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  // Minutes between timed syncs (0 = off), and when the last one ran.
+  const [syncInterval, setSyncInterval] = useState(0);
+  const lastSyncRef = useRef(Date.now());
   // Keep refresh's message-prefill decision current without re-subscribing.
   const editedRef = useRef(edited);
   editedRef.current = edited;
+  // Same trick for the timed sync: it reads "is something already running?" and
+  // "is the popover open?" through refs, so the interval is registered once per
+  // interval choice instead of being torn down on every busy/open flip.
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
+  const openRef = useRef(open);
+  openRef.current = open;
 
   const refresh = useCallback(async () => {
     try {
@@ -163,6 +180,9 @@ export function GitMenu({
           setMessage("");
           setEdited(false);
         }
+        // A sync just happened — the timer starts counting from here, so a
+        // manual commit and a timed one never land on top of each other.
+        lastSyncRef.current = Date.now();
         await refresh();
         await refreshLog();
       } catch (e) {
@@ -173,6 +193,71 @@ export function GitMenu({
     },
     [status, message, onBeforeCommit, refresh, refreshLog]
   );
+
+  // ---- Timed sync ---------------------------------------------------------
+  // The interval lives in Rust settings (so it survives a restart); the clock
+  // lives here, next to the flush-then-commit step every other sync path uses.
+  useEffect(() => {
+    let alive = true;
+    const read = () => {
+      api
+        .getSettings()
+        .then((s) => {
+          if (alive) setSyncInterval(s.git_sync_interval);
+        })
+        .catch(() => {});
+    };
+    read();
+    window.addEventListener(SYNC_INTERVAL_EVENT, read);
+    return () => {
+      alive = false;
+      window.removeEventListener(SYNC_INTERVAL_EVENT, read);
+    };
+  }, []);
+
+  // A timed sync never touches the message the user may be composing — it
+  // commits with its own generated message and leaves the draft alone. It also
+  // asks git for fresh status rather than trusting the poll, because the poll
+  // stops while the window is hidden and hidden is exactly when a timer earns
+  // its keep.
+  const autoSync = useCallback(async () => {
+    if (busyRef.current || openRef.current) return; // not under the user's hands
+    let s: GitStatus;
+    try {
+      s = await api.gitStatus();
+    } catch {
+      return;
+    }
+    if (!s.is_repo) return;
+    const dirty = s.files.length > 0;
+    const unpushed = s.ahead > 0;
+    if (!dirty && !unpushed) return;
+    setBusy(true);
+    try {
+      await onBeforeCommit();
+      const r = dirty
+        ? await api.gitCommit(suggestMessage(s.files) || "Parker auto-sync", true)
+        : await api.gitPush();
+      if (r.ok) setOkFlash(`${r.message}${r.hash ? ` · ${r.hash}` : ""}`.trim());
+      else setError(r.error ?? "Auto-sync failed.");
+      await refresh();
+      await refreshLog();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [onBeforeCommit, refresh, refreshLog]);
+
+  useEffect(() => {
+    if (syncInterval <= 0) return;
+    const id = window.setInterval(() => {
+      if (Date.now() - lastSyncRef.current < syncInterval * 60000) return;
+      lastSyncRef.current = Date.now();
+      void autoSync();
+    }, TICK_MS);
+    return () => window.clearInterval(id);
+  }, [syncInterval, autoSync]);
 
   // Cmd+Shift+S — quick commit & push using whatever message is prefilled.
   useEffect(() => {
