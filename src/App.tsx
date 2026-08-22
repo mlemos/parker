@@ -22,13 +22,11 @@ import {
   centerDivider,
   makeGroup,
   pruneLayout,
-  removeGroup,
   resizeSplit,
-  siblingGroupId,
-  splitGroup,
-  updateGroup,
 } from "./lib/layout";
 import type { Buffer, LayoutNode } from "./lib/layout";
+import * as ws from "./lib/workspace";
+import type { Workspace } from "./lib/workspace";
 import { isMarkdown } from "./lib/markdown";
 import { NotePicker } from "./components/NotePicker";
 import { PerfMonitor } from "./components/PerfMonitor";
@@ -97,9 +95,29 @@ export default function App() {
 
   const theme = themeById(themeId);
 
+  // Bridge to the pure state machine in lib/workspace: read the current
+  // workspace out of the ref, run the transition, apply only what changed.
+  // Every rule about tabs and panes lives there; this hands it to React.
+  const apply = useCallback(
+    (step: (w: Workspace) => Workspace): Workspace => {
+      const s = stateRef.current;
+      const before: Workspace = {
+        buffers: s.buffers,
+        layout: s.layout,
+        focusedId: s.focusedId,
+      };
+      const after = step(before);
+      if (after.buffers !== before.buffers) setBuffers(after.buffers);
+      if (after.layout !== before.layout) setLayout(after.layout);
+      if (after.focusedId !== before.focusedId) setFocusedId(after.focusedId);
+      return after;
+    },
+    []
+  );
+
   // Focused group + its active buffer (drives the header/status bar).
   const groups = allGroups(layout);
-  const focusedGroup = findGroup(layout, focusedId) ?? firstGroup(layout);
+  const focusedGroup = ws.focusedGroup({ buffers, layout, focusedId });
   const activeName = focusedGroup.active;
   const activeBuf = buffers.find((b) => b.name === activeName) ?? null;
   const multiGroup = groups.length > 1;
@@ -122,7 +140,7 @@ export default function App() {
   // ---- Persistence helpers -------------------------------------------------
 
   const focusedActive = (s: typeof stateRef.current): string | null =>
-    (findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout)).active;
+    ws.activeName(s);
 
   const flushSave = useCallback(async (name: string) => {
     const timers = saveTimers.current;
@@ -135,9 +153,7 @@ export default function App() {
     if (!buf) return;
     try {
       await api.writeNote(name, buf.content);
-      setBuffers((prev) =>
-        prev.map((b) => (b.name === name ? { ...b, dirty: false } : b))
-      );
+      setBuffers((prev) => ws.markSaved(prev, name));
     } catch (e) {
       console.error("save failed", name, e);
     }
@@ -388,18 +404,9 @@ export default function App() {
   // ---- Buffer / tab actions -----------------------------------------------
 
   // Drop buffers no longer referenced by any group (after a close).
-  const gcBuffers = (next: LayoutNode, bufs: Buffer[]): Buffer[] => {
-    const referenced = new Set(allGroups(next).flatMap((g) => g.tabs));
-    return bufs.filter((b) => referenced.has(b.name));
-  };
-
   const onChange = useCallback(
     (name: string, value: string) => {
-      setBuffers((prev) =>
-        prev.map((b) =>
-          b.name === name ? { ...b, content: value, dirty: true } : b
-        )
-      );
+      setBuffers((prev) => ws.editBuffer(prev, name, value));
       scheduleSave(name);
     },
     [scheduleSave]
@@ -407,92 +414,54 @@ export default function App() {
 
   const focusGroup = useCallback((id: string) => setFocusedId(id), []);
 
-  const selectTab = useCallback((groupId: string, name: string) => {
-    markTabSwitch();
-    setLayout((l) => {
-      const g = findGroup(l, groupId);
-      // Switching to a different tab returns the pane to the editor, so preview
-      // is a deliberate view of the current note rather than a sticky mode.
-      return updateGroup(
-        l,
-        groupId,
-        g && g.active !== name
-          ? { active: name, mode: "edit" }
-          : { active: name }
-      );
-    });
-    setFocusedId(groupId);
-  }, []);
+  const selectTab = useCallback(
+    (groupId: string, name: string) => {
+      markTabSwitch();
+      apply((w) => ws.selectTab(w, groupId, name));
+    },
+    [apply]
+  );
 
-  const newTab = useCallback(async (groupId?: string) => {
-    const gid = groupId ?? stateRef.current.focusedId;
-    try {
-      const name = await api.createNote("md");
-      setBuffers((prev) => [...prev, { name, content: "", dirty: false }]);
-      setLayout((l) => {
-        const g = findGroup(l, gid);
-        if (!g) return l;
-        return updateGroup(l, gid, {
-          tabs: [...g.tabs, name],
-          active: name,
-          mode: "edit",
-        });
-      });
-      setFocusedId(gid);
-    } catch (e) {
-      console.error("new tab failed", e);
-    }
-  }, []);
+  const newTab = useCallback(
+    async (groupId?: string) => {
+      const gid = groupId ?? stateRef.current.focusedId;
+      try {
+        const name = await api.createNote("md");
+        apply((w) => ws.openNote(w, gid, { name, content: "", dirty: false }));
+      } catch (e) {
+        console.error("new tab failed", e);
+      }
+    },
+    [apply]
+  );
 
   const closeTab = useCallback(
     async (groupId: string, name: string) => {
       await flushSave(name);
       const s = stateRef.current;
-      const g = findGroup(s.layout, groupId);
-      if (!g) return;
-      const idx = g.tabs.indexOf(name);
-      const remaining = g.tabs.filter((t) => t !== name);
-
-      if (remaining.length > 0) {
-        const active =
-          g.active === name
-            ? remaining[Math.min(idx, remaining.length - 1)]
-            : g.active;
-        const next = updateGroup(s.layout, groupId, {
-          tabs: remaining,
-          active,
-        });
-        setLayout(next);
-        setBuffers((prev) => gcBuffers(next, prev));
-        return;
-      }
-
-      // Group empties out.
-      if (allGroups(s.layout).length <= 1) {
-        // Keep a single group alive with a fresh note.
+      // Ask the state machine what this close would do before doing it: if it
+      // empties the only pane there has to be something left to edit, and
+      // creating that note is the one part that touches disk. Doing it up
+      // front keeps the whole close a single update — closing first and
+      // filling in after would paint an empty pane in between.
+      const { needsNote } = ws.closeTab(s, groupId, name);
+      let fresh: string | null = null;
+      if (needsNote) {
         try {
-          const fresh = await api.createNote("md");
-          const next = updateGroup(s.layout, groupId, {
-            tabs: [fresh],
-            active: fresh,
-          });
-          setBuffers((prev) => [
-            ...gcBuffers(next, prev),
-            { name: fresh, content: "", dirty: false },
-          ]);
-          setLayout(next);
+          fresh = await api.createNote("md");
         } catch (e) {
           console.error("close tab failed", e);
+          return;
         }
-        return;
       }
-      // Remove the now-empty pane and refocus.
-      const next = removeGroup(s.layout, groupId)!;
-      setLayout(next);
-      setBuffers((prev) => gcBuffers(next, prev));
-      setFocusedId(firstGroup(next).id);
+      apply((w) => {
+        const { workspace, needsNote: empty } = ws.closeTab(w, groupId, name);
+        return empty && fresh
+          ? ws.openNote(workspace, groupId, { name: fresh, content: "", dirty: false })
+          : workspace;
+      });
     },
-    [flushSave]
+    [apply, flushSave]
   );
 
   const closeGroup = useCallback(
@@ -501,127 +470,53 @@ export default function App() {
       const g = findGroup(s.layout, groupId);
       if (!g || allGroups(s.layout).length <= 1) return;
       await Promise.all(g.tabs.map((n) => flushSave(n)));
-      const next = removeGroup(s.layout, groupId)!;
-      setLayout(next);
-      setBuffers((prev) => gcBuffers(next, prev));
-      setFocusedId(firstGroup(next).id);
+      apply((w) => ws.closePane(w, groupId));
     },
-    [flushSave]
+    [apply, flushSave]
   );
 
-  const splitFocused = useCallback((groupId: string, dir: "row" | "col") => {
-    const s = stateRef.current;
-    const g = findGroup(s.layout, groupId);
-    if (!g) return;
-    let base = s.layout;
-    let ng;
-    if (g.active) {
-      // The selected tab moves into the new pane — even if it was the only
-      // one, leaving the original empty. No duplication.
-      const active = g.active;
-      const idx = g.tabs.indexOf(active);
-      const remaining = g.tabs.filter((t) => t !== active);
-      base = updateGroup(s.layout, groupId, {
-        tabs: remaining,
-        active: remaining.length
-          ? remaining[Math.min(idx, remaining.length - 1)]
-          : null,
-      });
-      ng = makeGroup([active], active);
-    } else {
-      // No selection (already an empty pane) → a fresh empty pane.
-      ng = makeGroup([], null);
-    }
-    const next = splitGroup(base, groupId, dir, ng);
-    setLayout(next);
-    setFocusedId(ng.id);
-  }, []);
+  const splitFocused = useCallback(
+    (groupId: string, dir: "row" | "col") => {
+      apply((w) => ws.splitPane(w, groupId, dir));
+    },
+    [apply]
+  );
 
   // Toggle a pane between editor and markdown preview.
-  const toggleMode = useCallback((groupId: string) => {
-    setLayout((l) => {
-      const g = findGroup(l, groupId);
-      if (!g) return l;
-      return updateGroup(l, groupId, {
-        mode: g.mode === "preview" ? "edit" : "preview",
-      });
-    });
-  }, []);
+  const toggleMode = useCallback(
+    (groupId: string) => {
+      apply((w) => ws.toggleMode(w, groupId));
+    },
+    [apply]
+  );
 
   // Open a live preview of the active note in a new pane to the right, leaving
   // the editor pane focused so you keep typing. (The one intentional mirror.)
-  const previewToSide = useCallback((groupId: string) => {
-    const s = stateRef.current;
-    const g = findGroup(s.layout, groupId);
-    if (!g || !g.active || !isMarkdown(g.active)) return;
-    const ng = makeGroup([g.active], g.active, "preview");
-    setLayout(splitGroup(s.layout, groupId, "row", ng));
-    setFocusedId(groupId);
-  }, []);
+  const previewToSide = useCallback(
+    (groupId: string) => {
+      const g = findGroup(stateRef.current.layout, groupId);
+      if (!g || !g.active || !isMarkdown(g.active)) return;
+      apply((w) => ws.previewToSide(w, groupId));
+    },
+    [apply]
+  );
 
   // Merge this pane into its neighbouring sibling: the pane's tabs move over
   // and it collapses (like close, but keeping the tabs). The sibling survives.
-  const mergeIntoParent = useCallback((groupId: string) => {
-    const s = stateRef.current;
-    const g = findGroup(s.layout, groupId);
-    const sibId = g ? siblingGroupId(s.layout, groupId) : null;
-    const sib = sibId ? findGroup(s.layout, sibId) : null;
-    if (!g || !sibId || !sib) return;
-    const mergedTabs = [
-      ...sib.tabs,
-      ...g.tabs.filter((t) => !sib.tabs.includes(t)),
-    ];
-    let next = updateGroup(s.layout, sibId, {
-      tabs: mergedTabs,
-      active: sib.active ?? g.active,
-    });
-    next = removeGroup(next, groupId)!;
-    setLayout(next);
-    setBuffers((prev) => gcBuffers(next, prev));
-    setFocusedId(sibId);
-  }, []);
+  const mergeIntoParent = useCallback(
+    (groupId: string) => {
+      apply((w) => ws.mergePane(w, groupId));
+    },
+    [apply]
+  );
 
   // Drop a dragged tab: reorder within a pane, or move it to another pane.
   const dropTab = useCallback(
     (source: { from: string; name: string }, toGroupId: string, toIndex: number) => {
       setTabDragging(false);
-      const s = stateRef.current;
-      const { from, name } = source;
-      if (from === toGroupId) {
-        const g = findGroup(s.layout, toGroupId);
-        if (!g) return;
-        const fromIdx = g.tabs.indexOf(name);
-        if (fromIdx < 0) return;
-        const tabs = g.tabs.filter((t) => t !== name);
-        const at = Math.min(Math.max(toIndex, 0), tabs.length);
-        tabs.splice(at, 0, name);
-        setLayout((l) => updateGroup(l, toGroupId, { tabs }));
-        return;
-      }
-      const src = findGroup(s.layout, from);
-      const dst = findGroup(s.layout, toGroupId);
-      if (!src || !dst) return;
-      const srcTabs = src.tabs.filter((t) => t !== name);
-      const srcActive =
-        src.active === name
-          ? srcTabs[Math.min(src.tabs.indexOf(name), srcTabs.length - 1)] ?? null
-          : src.active;
-      const dstTabs = dst.tabs.filter((t) => t !== name);
-      const at = Math.min(Math.max(toIndex, 0), dstTabs.length);
-      dstTabs.splice(at, 0, name);
-      let next = updateGroup(s.layout, toGroupId, {
-        tabs: dstTabs,
-        active: name,
-      });
-      if (srcTabs.length === 0) {
-        next = removeGroup(next, from)!; // source emptied → collapse it
-      } else {
-        next = updateGroup(next, from, { tabs: srcTabs, active: srcActive });
-      }
-      setLayout(next);
-      setFocusedId(toGroupId);
+      apply((w) => ws.dropTab(w, source, toGroupId, toIndex));
     },
-    []
+    [apply]
   );
 
   const onResize = useCallback(
@@ -635,47 +530,36 @@ export default function App() {
     setLayout((l) => centerDivider(l, splitId, index));
   }, []);
 
-  const switchToIndex = useCallback((i: number) => {
-    const s = stateRef.current;
-    const g = findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout);
-    const name = g.tabs[i];
-    if (name) setLayout((l) => updateGroup(l, g.id, { active: name }));
-  }, []);
+  const switchToIndex = useCallback(
+    (i: number) => {
+      apply((w) => ws.selectTabByIndex(w, i));
+    },
+    [apply]
+  );
 
   // Move the active tab within its pane (⌃⌘[ / ⌃⌘]). Clamped at the ends.
-  const moveTab = useCallback((delta: number) => {
-    const s = stateRef.current;
-    const g = findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout);
-    const name = g.active;
-    if (!name) return;
-    const i = g.tabs.indexOf(name);
-    const j = i + delta;
-    if (i < 0 || j < 0 || j >= g.tabs.length) return;
-    const tabs = [...g.tabs];
-    [tabs[i], tabs[j]] = [tabs[j], tabs[i]];
-    setLayout((l) => updateGroup(l, g.id, { tabs }));
-  }, []);
+  const moveTab = useCallback(
+    (delta: number) => {
+      apply((w) => ws.moveTab(w, delta));
+    },
+    [apply]
+  );
 
   // Cycle focus through the panes (⌃⌥⌘[ / ⌃⌥⌘]). Focusing a group hands the
   // keyboard to its editor, since CodeMirror autoFocuses the focused pane.
-  const focusPaneByOffset = useCallback((delta: number) => {
-    const s = stateRef.current;
-    const groups = allGroups(s.layout);
-    if (groups.length < 2) return;
-    const i = groups.findIndex((g) => g.id === s.focusedId);
-    const next =
-      groups[(Math.max(i, 0) + delta + groups.length) % groups.length];
-    setFocusedId(next.id);
-  }, []);
+  const focusPaneByOffset = useCallback(
+    (delta: number) => {
+      apply((w) => ws.focusPaneByOffset(w, delta));
+    },
+    [apply]
+  );
 
-  const switchByOffset = useCallback((delta: number) => {
-    const s = stateRef.current;
-    const g = findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout);
-    if (g.tabs.length === 0) return;
-    const i = g.tabs.findIndex((t) => t === g.active);
-    const name = g.tabs[(i + delta + g.tabs.length) % g.tabs.length];
-    setLayout((l) => updateGroup(l, g.id, { active: name }));
-  }, []);
+  const switchByOffset = useCallback(
+    (delta: number) => {
+      apply((w) => ws.selectTabByOffset(w, delta));
+    },
+    [apply]
+  );
 
 
   const cycleTheme = useCallback(() => {
@@ -683,30 +567,24 @@ export default function App() {
   }, []);
 
   // Open a note in the focused group (loading it if not already a buffer).
-  const openNote = useCallback(async (name: string) => {
-    const s = stateRef.current;
-    const gid = s.focusedId;
-    if (!s.buffers.some((b) => b.name === name)) {
-      try {
-        const content = await api.readNote(name);
-        setBuffers((prev) =>
-          prev.some((b) => b.name === name)
-            ? prev
-            : [...prev, { name, content, dirty: false }]
-        );
-      } catch (e) {
-        console.error("open failed", name, e);
-        return;
+  const openNote = useCallback(
+    async (name: string) => {
+      const s = stateRef.current;
+      const gid = s.focusedId;
+      const loaded = s.buffers.find((b) => b.name === name);
+      let buffer = loaded;
+      if (!buffer) {
+        try {
+          buffer = { name, content: await api.readNote(name), dirty: false };
+        } catch (e) {
+          console.error("open failed", name, e);
+          return;
+        }
       }
-    }
-    setLayout((l) => {
-      const g = findGroup(l, gid);
-      if (!g) return l;
-      const tabs = g.tabs.includes(name) ? g.tabs : [...g.tabs, name];
-      return updateGroup(l, gid, { tabs, active: name, mode: "edit" });
-    });
-    setFocusedId(gid);
-  }, []);
+      apply((w) => ws.openNote(w, gid, buffer!));
+    },
+    [apply]
+  );
 
   const openPicker = useCallback(() => setPickerOpen(true), []);
 
@@ -719,21 +597,8 @@ export default function App() {
       clearTimeout(pending);
       timers.delete(name);
     }
-    const s = stateRef.current;
-    let next = s.layout;
-    for (const g of allGroups(s.layout)) {
-      if (!g.tabs.includes(name)) continue;
-      const idx = g.tabs.indexOf(name);
-      const remaining = g.tabs.filter((t) => t !== name);
-      const active =
-        g.active === name
-          ? remaining[Math.min(idx, remaining.length - 1)] ?? null
-          : g.active;
-      next = updateGroup(next, g.id, { tabs: remaining, active });
-    }
-    setLayout(next);
-    setBuffers((prev) => prev.filter((b) => b.name !== name));
-  }, []);
+    apply((w) => ws.forgetNote(w, name));
+  }, [apply]);
 
   const startRename = useCallback((name?: string) => {
     const s = stateRef.current;
@@ -756,26 +621,12 @@ export default function App() {
           clearTimeout(pending);
           timers.delete(oldName);
         }
-        setBuffers((prev) =>
-          prev.map((b) => (b.name === oldName ? { ...b, name: newName } : b))
-        );
-        // Rename the note everywhere it's open across all groups.
-        setLayout((l) => {
-          const rename = (node: LayoutNode): LayoutNode =>
-            node.kind === "group"
-              ? {
-                  ...node,
-                  tabs: node.tabs.map((t) => (t === oldName ? newName : t)),
-                  active: node.active === oldName ? newName : node.active,
-                }
-              : { ...node, children: node.children.map(rename) };
-          return rename(l);
-        });
+        apply((w) => ws.renameNote(w, oldName, newName));
       } catch (e) {
         console.error("rename failed", e);
       }
     },
-    [flushSave]
+    [apply, flushSave]
   );
 
   // ---- Keyboard shortcuts --------------------------------------------------
@@ -983,11 +834,7 @@ export default function App() {
       }
       const now = stateRef.current.buffers.find((b) => b.name === name);
       if (!now || now.dirty || now.content === disk) return;
-      setBuffers((prev) =>
-        prev.map((b) =>
-          b.name === name ? { ...b, content: disk, dirty: false } : b
-        )
-      );
+      setBuffers((prev) => ws.reloadBuffer(prev, name, disk));
     };
     const p = listen<string>("parker://note-changed", (e) => {
       const name = e.payload;
