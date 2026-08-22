@@ -85,7 +85,9 @@ body,
   gap: 8px;
   height: 40px;
   min-height: 40px;
-  padding: 0 10px;
+  /* Same correction as the status bar, mirrored: the border is at the bottom
+     here, so the padding that balances it goes on top. */
+  padding: 1px 10px 0;
   background: var(--header-bg);
   border-bottom: 1px solid var(--border);
 }
@@ -1252,7 +1254,11 @@ body.resizing {
   gap: 12px;
   height: 30px;
   min-height: 30px;
-  padding: 0 14px;
+  /* The bottom 1px balances the top border. With box-sizing: border-box the
+     border eats into the 30px, so the content box is the lower 29px and
+     align-items: center centres inside *that* — half a pixel below the middle
+     of the band, which at 12px reads as a line sitting one pixel too low. */
+  padding: 0 14px 1px;
   background: var(--status-bg);
   border-top: 1px solid var(--border);
   color: var(--secondary);
