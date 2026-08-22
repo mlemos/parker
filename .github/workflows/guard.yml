@@ -35,6 +35,36 @@ jobs:
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
-      # Brute-forces every selection the ⌘⏎ to-do rotation can see.
-      - name: To-do model
-        run: node --experimental-strip-types scripts/test-todo-model.mjs
+      # The layout tree, the to-do state machine, the markdown renderer and the
+      # rest of src/lib. See src/lib/*.test.ts.
+      - name: Frontend tests
+        run: pnpm test
+
+  # The backend owns the user's files, so it gets its own job — on macOS,
+  # because that's the platform Parker ships on and the one these paths run on.
+  backend:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - run: pnpm install --frozen-lockfile
+
+      # tauri-build wants the frontend bundle to exist before it will build the
+      # crate, and building it here checks the real build too.
+      - name: Build the frontend
+        run: pnpm build
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # Note names, atomic writes, settings/session files, git output parsing.
+      # See the tests module at the end of src-tauri/src/lib.rs.
+      - name: Backend tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml

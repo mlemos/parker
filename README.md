@@ -100,6 +100,18 @@ pnpm tauri dev     # run the app (compiles Rust the first time — be patient)
 pnpm tauri build   # produce a distributable .app / .dmg
 ```
 
+### Tests
+
+```bash
+pnpm test                                   # frontend logic (src/lib)
+cargo test --manifest-path src-tauri/Cargo.toml   # backend (note paths, writes, git parsing)
+```
+
+Both run on every push. They cover the pure logic on each side — the split
+layout tree, the to-do state machine, the markdown renderer, note-name
+validation, atomic writes, and the parsers that read git's output. UI
+components and the CodeMirror wiring are not covered yet.
+
 ## 🧱 Tech stack
 
 | Layer     | Choice |

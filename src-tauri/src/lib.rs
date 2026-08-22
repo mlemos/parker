@@ -81,43 +81,15 @@ impl Default for Settings {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // The black-window bug: a derived Default gave zoom 0.0, load_settings()
-    // falls back to Default on every first launch, and scaling a webview by
-    // zero paints nothing.
-    #[test]
-    fn default_settings_do_not_zoom_to_nothing() {
-        assert_eq!(Settings::default().zoom, 1.0);
-    }
-
-    #[test]
-    fn a_settings_file_without_zoom_still_means_100_percent() {
-        let s: Settings = serde_json::from_str("{}").unwrap();
-        assert_eq!(s.zoom, 1.0);
-    }
-
-    #[test]
-    fn nonsense_zooms_are_rejected() {
-        for bad in [0.0, -1.0, f64::NAN, f64::INFINITY, 99.0] {
-            let s = Settings { zoom: bad, ..Default::default() };
-            let z = if s.zoom.is_finite() && s.zoom >= ZOOM_MIN && s.zoom <= ZOOM_MAX {
-                s.zoom
-            } else {
-                1.0
-            };
-            assert_eq!(z, 1.0, "{bad} should have fallen back");
-        }
-    }
+/// The saved zoom, sanitized.
+fn saved_zoom() -> f64 {
+    clamp_zoom(load_settings().zoom)
 }
 
-/// The saved zoom, sanitized. Belt and braces over the Default above: a
-/// hand-edited settings.json can still hold 0, a negative, or a NaN, and none
-/// of those may reach the webview.
-fn saved_zoom() -> f64 {
-    let z = load_settings().zoom;
+/// A zoom factor safe to hand the webview. A hand-edited settings.json can
+/// hold 0, a negative or a NaN, and a webview scaled by any of those paints
+/// nothing at all — so anything outside the usable range means "no zoom".
+fn clamp_zoom(z: f64) -> f64 {
     if z.is_finite() && z >= ZOOM_MIN && z <= ZOOM_MAX {
         z
     } else {
@@ -233,7 +205,10 @@ fn notes_dir() -> PathBuf {
 }
 
 /// Reject anything that isn't a plain filename living directly in notes_dir.
-fn safe_note_path(name: &str) -> Result<PathBuf, String> {
+/// The webview only ever addresses notes by bare name, so a separator, a
+/// "..", or a leading dot is not a note — it's an attempt to reach out of the
+/// notes folder, or to write a file the app then refuses to list.
+fn validate_note_name(name: &str) -> Result<(), String> {
     if name.is_empty()
         || name.contains('/')
         || name.contains('\\')
@@ -242,12 +217,35 @@ fn safe_note_path(name: &str) -> Result<PathBuf, String> {
     {
         return Err(format!("invalid note name: {name:?}"));
     }
+    Ok(())
+}
+
+fn safe_note_path(name: &str) -> Result<PathBuf, String> {
+    validate_note_name(name)?;
     Ok(notes_dir().join(name))
+}
+
+/// Whether a file in the notes folder is a note the app shows and syncs.
+/// Dotfiles are the OS's business, and .parker-tmp files are ours mid-write.
+fn is_listed_note(name: &str) -> bool {
+    !name.starts_with('.') && !name.ends_with(".parker-tmp")
+}
+
+/// The scratch file `atomic_write` writes before renaming into place. Built
+/// from the whole filename rather than its stem, so saving "notes.md" and
+/// "notes.txt" at the same time can't have them writing over each other's
+/// temp file.
+fn temp_path(path: &PathBuf) -> PathBuf {
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    path.with_file_name(format!("{name}.parker-tmp"))
 }
 
 /// Atomic write: temp file in the same dir, then rename over the target.
 fn atomic_write(path: &PathBuf, content: &str) -> Result<(), String> {
-    let tmp = path.with_extension("parker-tmp");
+    let tmp = temp_path(path);
     fs::write(&tmp, content).map_err(|e| e.to_string())?;
     fs::rename(&tmp, path).map_err(|e| e.to_string())?;
     Ok(())
@@ -282,8 +280,7 @@ async fn list_notes() -> Result<Vec<NoteMeta>, String> {
             Some(n) => n.to_string(),
             None => continue,
         };
-        // Hide dotfiles and our own temp files.
-        if name.starts_with('.') || name.ends_with(".parker-tmp") {
+        if !is_listed_note(&name) {
             continue;
         }
         let modified = entry
@@ -323,7 +320,7 @@ async fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
             Some(n) => n.to_string(),
             None => continue,
         };
-        if name.starts_with('.') || name.ends_with(".parker-tmp") {
+        if !is_listed_note(&name) {
             continue;
         }
         let modified = entry
@@ -379,13 +376,26 @@ fn delete_note(name: String) -> Result<(), String> {
     trash::delete(&path).map_err(|e| format!("couldn't move to Trash: {e}"))
 }
 
+/// The extension a new note gets: alphanumerics only, "md" when nothing
+/// usable is left. Keeps a dot or a separator out of the generated filename.
+fn note_ext(ext: Option<String>) -> String {
+    let ext: String = ext
+        .unwrap_or_default()
+        .chars()
+        .filter(|c| c.is_alphanumeric())
+        .collect();
+    if ext.is_empty() {
+        "md".to_string()
+    } else {
+        ext
+    }
+}
+
 /// Create a new empty note "Untitled-N.<ext>" (ext defaults to "md") and
 /// return its name. N is the first integer that doesn't collide.
 #[tauri::command]
 fn create_note(ext: Option<String>) -> Result<String, String> {
-    let ext = ext.unwrap_or_else(|| "md".to_string());
-    let ext: String = ext.chars().filter(|c| c.is_alphanumeric()).collect();
-    let ext = if ext.is_empty() { "md".to_string() } else { ext };
+    let ext = note_ext(ext);
     let dir = notes_dir();
     for n in 1..100_000 {
         let name = format!("Untitled-{n}.{ext}");
@@ -607,52 +617,71 @@ impl GitStatus {
     }
 }
 
+/// `git diff --numstat` output → path ↦ (added, deleted, is-binary).
+/// Binary files report "-" for both counts instead of a number.
+fn parse_numstat(stdout: &str) -> std::collections::HashMap<String, (u32, u32, bool)> {
+    let mut out = std::collections::HashMap::new();
+    for line in stdout.lines() {
+        let mut it = line.splitn(3, '\t');
+        let a = it.next().unwrap_or("");
+        let d = it.next().unwrap_or("");
+        let path = it.next().unwrap_or("");
+        if path.is_empty() {
+            continue;
+        }
+        let binary = a == "-" || d == "-";
+        out.insert(
+            path.to_string(),
+            (a.parse().unwrap_or(0), d.parse().unwrap_or(0), binary),
+        );
+    }
+    out
+}
+
+/// One line of `git status --porcelain=v1` → (two-char status code, path).
+/// A rename reads "old -> new"; the destination is the file that exists now.
+/// Paths git chose to quote come back unquoted.
+fn parse_status_line(line: &str) -> Option<(String, String)> {
+    // XY, a space, then the path. Those first bytes are ASCII in porcelain
+    // output; the boundary check keeps a malformed line from panicking.
+    if line.len() < 4 || !line.is_char_boundary(3) {
+        return None;
+    }
+    let status = line[..2].to_string();
+    let mut path = line[3..].to_string();
+    if let Some(idx) = path.find(" -> ") {
+        path = path[idx + 4..].to_string();
+    }
+    if path.len() >= 2 && path.starts_with('"') && path.ends_with('"') {
+        path = path[1..path.len() - 1].to_string();
+    }
+    if path.is_empty() {
+        return None;
+    }
+    Some((status, path))
+}
+
 #[tauri::command]
 async fn git_status() -> GitStatus {
-    use std::collections::HashMap;
     if !git_is_repo() {
         return GitStatus::empty(false);
     }
 
     // Line deltas for tracked changes (staged + unstaged vs HEAD).
-    let mut numstat: HashMap<String, (u32, u32, bool)> = HashMap::new();
-    if let Ok(o) = run_git(&["diff", "--numstat", "HEAD"]) {
-        if o.status.success() {
-            for line in String::from_utf8_lossy(&o.stdout).lines() {
-                let mut it = line.splitn(3, '\t');
-                let a = it.next().unwrap_or("");
-                let d = it.next().unwrap_or("");
-                let p = it.next().unwrap_or("");
-                if p.is_empty() {
-                    continue;
-                }
-                let binary = a == "-" || d == "-";
-                numstat.insert(
-                    p.to_string(),
-                    (a.parse().unwrap_or(0), d.parse().unwrap_or(0), binary),
-                );
-            }
-        }
-    }
+    let numstat = run_git(&["diff", "--numstat", "HEAD"])
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| parse_numstat(&String::from_utf8_lossy(&o.stdout)))
+        .unwrap_or_default();
 
     let mut files = Vec::new();
     let mut total_added = 0u32;
     let mut total_deleted = 0u32;
     if let Ok(o) = run_git(&["status", "--porcelain=v1"]) {
         for line in String::from_utf8_lossy(&o.stdout).lines() {
-            if line.len() < 3 {
+            let Some((status, path)) = parse_status_line(line) else {
                 continue;
-            }
-            let status = line[..2].to_string();
-            // Bytes 0..3 are ASCII (XY + space), so slicing at 3 is safe.
-            let mut path = line[3..].to_string();
-            // Renames read "old -> new" — keep the destination.
-            if let Some(idx) = path.find(" -> ") {
-                path = path[idx + 4..].to_string();
-            }
-            if path.len() >= 2 && path.starts_with('"') && path.ends_with('"') {
-                path = path[1..path.len() - 1].to_string();
-            }
+            };
             let (added, deleted, binary) = if status.trim() == "??" {
                 (count_lines(&path), 0, false)
             } else if let Some(&(a, d, b)) = numstat.get(&path) {
@@ -705,6 +734,21 @@ struct GitLogEntry {
     unpushed: bool,
 }
 
+/// One line of the `%H\t%h\t%s\t%cr` log format → (full hash, short hash,
+/// subject, relative date). The date is split off the end, because a commit
+/// subject may itself contain a tab.
+fn parse_log_line(line: &str) -> Option<(&str, &str, &str, &str)> {
+    let mut it = line.splitn(3, '\t');
+    let full = it.next()?;
+    let short = it.next()?;
+    let rest = it.next()?;
+    if short.is_empty() {
+        return None;
+    }
+    let (subject, rel_date) = rest.rsplit_once('\t').unwrap_or((rest, ""));
+    Some((full, short, subject, rel_date))
+}
+
 #[tauri::command]
 async fn git_log(limit: Option<u32>) -> Vec<GitLogEntry> {
     use std::collections::HashSet;
@@ -735,14 +779,9 @@ async fn git_log(limit: Option<u32>) -> Vec<GitLogEntry> {
     };
     let mut entries = Vec::new();
     for line in String::from_utf8_lossy(&out.stdout).lines() {
-        let mut it = line.splitn(4, '\t');
-        let full = it.next().unwrap_or("");
-        let short = it.next().unwrap_or("");
-        let subject = it.next().unwrap_or("");
-        let rel_date = it.next().unwrap_or("");
-        if short.is_empty() {
+        let Some((full, short, subject, rel_date)) = parse_log_line(line) else {
             continue;
-        }
+        };
         entries.push(GitLogEntry {
             hash: short.to_string(),
             subject: subject.to_string(),
@@ -761,6 +800,20 @@ struct CommitResult {
     message: String, // human-readable note on success
 }
 
+/// What a commit message has to be before Parker will run git with it.
+/// Length is counted in characters, not bytes, so a message of emoji is
+/// measured the way the person who typed it would measure it.
+fn validate_commit_message(message: &str) -> Result<&str, String> {
+    let msg = message.trim();
+    if msg.is_empty() {
+        return Err("Commit message is required.".to_string());
+    }
+    if msg.chars().count() > 500 {
+        return Err("Message too long (>500 chars).".to_string());
+    }
+    Ok(msg)
+}
+
 fn commit_err(msg: impl Into<String>) -> CommitResult {
     CommitResult {
         ok: false,
@@ -775,13 +828,10 @@ async fn git_commit(message: String, push: bool) -> CommitResult {
     if !git_is_repo() {
         return commit_err("Not a git repository — run `git init` in your notes folder first.");
     }
-    let msg = message.trim();
-    if msg.is_empty() {
-        return commit_err("Commit message is required.");
-    }
-    if msg.chars().count() > 500 {
-        return commit_err("Message too long (>500 chars).");
-    }
+    let msg = match validate_commit_message(&message) {
+        Ok(msg) => msg,
+        Err(e) => return commit_err(e),
+    };
     // Stage everything (respects .gitignore).
     match run_git(&["add", "-A"]) {
         Ok(o) if o.status.success() => {}
@@ -978,7 +1028,7 @@ fn set_notes_dir(
                     Some(n) => n.to_string(),
                     None => continue,
                 };
-                if name.starts_with('.') || name.ends_with(".parker-tmp") {
+                if !is_listed_note(&name) {
                     continue;
                 }
                 let dest = target.join(&name);
@@ -1310,7 +1360,7 @@ fn build_notes_watcher(app: &tauri::AppHandle) -> Option<notify::RecommendedWatc
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                     // Skip our own autosave temp files and dotfiles — they'd
                     // fire 2-4 spurious emissions per autosave otherwise.
-                    if name.starts_with('.') || name.ends_with(".parker-tmp") {
+                    if !is_listed_note(name) {
                         continue;
                     }
                     let _ = handle.emit("parker://note-changed", name.to_string());
@@ -1484,4 +1534,354 @@ pub fn run() {
                 show_window(_app);
             }
         });
+}
+
+// ---- Tests ----------------------------------------------------------------
+// Everything covered here is pure: names in, decision out; git's stdout in,
+// parsed rows out. The commands themselves aren't tested — they need a running
+// app and a real notes folder — so the rule is that anything worth being sure
+// about lives in a function that takes its input as an argument.
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ---- Settings & session ----------------------------------------------
+
+    // The black-window bug: a derived Default gave zoom 0.0, load_settings()
+    // falls back to Default on every first launch, and scaling a webview by
+    // zero paints nothing.
+    #[test]
+    fn default_settings_do_not_zoom_to_nothing() {
+        assert_eq!(Settings::default().zoom, 1.0);
+    }
+
+    #[test]
+    fn a_settings_file_without_zoom_still_means_100_percent() {
+        let s: Settings = serde_json::from_str("{}").unwrap();
+        assert_eq!(s.zoom, 1.0);
+    }
+
+    #[test]
+    fn nonsense_zooms_fall_back_to_no_zoom() {
+        for bad in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY, 99.0, 0.49, 3.01] {
+            assert_eq!(clamp_zoom(bad), 1.0, "{bad} should have fallen back");
+        }
+    }
+
+    #[test]
+    fn usable_zooms_are_kept_as_they_are() {
+        for ok in [ZOOM_MIN, 0.9, 1.0, 1.5, ZOOM_MAX] {
+            assert_eq!(clamp_zoom(ok), ok);
+        }
+    }
+
+    #[test]
+    fn settings_survive_a_round_trip_through_the_file_format() {
+        let s = Settings {
+            notes_dir: Some("/notes".into()),
+            shortcut: Some("Ctrl+Alt+K".into()),
+            git_auto_sync: true,
+            git_sync_interval: 15,
+            zoom: 1.25,
+        };
+        let back: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
+        assert_eq!(back.notes_dir, s.notes_dir);
+        assert_eq!(back.shortcut, s.shortcut);
+        assert_eq!(back.git_auto_sync, s.git_auto_sync);
+        assert_eq!(back.git_sync_interval, s.git_sync_interval);
+        assert_eq!(back.zoom, s.zoom);
+    }
+
+    // A settings file written by an older Parker is missing whatever was added
+    // since; one written by a newer Parker carries keys this build has never
+    // heard of. Neither may reset the user's settings.
+    #[test]
+    fn settings_tolerate_both_older_and_newer_files() {
+        let old: Settings = serde_json::from_str(r#"{"notes_dir":"/notes"}"#).unwrap();
+        assert_eq!(old.notes_dir.as_deref(), Some("/notes"));
+        assert_eq!(old.zoom, 1.0);
+
+        let new: Settings =
+            serde_json::from_str(r#"{"notes_dir":"/notes","zoom":2.0,"from_the_future":true}"#)
+                .unwrap();
+        assert_eq!(new.zoom, 2.0);
+    }
+
+    #[test]
+    fn an_empty_session_file_opens_an_empty_session() {
+        let s: Session = serde_json::from_str("{}").unwrap();
+        assert!(s.open.is_empty());
+        assert!(s.active.is_none());
+        assert!(s.layout.is_none());
+    }
+
+    // The layout tree belongs to the frontend; the backend stores it verbatim
+    // and must not normalise, reorder or drop any of it.
+    #[test]
+    fn the_layout_tree_round_trips_untouched() {
+        let layout = r#"{"id":"s1","kind":"split","dir":"row","children":[{"id":"g1","kind":"group","tabs":["a.md"],"active":"a.md","mode":"preview"}],"sizes":[1.0]}"#;
+        let json = format!(r#"{{"open":["a.md"],"active":"a.md","layout":{layout},"focused":"g1"}}"#);
+        let s: Session = serde_json::from_str(&json).unwrap();
+        let back: Session = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
+        assert_eq!(back.layout, serde_json::from_str::<serde_json::Value>(layout).ok());
+        assert_eq!(back.focused.as_deref(), Some("g1"));
+    }
+
+    // No layout means no "layout" key — a null there is a value the frontend
+    // would have to defend against on every read.
+    #[test]
+    fn a_session_without_a_layout_writes_no_layout_key() {
+        let json = serde_json::to_string(&Session::default()).unwrap();
+        assert!(!json.contains("layout"), "{json}");
+        assert!(!json.contains("focused"), "{json}");
+    }
+
+    // load_session falls back to an empty session when the file won't parse,
+    // so what matters isn't that every corruption is an error — it's that none
+    // of them can come back as a half-restored workspace.
+    #[test]
+    fn a_corrupt_session_file_never_half_restores() {
+        for junk in ["", "not json", "[]", r#"{"open":"a.md"}"#, r#"{"open":[1,2]}"#] {
+            if let Ok(s) = serde_json::from_str::<Session>(junk) {
+                assert!(
+                    s.open.is_empty() && s.active.is_none() && s.layout.is_none(),
+                    "{junk:?} restored {:?}",
+                    s.open
+                );
+            }
+        }
+    }
+
+    // ---- Note names -------------------------------------------------------
+
+    #[test]
+    fn ordinary_note_names_are_accepted() {
+        for name in [
+            "note.md",
+            "Untitled-1.md",
+            "two words.txt",
+            "acentuação.md",
+            "日本語.md",
+            "no-extension",
+            "weird!@#$%^&()name.md",
+        ] {
+            assert!(validate_note_name(name).is_ok(), "{name:?} should be a valid note name");
+        }
+    }
+
+    // The webview can ask for any name it likes; none of these may resolve to
+    // a file outside the notes folder.
+    #[test]
+    fn names_that_could_escape_the_notes_folder_are_refused() {
+        for name in [
+            "",
+            "..",
+            "../secret",
+            "../../etc/passwd",
+            "sub/note.md",
+            "/etc/passwd",
+            "notes/../../etc/passwd",
+            "sub\\note.md",
+            ".ssh",
+            ".hidden.md",
+            "a..b.md", // a legitimate name, refused as collateral: ".." is out
+        ] {
+            assert!(validate_note_name(name).is_err(), "{name:?} should be refused");
+        }
+    }
+
+    #[test]
+    fn dotfiles_and_our_own_temp_files_are_not_notes() {
+        assert!(is_listed_note("note.md"));
+        assert!(is_listed_note("Untitled-1.txt"));
+        assert!(!is_listed_note(".DS_Store"));
+        assert!(!is_listed_note(".gitignore"));
+        assert!(!is_listed_note("note.md.parker-tmp"));
+        assert!(!is_listed_note("note.parker-tmp"));
+    }
+
+    #[test]
+    fn a_new_notes_extension_is_always_a_usable_one() {
+        assert_eq!(note_ext(None), "md");
+        assert_eq!(note_ext(Some("txt".into())), "txt");
+        assert_eq!(note_ext(Some("MD".into())), "MD");
+        assert_eq!(note_ext(Some("".into())), "md");
+        assert_eq!(note_ext(Some("!!!".into())), "md");
+        assert_eq!(note_ext(Some("../evil".into())), "evil");
+        assert_eq!(note_ext(Some(".md".into())), "md");
+    }
+
+    // ---- Atomic writes ----------------------------------------------------
+
+    #[test]
+    fn a_write_lands_whole_and_leaves_nothing_behind() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("note.md");
+        atomic_write(&path, "first").unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "first");
+        atomic_write(&path, "second, shorter").unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "second, shorter");
+
+        let leftovers: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.ends_with(".parker-tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "temp files left behind: {leftovers:?}");
+    }
+
+    #[test]
+    fn an_empty_note_overwrites_a_full_one() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("note.md");
+        atomic_write(&path, "some text").unwrap();
+        atomic_write(&path, "").unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "");
+    }
+
+    #[test]
+    fn notes_that_differ_only_by_extension_do_not_share_a_temp_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let md = temp_path(&dir.path().join("notes.md"));
+        let txt = temp_path(&dir.path().join("notes.txt"));
+        assert_ne!(md, txt, "autosaving both at once would clobber one of them");
+        assert!(md.to_string_lossy().ends_with(".parker-tmp"));
+    }
+
+    // ---- Git output parsing ----------------------------------------------
+
+    #[test]
+    fn numstat_counts_lines_and_spots_binaries() {
+        let out = parse_numstat("3\t1\tnote.md\n0\t7\told.md\n-\t-\timage.png\n");
+        assert_eq!(out.get("note.md"), Some(&(3, 1, false)));
+        assert_eq!(out.get("old.md"), Some(&(0, 7, false)));
+        assert_eq!(out.get("image.png"), Some(&(0, 0, true)));
+        assert_eq!(out.len(), 3);
+    }
+
+    #[test]
+    fn numstat_ignores_lines_that_carry_no_path() {
+        let out = parse_numstat("\n3\t1\n\t\t\ngarbage\n");
+        assert!(out.is_empty(), "{out:?}");
+    }
+
+    #[test]
+    fn numstat_keeps_paths_with_spaces_intact() {
+        let out = parse_numstat("1\t0\tmy notes/a b.md\n");
+        assert_eq!(out.get("my notes/a b.md"), Some(&(1, 0, false)));
+    }
+
+    #[test]
+    fn a_status_line_yields_its_code_and_path() {
+        assert_eq!(
+            parse_status_line(" M note.md"),
+            Some((" M".into(), "note.md".into()))
+        );
+        assert_eq!(
+            parse_status_line("?? Untitled-1.md"),
+            Some(("??".into(), "Untitled-1.md".into()))
+        );
+        assert_eq!(
+            parse_status_line("A  staged.md"),
+            Some(("A ".into(), "staged.md".into()))
+        );
+        assert_eq!(
+            parse_status_line(" M two words.md"),
+            Some((" M".into(), "two words.md".into()))
+        );
+    }
+
+    // A rename is reported against the file that exists now, not the one that
+    // doesn't — the UI lists it, and count_lines would read the wrong path.
+    #[test]
+    fn a_rename_is_reported_against_its_destination() {
+        assert_eq!(
+            parse_status_line("R  old name.md -> new name.md"),
+            Some(("R ".into(), "new name.md".into()))
+        );
+    }
+
+    #[test]
+    fn a_quoted_path_comes_back_unquoted() {
+        assert_eq!(
+            parse_status_line(r#" M "note with \"quotes\".md""#),
+            Some((" M".into(), r#"note with \"quotes\".md"#.into()))
+        );
+    }
+
+    #[test]
+    fn a_status_line_with_no_room_for_a_path_is_skipped() {
+        for line in ["", " ", "??", "?? ", " M "] {
+            assert_eq!(parse_status_line(line), None, "{line:?}");
+        }
+    }
+
+    // Note names are the user's prose: `core.quotepath=false` keeps them
+    // literal, so the parser has to handle multi-byte paths without slicing
+    // through a character.
+    #[test]
+    fn a_status_line_handles_a_non_ascii_path() {
+        assert_eq!(
+            parse_status_line(" M anotação.md"),
+            Some((" M".into(), "anotação.md".into()))
+        );
+    }
+
+    #[test]
+    fn a_log_line_splits_into_its_four_fields() {
+        assert_eq!(
+            parse_log_line("abc123full\tabc123\tFix the thing\t2 hours ago"),
+            Some(("abc123full", "abc123", "Fix the thing", "2 hours ago"))
+        );
+    }
+
+    // The date is taken from the end, so a subject containing a tab doesn't
+    // push the date into the subject.
+    #[test]
+    fn a_log_subject_may_contain_a_tab() {
+        assert_eq!(
+            parse_log_line("full\tshort\tsubject\twith tab\t3 days ago"),
+            Some(("full", "short", "subject\twith tab", "3 days ago"))
+        );
+    }
+
+    #[test]
+    fn a_log_line_without_a_date_still_yields_a_commit() {
+        assert_eq!(
+            parse_log_line("full\tshort\tjust a subject"),
+            Some(("full", "short", "just a subject", ""))
+        );
+    }
+
+    #[test]
+    fn a_log_line_that_is_not_a_commit_is_skipped() {
+        for line in ["", "onefield", "full\t", "\t\tsubject"] {
+            assert_eq!(parse_log_line(line), None, "{line:?}");
+        }
+    }
+
+    // ---- Commit messages --------------------------------------------------
+
+    #[test]
+    fn a_commit_message_is_trimmed_before_it_is_used() {
+        assert_eq!(validate_commit_message("  notes  ").unwrap(), "notes");
+    }
+
+    #[test]
+    fn an_empty_commit_message_is_refused() {
+        for msg in ["", "   ", "\n\t "] {
+            assert!(validate_commit_message(msg).is_err(), "{msg:?}");
+        }
+    }
+
+    #[test]
+    fn a_commit_message_is_measured_in_characters_not_bytes() {
+        // 500 emoji is 2000 bytes and exactly at the limit; 501 is over it.
+        assert!(validate_commit_message(&"🙂".repeat(500)).is_ok());
+        assert!(validate_commit_message(&"🙂".repeat(501)).is_err());
+        assert!(validate_commit_message(&"a".repeat(500)).is_ok());
+        assert!(validate_commit_message(&"a".repeat(501)).is_err());
+    }
 }
