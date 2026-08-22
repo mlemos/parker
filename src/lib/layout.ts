@@ -181,14 +181,27 @@ export function splitGroup(
 
 // Remove the group `id`. Splits left with a single child collapse into it.
 // Returns null only if the removed group was the whole tree.
+//
+// Surviving panes keep their relative widths, renormalised to fill the space
+// the closed one left behind. Handing every child an equal share instead would
+// reach past the split that actually lost a pane and flatten the dividers the
+// user dragged everywhere else in the tree.
 export function removeGroup(root: LayoutNode, id: string): LayoutNode | null {
   if (root.kind === "group") return root.id === id ? null : root;
-  const kids = root.children
-    .map((c) => removeGroup(c, id))
-    .filter((c): c is LayoutNode => c !== null);
-  if (kids.length === 0) return null;
-  if (kids.length === 1) return kids[0]; // collapse single-child split
-  return { ...root, children: kids, sizes: kids.map(() => 1 / kids.length) };
+  const even = 1 / root.children.length;
+  const kept: { node: LayoutNode; size: number }[] = [];
+  root.children.forEach((c, i) => {
+    const node = removeGroup(c, id);
+    if (node !== null) kept.push({ node, size: root.sizes[i] ?? even });
+  });
+  if (kept.length === 0) return null;
+  if (kept.length === 1) return kept[0].node; // collapse single-child split
+  const total = kept.reduce((sum, k) => sum + k.size, 0) || 1;
+  return {
+    ...root,
+    children: kept.map((k) => k.node),
+    sizes: kept.map((k) => k.size / total),
+  };
 }
 
 // The group adjacent to `id` within its immediate parent split (previous
