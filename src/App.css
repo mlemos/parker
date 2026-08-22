@@ -729,6 +729,7 @@ body,
 }
 .split-divider {
   flex: none;
+  position: relative;
   background: var(--border);
   transition: background 0.12s;
 }
@@ -745,9 +746,22 @@ body,
 .split-divider:hover {
   background: var(--accent);
 }
-/* Keep a comfortable hit area around the 1px line. */
-.split-divider.row {
-  box-shadow: 0 0 0 2px transparent;
+/* The line stays 1px; the thing you grab does not. A pseudo-element widens
+   the hit area to either side without moving the panes apart — pointer events
+   on it target the divider itself. (A box-shadow does not do this: it paints
+   outside the box but the box is still all the pointer can hit.) */
+.split-divider::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.split-divider.row::before {
+  left: -4px;
+  right: -4px;
+}
+.split-divider.col::before {
+  top: -4px;
+  bottom: -4px;
 }
 body.resizing {
   cursor: col-resize;

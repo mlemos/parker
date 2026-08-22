@@ -57,6 +57,9 @@ export default function App() {
   const [notesDir, setNotesDir] = useState<string>("");
   const [homeDir, setHomeDir] = useState<string>("");
   const [ready, setReady] = useState(false);
+  // Whether the saved session was read back in full. Nothing may be written
+  // over the session file before this is true — see the startup effect.
+  const sessionRestored = useRef(false);
   const [renamingName, setRenamingName] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -157,6 +160,7 @@ export default function App() {
         .filter((b) => b.dirty)
         .map((b) => api.writeNote(b.name, b.content).catch(() => {}))
     );
+    if (!sessionRestored.current) return; // never overwrite a session we couldn't read
     await api
       .saveSession({
         open: s.buffers.map((b) => b.name),
@@ -186,10 +190,17 @@ export default function App() {
 
   // ---- Startup: restore session -------------------------------------------
 
+  // Startup reads files, and a file read is not guaranteed to come back. macOS
+  // gates ~/Documents behind a consent prompt and blocks the open() until it is
+  // answered; a network volume can stall the same way. None of that may leave
+  // the user staring at a splash screen with no way forward, so the restore is
+  // given a deadline and the app comes up regardless.
+  const BOOT_MS = 8000;
+
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
-    (async () => {
+    const restore = async () => {
       try {
         setHomeDir(await api.homeDirPath());
         setNotesDir(await api.notesDirPath());
@@ -239,20 +250,27 @@ export default function App() {
         setLayout(root);
         setFocusedId(focused);
         if (session.theme) setThemeId(session.theme);
+        // Only now is what's on screen a faithful picture of the session, so
+        // only now may it be written back over the saved one.
+        sessionRestored.current = true;
       } catch (e) {
         console.error("startup failed", e);
-      } finally {
-        setReady(true);
       }
-    })();
+    };
+    const deadline = new Promise<void>((resolve) => setTimeout(resolve, BOOT_MS));
+    Promise.race([restore(), deadline]).then(() => setReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Persist session whenever the open set / focus / theme changes.
+  //
+  // Gated on the restore having finished, not on `ready`: when it times out
+  // the app comes up on an empty workspace, and saving that would wipe the
+  // session it never managed to read.
   const openKey = buffers.map((b) => b.name).join(" ");
   useEffect(() => {
-    if (ready) scheduleSessionSave();
-  }, [openKey, focusedId, layout, themeId, ready, scheduleSessionSave]);
+    if (sessionRestored.current) scheduleSessionSave();
+  }, [openKey, focusedId, layout, themeId, scheduleSessionSave]);
 
   // Reflect the theme's named UI roles as CSS variables on the root element.
   useEffect(() => {

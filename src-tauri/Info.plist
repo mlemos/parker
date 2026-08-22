@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Merged into the generated Info.plist by the Tauri bundler.
+
+  Parker's notes live in ~/Documents by default, which macOS gates behind a
+  consent prompt. The system will not present that prompt unless the app
+  declares why it wants the folder — and until it is answered, the open() on
+  the first note blocks. With no string here the prompt never appears, the
+  read never returns, and the app sits on its splash screen forever.
+-->
+<plist version="1.0">
+  <dict>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>Parker keeps your notes in a folder here (~/Documents/Parker by default). You can point it somewhere else in Settings.</string>
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Parker needs this only if you choose a notes folder on your Desktop.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Parker needs this only if you choose a notes folder in Downloads.</string>
+  </dict>
+</plist>
