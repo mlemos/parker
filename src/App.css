@@ -1069,7 +1069,11 @@ body.resizing {
 
 .editor-wrap .cm-editor {
   height: 100%;
-  font-size: var(--editor-font-size, 14px);
+  /* Fixed: the interface zoom (⌘= / ⌘-) scales the whole webview, so the
+     editor no longer carries a font size of its own. Scaling only this left
+     the gutter to re-measure a frame later, which is what the zoom looked
+     wrong doing. */
+  font-size: 14px;
   /* Single source of truth for the writing surface: always the canvas tone
      (#000 in Vercel Night), never a stray theme grey. */
   background-color: var(--editor-bg) !important;

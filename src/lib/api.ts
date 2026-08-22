@@ -29,6 +29,8 @@ export interface SettingsInfo {
   git_auto_sync: boolean;
   /** Minutes between timed commit+push runs; 0 = off. */
   git_sync_interval: number;
+  /** Webview zoom factor; 1 = 100%. */
+  zoom: number;
 }
 
 export interface GitFileChange {
@@ -88,6 +90,8 @@ export const api = {
     invoke<void>("set_git_auto_sync", { enabled }),
   setGitSyncInterval: (minutes: number) =>
     invoke<void>("set_git_sync_interval", { minutes }),
+  /** Zoom the whole interface. Returns the value actually applied (clamped). */
+  setZoom: (scale: number) => invoke<number>("set_zoom", { scale }),
   gitStatus: () => invoke<GitStatus>("git_status"),
   gitLog: (limit?: number) => invoke<GitLogEntry[]>("git_log", { limit }),
   gitCommit: (message: string, push: boolean) =>

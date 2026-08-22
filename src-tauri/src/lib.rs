@@ -41,7 +41,7 @@ struct Session {
     focused: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Settings {
     /// Absolute path to the notes folder. None → default (~/Documents/Parker).
     #[serde(default)]
@@ -55,7 +55,80 @@ struct Settings {
     /// Minutes between timed commit+push runs. 0 (the default) = off.
     #[serde(default)]
     git_sync_interval: u32,
+    /// Webview zoom factor. 1.0 = 100%.
+    #[serde(default = "one")]
+    zoom: f64,
 }
+
+/// serde default for `zoom` — a missing value means "no zoom", not 0×.
+fn one() -> f64 {
+    1.0
+}
+
+// Written by hand rather than derived: a derived Default gives `zoom` the f64
+// default of 0.0, and load_settings() falls back to Default whenever there is
+// no settings file to read — which is every first launch. Scaling a webview by
+// zero paints nothing, so the app came up as a black window.
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            notes_dir: None,
+            shortcut: None,
+            git_auto_sync: false,
+            git_sync_interval: 0,
+            zoom: 1.0,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // The black-window bug: a derived Default gave zoom 0.0, load_settings()
+    // falls back to Default on every first launch, and scaling a webview by
+    // zero paints nothing.
+    #[test]
+    fn default_settings_do_not_zoom_to_nothing() {
+        assert_eq!(Settings::default().zoom, 1.0);
+    }
+
+    #[test]
+    fn a_settings_file_without_zoom_still_means_100_percent() {
+        let s: Settings = serde_json::from_str("{}").unwrap();
+        assert_eq!(s.zoom, 1.0);
+    }
+
+    #[test]
+    fn nonsense_zooms_are_rejected() {
+        for bad in [0.0, -1.0, f64::NAN, f64::INFINITY, 99.0] {
+            let s = Settings { zoom: bad, ..Default::default() };
+            let z = if s.zoom.is_finite() && s.zoom >= ZOOM_MIN && s.zoom <= ZOOM_MAX {
+                s.zoom
+            } else {
+                1.0
+            };
+            assert_eq!(z, 1.0, "{bad} should have fallen back");
+        }
+    }
+}
+
+/// The saved zoom, sanitized. Belt and braces over the Default above: a
+/// hand-edited settings.json can still hold 0, a negative, or a NaN, and none
+/// of those may reach the webview.
+fn saved_zoom() -> f64 {
+    let z = load_settings().zoom;
+    if z.is_finite() && z >= ZOOM_MIN && z <= ZOOM_MAX {
+        z
+    } else {
+        1.0
+    }
+}
+
+/// Zoom is applied to the whole webview, so it is clamped to what stays usable
+/// rather than to what the API accepts.
+const ZOOM_MIN: f64 = 0.5;
+const ZOOM_MAX: f64 = 3.0;
 
 /// Dev vs release identity. `debug_assertions` is on for `tauri dev` and off
 /// for `tauri build`, so a dev instance runs alongside the installed
@@ -363,6 +436,7 @@ struct SettingsInfo {
     default_shortcut: String,
     git_auto_sync: bool,
     git_sync_interval: u32,
+    zoom: f64,
 }
 
 #[tauri::command]
@@ -376,6 +450,7 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
         default_shortcut: TOGGLE_SHORTCUT.to_string(),
         git_auto_sync: s.git_auto_sync,
         git_sync_interval: s.git_sync_interval,
+        zoom: s.zoom,
     }
 }
 
@@ -384,6 +459,32 @@ fn set_git_auto_sync(enabled: bool) -> Result<(), String> {
     let mut s = load_settings();
     s.git_auto_sync = enabled;
     write_settings(&s)
+}
+
+/// Zoom the whole interface, the way a browser or VS Code does — one
+/// transformation over the entire webview, so the editor, the gutter, the tabs
+/// and the status bar all change together and in the same frame. Scaling the
+/// editor's font instead left the gutter to catch up on its own schedule.
+/// Returns the value actually applied, after clamping.
+#[tauri::command]
+fn set_zoom(app: tauri::AppHandle, scale: f64) -> Result<f64, String> {
+    let scale = scale.clamp(ZOOM_MIN, ZOOM_MAX);
+    apply_zoom(&app, scale);
+    let mut s = load_settings();
+    s.zoom = scale;
+    write_settings(&s)?;
+    Ok(scale)
+}
+
+/// Push a zoom factor to every window Parker owns, so About and the shortcut
+/// sheet don't sit at 100% next to a zoomed editor.
+fn apply_zoom<R: tauri::Runtime>(app: &tauri::AppHandle<R>, scale: f64) {
+    use tauri::Manager;
+    for label in ["main", "about", "help"] {
+        if let Some(w) = app.get_webview_window(label) {
+            let _ = w.set_zoom(scale);
+        }
+    }
 }
 
 /// Minutes between timed syncs; 0 turns the timer off. The timer itself lives
@@ -973,10 +1074,13 @@ fn show_about_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     // Pass the current theme so the About window matches the editor's look.
     let theme = load_session().theme.unwrap_or_default();
     let url = format!("index.html?view=about&theme={theme}");
+    // Secondary windows are sized in logical pixels, so a zoomed webview inside
+    // a fixed frame would simply be cropped — the frame scales with it.
+    let z = saved_zoom();
     #[allow(unused_mut)]
     let mut b = WebviewWindowBuilder::new(app, "about", WebviewUrl::App(url.into()))
         .title("About Parker")
-        .inner_size(440.0, 440.0)
+        .inner_size(440.0 * z, 440.0 * z)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)
@@ -987,7 +1091,9 @@ fn show_about_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             .title_bar_style(tauri::TitleBarStyle::Overlay)
             .hidden_title(true);
     }
-    let _ = b.build();
+    if let Ok(w) = b.build() {
+        let _ = w.set_zoom(z);
+    }
 }
 
 /// Open (or focus) the standalone Keyboard Shortcuts window.
@@ -1000,11 +1106,12 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     }
     let theme = load_session().theme.unwrap_or_default();
     let url = format!("index.html?view=help&theme={theme}");
+    let z = saved_zoom();
     #[allow(unused_mut)]
     let mut b = WebviewWindowBuilder::new(app, "help", WebviewUrl::App(url.into()))
         .title("Keyboard Shortcuts")
-        .inner_size(620.0, 560.0)
-        .min_inner_size(460.0, 420.0)
+        .inner_size(620.0 * z, 560.0 * z)
+        .min_inner_size(460.0 * z, 420.0 * z)
         .maximizable(false)
         // Start hidden: the frontend applies the theme, then shows the window on
         // the first painted frame so it never flashes an unstyled (white) frame.
@@ -1017,7 +1124,9 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             .hidden_title(true)
             .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
     }
-    let _ = b.build();
+    if let Ok(w) = b.build() {
+        let _ = w.set_zoom(z);
+    }
 }
 
 /// Command so the in-app (?) button can open the shortcuts window.
@@ -1288,6 +1397,9 @@ pub fn run() {
                         .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
                 }
                 let win = b.build()?;
+                // Restore the saved zoom before anything is painted, so the
+                // window doesn't flash at 100% on every launch.
+                let _ = win.set_zoom(saved_zoom());
                 // Follow the user across Spaces: summon brings Parker to the
                 // *current* desktop, not the Space it was created on.
                 #[cfg(target_os = "macos")]
@@ -1350,6 +1462,7 @@ pub fn run() {
             set_autostart,
             set_git_auto_sync,
             set_git_sync_interval,
+            set_zoom,
             open_help,
             git_status,
             git_commit,
