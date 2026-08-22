@@ -42,6 +42,12 @@ import "./App.css";
 const AUTOSAVE_MS = 500;
 const SESSION_MS = 400;
 
+// Browser-style rungs rather than a fixed percentage: wider where the
+// difference is hard to see, finer around 100% where people actually settle.
+const ZOOM_STEPS = [
+  0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3,
+];
+
 export default function App() {
   const [buffers, setBuffers] = useState<Buffer[]>([]);
   const [layout, setLayout] = useState<LayoutNode>(() => makeGroup([], null));
@@ -56,10 +62,10 @@ export default function App() {
   const [perfOpen, setPerfOpen] = useState(false);
   // ⌘Q / menu / tray asked to quit — waiting on the user's answer.
   const [quitAsk, setQuitAsk] = useState(false);
-  const [fontSize, setFontSize] = useState<number>(() => {
-    const v = Number(localStorage.getItem("parker.fontSize"));
-    return v >= 9 && v <= 40 ? v : 14;
-  });
+  // Interface zoom, browser-style: one factor over the whole webview. Rust
+  // owns the value (it applies the saved one before the first paint), so this
+  // is only the ladder and the current rung.
+  const [zoom, setZoom] = useState(1);
   const [gutterOn, setGutterOn] = useState<boolean>(
     () => localStorage.getItem("parker.gutter") === "1"
   );
@@ -285,13 +291,51 @@ export default function App() {
     emit("parker://theme", theme.id).catch(() => {});
   }, [theme]);
 
+  // Read back what Rust already applied, so ⌘= steps from the real rung
+  // instead of from 100%.
   useEffect(() => {
-    localStorage.setItem("parker.fontSize", String(fontSize));
-    document.documentElement.style.setProperty(
-      "--editor-font-size",
-      `${fontSize}px`
-    );
-  }, [fontSize]);
+    api
+      .getSettings()
+      .then((s) => setZoom(s.zoom || 1))
+      .catch(() => {});
+  }, []);
+
+  // The keyboard handler is registered once, so anything it calls has to read
+  // the *current* zoom rather than the one that existed at first render — and
+  // the ref is also what makes a burst of ⌘= walk up the ladder instead of
+  // recomputing the same rung while the state catches up.
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+
+  const applyZoom = useCallback((next: number) => {
+    zoomRef.current = next; // optimistic: the next keypress steps from here
+    setZoom(next);
+    // Rust clamps and persists; trust what it returns over what we asked for,
+    // so the ladder can never walk past the end.
+    api
+      .setZoom(next)
+      .then((applied) => {
+        zoomRef.current = applied;
+        setZoom(applied);
+      })
+      .catch(() => {});
+  }, []);
+
+  const stepZoom = useCallback(
+    (dir: 1 | -1) => {
+      const cur = zoomRef.current;
+      // Nearest rung, then move — so a zoom set elsewhere still steps sanely.
+      const i = ZOOM_STEPS.reduce(
+        (best, z, n) =>
+          Math.abs(z - cur) < Math.abs(ZOOM_STEPS[best] - cur) ? n : best,
+        0
+      );
+      const next =
+        ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, i + dir))];
+      if (next !== cur) applyZoom(next);
+    },
+    [applyZoom]
+  );
   useEffect(() => {
     localStorage.setItem("parker.gutter", gutterOn ? "1" : "0");
   }, [gutterOn]);
@@ -739,13 +783,13 @@ export default function App() {
         e.preventDefault(); // GitMenu handles quick commit & push
       } else if (k === "=" || k === "+") {
         e.preventDefault();
-        setFontSize((f) => Math.min(40, f + 1));
+        stepZoom(1);
       } else if (k === "-" || k === "_") {
         e.preventDefault();
-        setFontSize((f) => Math.max(9, f - 1));
+        stepZoom(-1);
       } else if (k === "0") {
         e.preventDefault();
-        setFontSize(14);
+        applyZoom(1);
       } else if (k === "o") {
         e.preventDefault();
         openPicker();

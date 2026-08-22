@@ -67,8 +67,8 @@ const APP: Section[] = [
   {
     title: "View & app",
     rows: [
-      ["Font size up / down", ["⌘=", "⌘-"]],
-      ["Reset font size", ["⌘0"]],
+      ["Zoom in / out", ["⌘=", "⌘-"]],
+      ["Reset zoom", ["⌘0"]],
       ["Commit & push (quick)", ["⌘⇧S"]],
       ["Settings", ["⌘,"]],
       ["This help", ["⌘K"]],
