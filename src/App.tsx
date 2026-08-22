@@ -7,6 +7,7 @@ import {
   Settings as SettingsIcon,
   CircleQuestionMark,
 } from "lucide-react";
+import { EditorView } from "@uiw/react-codemirror";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen, emit } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
@@ -307,6 +308,25 @@ export default function App() {
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
 
+  // CodeMirror lays the gutter out from measurements it takes of the DOM. A
+  // zoom change rewrites those metrics underneath it, and it only re-measures
+  // once its own observers notice the resize — which is a frame or two later,
+  // and is exactly the gutter "arriving after" the text. Asking every live
+  // editor to re-measure as part of the same gesture closes that gap. Two
+  // frames because the native zoom lands after the call returns, so the first
+  // frame can still read the old geometry.
+  const remeasureEditors = useCallback(() => {
+    const measure = () => {
+      for (const el of document.querySelectorAll<HTMLElement>(".cm-editor")) {
+        EditorView.findFromDOM(el)?.requestMeasure();
+      }
+    };
+    requestAnimationFrame(() => {
+      measure();
+      requestAnimationFrame(measure);
+    });
+  }, []);
+
   const applyZoom = useCallback((next: number) => {
     zoomRef.current = next; // optimistic: the next keypress steps from here
     setZoom(next);
@@ -317,9 +337,10 @@ export default function App() {
       .then((applied) => {
         zoomRef.current = applied;
         setZoom(applied);
+        remeasureEditors();
       })
       .catch(() => {});
-  }, []);
+  }, [remeasureEditors]);
 
   const stepZoom = useCallback(
     (dir: 1 | -1) => {
