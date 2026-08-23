@@ -7,6 +7,7 @@ import {
   nextInRotation,
   nextOnClick,
   norm,
+  ownersForRange,
   planRotate,
   type State,
 } from "./todo-model.ts";
@@ -145,4 +146,89 @@ describe("planRotate over every selection", () => {
       expect(wrong.slice(0, 10)).toEqual([]);
     });
   }
+});
+
+// ---- Which to-do owns a line ----------------------------------------------
+
+describe("ownersForRange", () => {
+  /** `doc` is written as one line per array entry — no trailing blank. */
+  const owners = (lines: string[], from = 1, to?: number) => {
+    const d = Text.of(lines);
+    return ownersForRange(d, from, to ?? d.lines);
+  };
+
+  it("gives a to-do's nested lines to it", () => {
+    expect(owners(["/DOING Ship it", "  - a detail", "  - another"])).toEqual([
+      null, // the to-do wears its own state
+      "DOING",
+      "DOING",
+    ]);
+  });
+
+  it("ends the group when the text steps back out", () => {
+    expect(owners(["/DONE Shipped", "  - a detail", "back at the margin"])).toEqual([
+      null,
+      "DONE",
+      null,
+    ]);
+  });
+
+  it("hands the group over at the next to-do", () => {
+    expect(owners(["/DONE Shipped", "  - hers", "/TODO Next", "  - his"])).toEqual([
+      null,
+      "DONE",
+      null,
+      "TODO",
+    ]);
+  });
+
+  // An empty line between two sub-items has not left the nesting.
+  it("reads through a blank line inside a group", () => {
+    expect(owners(["/WAIT On them", "  - one", "", "  - two"])).toEqual([
+      null,
+      "WAIT",
+      null,
+      "WAIT",
+    ]);
+  });
+
+  it("nests a to-do inside a to-do", () => {
+    expect(
+      owners([
+        "/DOING Outer",
+        "  - outer detail",
+        "  /TODO Inner",
+        "    - inner detail",
+        "  - back to outer",
+      ])
+    ).toEqual([null, "DOING", null, "TODO", "DOING"]);
+  });
+
+  it("normalises an alias before handing it down", () => {
+    expect(owners(["/WIP Ship it", "  - a detail"])).toEqual([null, "DOING"]);
+  });
+
+  it("owns nothing when there is no to-do above", () => {
+    expect(owners(["Just a heading", "  - a detail"])).toEqual([null, null]);
+  });
+
+  it("counts deeper indentation as still inside", () => {
+    expect(owners(["/ATTN Look", "  - one", "      - deeper"])).toEqual([
+      null,
+      "ATTN",
+      "ATTN",
+    ]);
+  });
+
+  // The viewport can open anywhere, so a range starting mid-group has to walk
+  // back far enough to find out who owns it.
+  it("finds the owner when asked about the middle of a group", () => {
+    const doc = ["/DONE Shipped", "  - one", "  - two", "  - three"];
+    expect(owners(doc, 3, 4)).toEqual(["DONE", "DONE"]);
+  });
+
+  it("does not invent an owner from a group that already closed", () => {
+    const doc = ["/DONE Shipped", "  - one", "prose at the margin", "  - orphan"];
+    expect(owners(doc, 4, 4)).toEqual([null]);
+  });
 });

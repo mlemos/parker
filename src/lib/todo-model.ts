@@ -165,3 +165,68 @@ export function cursorAfterRotate(
   const mapped = head >= c.from ? head + inserted : head;
   return Math.max(mapped, c.from + inserted);
 }
+
+// ---- Grouping --------------------------------------------------------------
+// A to-do owns the lines nested under it. Ownership is indentation: a line
+// belongs to the nearest to-do above it that is *less* indented, and the group
+// ends at the first line that steps back out to that level or further. Blank
+// lines are transparent — an empty line between two sub-items has not left the
+// nesting, it is just an empty line.
+//
+// To-dos can nest, so this is a stack rather than a single current owner.
+
+/** How far a line is indented, counting a tab as one level like the text does. */
+const indentOf = (text: string): number => /^[ \t]*/.exec(text)![0].length;
+
+const isBlank = (text: string): boolean => text.trim() === "";
+
+/** How far back to look for the start of the enclosing group when the caller
+ *  asks about a line in the middle of a document. Bounded so a file with no
+ *  unindented line anywhere can't turn this into a full-document scan. */
+const LOOKBACK = 500;
+
+/**
+ * For each line in `[fromLine, toLine]`, the state of the to-do that owns it —
+ * or null when nothing does, including for the to-do lines themselves, which
+ * wear their own state rather than inheriting one.
+ *
+ * Correct regardless of where the range starts: it walks back to the enclosing
+ * unindented line first, because a viewport can open anywhere.
+ */
+export function ownersForRange(
+  doc: DocLike,
+  fromLine: number,
+  toLine: number
+): (State | null)[] {
+  let start = fromLine;
+  const floor = Math.max(1, fromLine - LOOKBACK);
+  while (start > floor) {
+    const text = doc.line(start).text;
+    if (!isBlank(text) && indentOf(text) === 0) break; // a root line: nothing above it can own us
+    start--;
+  }
+
+  const stack: { indent: number; state: State }[] = [];
+  const owners: (State | null)[] = [];
+
+  for (let n = start; n <= toLine; n++) {
+    const { text } = doc.line(n);
+    let owner: State | null = null;
+
+    if (!isBlank(text)) {
+      const indent = indentOf(text);
+      // Stepping back to this level or further leaves those groups behind.
+      while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+
+      const tag = LINE_TAG.exec(text);
+      if (tag) {
+        stack.push({ indent, state: norm(tag[2]) });
+      } else if (stack.length) {
+        owner = stack[stack.length - 1].state;
+      }
+    }
+
+    if (n >= fromLine) owners.push(owner);
+  }
+  return owners;
+}

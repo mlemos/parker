@@ -763,6 +763,40 @@ body,
   top: -4px;
   bottom: -4px;
 }
+/* A to-do's nested lines, in its colour dimmed toward the page. The `span`
+   half is what makes it win over the markdown highlighting underneath — a
+   sub-item is a list item, and the list colour would otherwise own its text.
+   That flattens inline markup on those lines, which is the price of the group
+   reading as one thing. */
+.cm-todo-child-doing,
+.cm-todo-child-doing span {
+  color: color-mix(in srgb, var(--todo-cyan) 55%, var(--editor-bg));
+}
+.cm-todo-child-pause,
+.cm-todo-child-pause span {
+  color: color-mix(in srgb, var(--todo-blue) 55%, var(--editor-bg));
+}
+.cm-todo-child-wait,
+.cm-todo-child-wait span {
+  color: color-mix(in srgb, var(--todo-slate) 55%, var(--editor-bg));
+}
+.cm-todo-child-attn,
+.cm-todo-child-attn span {
+  color: color-mix(in srgb, var(--todo-yellow) 55%, var(--editor-bg));
+}
+.cm-todo-child-done,
+.cm-todo-child-done span {
+  color: color-mix(in srgb, var(--todo-green) 55%, var(--editor-bg));
+}
+.cm-todo-child-fail,
+.cm-todo-child-fail span {
+  color: color-mix(in srgb, var(--todo-red) 55%, var(--editor-bg));
+}
+.cm-todo-child-cancel,
+.cm-todo-child-cancel span {
+  color: color-mix(in srgb, var(--muted) 70%, var(--editor-bg));
+}
+
 body.resizing {
   cursor: col-resize;
   user-select: none;
