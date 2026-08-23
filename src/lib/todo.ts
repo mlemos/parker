@@ -57,12 +57,28 @@ import {
 import type { DecorationSet, ViewUpdate } from "@uiw/react-codemirror";
 import {
   LINE_TAG,
+  ownersForRange,
   cursorAfterRotate,
   nextOnClick,
   norm,
   planRotate,
   tagChange,
 } from "./todo-model";
+
+// A to-do's nested lines wear its colour, dimmed — so an entry and its detail
+// read as one group instead of the detail wearing the generic list colour and
+// belonging to nothing. TODO is absent on purpose: it is the origin state, no
+// fill and no hue, so its children have no colour to inherit and keep whatever
+// markdown gives them.
+const CHILD_DECOS: Record<string, Decoration> = {
+  DOING: Decoration.line({ class: "cm-todo-child-doing" }),
+  PAUSE: Decoration.line({ class: "cm-todo-child-pause" }),
+  WAIT: Decoration.line({ class: "cm-todo-child-wait" }),
+  ATTN: Decoration.line({ class: "cm-todo-child-attn" }),
+  DONE: Decoration.line({ class: "cm-todo-child-done" }),
+  FAIL: Decoration.line({ class: "cm-todo-child-fail" }),
+  CANCEL: Decoration.line({ class: "cm-todo-child-cancel" }),
+};
 
 const LINE_DECOS: Record<string, Decoration> = {
   DOING: Decoration.line({ class: "cm-todo-line-doing" }),
@@ -247,6 +263,11 @@ function build(view: EditorView): Built {
   const { doc } = view.state;
 
   for (const { from, to } of view.visibleRanges) {
+    const firstLine = doc.lineAt(from).number;
+    // Who owns each visible line. Computed for the whole range at once because
+    // finding the owner means looking above the viewport, not just within it.
+    const owners = ownersForRange(doc, firstLine, doc.lineAt(to).number);
+
     let pos = from;
     while (pos <= to) {
       const line = doc.lineAt(pos);
@@ -260,6 +281,10 @@ function build(view: EditorView): Built {
         const widget = Decoration.replace({ widget: new TodoBox(state) });
         builder.add(tagFrom, tagTo, widget);
         atomic.add(tagFrom, tagTo, widget);
+      } else {
+        const owner = owners[line.number - firstLine];
+        const childDeco = owner ? CHILD_DECOS[owner] : undefined;
+        if (childDeco) builder.add(line.from, line.from, childDeco);
       }
 
       pos = line.to + 1;
