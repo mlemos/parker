@@ -67,10 +67,14 @@ import {
 
 // A to-do's nested lines wear its colour, dimmed — so an entry and its detail
 // read as one group instead of the detail wearing the generic list colour and
-// belonging to nothing. TODO is absent on purpose: it is the origin state, no
-// fill and no hue, so its children have no colour to inherit and keep whatever
-// markdown gives them.
-const CHILD_DECOS: Record<string, Decoration> = {
+// belonging to nothing.
+//
+// Every state is here, TODO included. "No fill, no hue" describes its *hue*,
+// not the absence of a colour: an open to-do is drawn in body text, so its
+// children are body text dimmed. Leaving it out left those lines wearing the
+// list colour, the one thing this exists to stop.
+export const CHILD_DECOS: Record<string, Decoration> = {
+  TODO: Decoration.line({ class: "cm-todo-child-todo" }),
   DOING: Decoration.line({ class: "cm-todo-child-doing" }),
   PAUSE: Decoration.line({ class: "cm-todo-child-pause" }),
   WAIT: Decoration.line({ class: "cm-todo-child-wait" }),
@@ -80,7 +84,7 @@ const CHILD_DECOS: Record<string, Decoration> = {
   CANCEL: Decoration.line({ class: "cm-todo-child-cancel" }),
 };
 
-const LINE_DECOS: Record<string, Decoration> = {
+export const LINE_DECOS: Record<string, Decoration> = {
   DOING: Decoration.line({ class: "cm-todo-line-doing" }),
   WIP: Decoration.line({ class: "cm-todo-line-doing" }),
   PAUSE: Decoration.line({ class: "cm-todo-line-pause" }),

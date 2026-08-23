@@ -768,6 +768,10 @@ body,
    sub-item is a list item, and the list colour would otherwise own its text.
    That flattens inline markup on those lines, which is the price of the group
    reading as one thing. */
+.cm-todo-child-todo,
+.cm-todo-child-todo span {
+  color: color-mix(in srgb, var(--editor-fg) 55%, var(--editor-bg));
+}
 .cm-todo-child-doing,
 .cm-todo-child-doing span {
   color: color-mix(in srgb, var(--todo-cyan) 55%, var(--editor-bg));
