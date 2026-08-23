@@ -27,6 +27,11 @@ jobs:
       - name: Repo hygiene
         run: node scripts/check-repo-hygiene.mjs
 
+      # package.json, tauri.conf.json, Cargo.toml, Cargo.lock and the landing
+      # page all state a version. They only drift on the way to a release.
+      - name: Versions agree
+        run: node scripts/check-versions.mjs
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9
