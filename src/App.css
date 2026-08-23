@@ -874,6 +874,10 @@ body.resizing {
    nested lines inherit it — the same grouping the editor draws, arrived at by
    letting colour cascade instead of decorating each line. */
 .md-body .todo {
+  /* The gap after the box, and the whole width the box occupies — the second
+     is what nested content indents by, so the two can never drift apart. */
+  --todo-box-gap: 0.35em;
+  --todo-box-span: calc(3px + 0.95em + var(--todo-box-gap));
   margin: 0.35em 0;
 }
 .md-body .todo .cm-todo-box {
@@ -881,13 +885,31 @@ body.resizing {
   /* In the editor the gap comes free: the space after the tag is still in the
      document. Here the text is parsed away from it, so the box has to carry
      its own. */
-  margin-right: 0.35em;
+  margin-right: var(--todo-box-gap);
+  /* The editor's -0.07em is tuned for its monospace face. In this one the box
+     lands ~0.8px above the text's optical centre, which reads as the text
+     sitting low. Measured against cap-height, not against the line box: the
+     line box has descender space under it, so centring on it is not centring
+     on what the eye sees. `vertical-align: middle` is worse here — it misses
+     by 1.3px. */
+  vertical-align: -0.12em;
 }
 .md-body .todo-head {
   display: block;
 }
-.md-body .todo > :not(.todo-head) {
-  margin-left: 1.1em; /* nested content lines up under the entry's text */
+/* Everything nested under an entry starts where the entry's text starts: the
+   box's whole footprint. Lists get it as padding rather than margin, so their
+   markers hang in that same column — which is what the checkbox column is. */
+.md-body .todo > * {
+  margin-left: var(--todo-box-span);
+}
+.md-body .todo > .todo-head {
+  margin-left: 0;
+}
+.md-body .todo > ul,
+.md-body .todo > ol {
+  margin-left: 0;
+  padding-left: var(--todo-box-span);
 }
 .md-body .todo-doing {
   color: color-mix(in srgb, var(--todo-cyan) 55%, var(--editor-bg));
