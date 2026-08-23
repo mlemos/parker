@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { api } from "./lib/api";
 import { themeById, DEFAULT_THEME_ID } from "./lib/themes";
+import { prettyShortcut } from "./lib/shortcut";
 import "./App.css";
 
 // Apply a theme's palette to this standalone window.
@@ -26,15 +27,6 @@ function applyTheme(id: string) {
   root.dataset.mode = t.mode;
   root.dataset.theme = t.id;
   document.body.style.background = u.editorBg;
-}
-
-function pretty(accel: string): string {
-  return accel
-    .replace(/CmdOrCtrl|Cmd|Super|Meta/gi, "⌘")
-    .replace(/Alt|Option/gi, "⌥")
-    .replace(/Shift/gi, "⇧")
-    .replace(/Ctrl|Control/gi, "⌃")
-    .replace(/\+/g, "");
 }
 
 type Row = [label: string, keys: string[]];
@@ -146,7 +138,7 @@ export default function HelpWindow() {
   useEffect(() => {
     api
       .getSettings()
-      .then((s) => setSummon(pretty(s.shortcut)))
+      .then((s) => setSummon(prettyShortcut(s.shortcut)))
       .catch(() => {});
   }, []);
 

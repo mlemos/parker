@@ -4,60 +4,7 @@ import { api } from "../lib/api";
 import { SYNC_INTERVAL_EVENT } from "./GitMenu";
 import type { SettingsInfo } from "../lib/api";
 import { prettyPath } from "../lib/path";
-
-// Render "Alt+Space" as "⌥Space", "CmdOrCtrl+," as "⌘,", etc.
-function prettyShortcut(s: string): string {
-  return s
-    .replace(/CmdOrCtrl|Cmd|Super|Meta/gi, "⌘")
-    .replace(/Alt|Option/gi, "⌥")
-    .replace(/Shift/gi, "⇧")
-    .replace(/Ctrl|Control/gi, "⌃")
-    .replace(/\+/g, "");
-}
-
-// Build a Tauri accelerator string (e.g. "CmdOrCtrl+Shift+P") from a keydown.
-// Returns null for modifier-only presses or combos without a modifier.
-const CODE_MAP: Record<string, string> = {
-  Space: "Space",
-  Enter: "Enter",
-  Tab: "Tab",
-  Backspace: "Backspace",
-  Delete: "Delete",
-  ArrowUp: "Up",
-  ArrowDown: "Down",
-  ArrowLeft: "Left",
-  ArrowRight: "Right",
-  Minus: "-",
-  Equal: "=",
-  Comma: ",",
-  Period: ".",
-  Slash: "/",
-  Backslash: "\\",
-  Semicolon: ";",
-  Quote: "'",
-  BracketLeft: "[",
-  BracketRight: "]",
-  Backquote: "`",
-};
-
-function accelFromEvent(e: KeyboardEvent): string | null {
-  const mods: string[] = [];
-  if (e.metaKey) mods.push("CmdOrCtrl");
-  if (e.ctrlKey) mods.push("Ctrl");
-  if (e.altKey) mods.push("Alt");
-  if (e.shiftKey) mods.push("Shift");
-
-  const code = e.code;
-  let key: string | null = null;
-  if (code.startsWith("Key")) key = code.slice(3);
-  else if (code.startsWith("Digit")) key = code.slice(5);
-  else if (/^F\d{1,2}$/.test(code)) key = code;
-  else key = CODE_MAP[code] ?? null;
-
-  // Need a real (non-modifier) key AND at least one modifier.
-  if (!key || mods.length === 0) return null;
-  return [...mods, key].join("+");
-}
+import { accelFromEvent, prettyShortcut } from "../lib/shortcut";
 
 /** Timed-sync choices, in minutes. 0 = off. */
 const SYNC_INTERVALS = [0, 5, 15, 30, 60] as const;
