@@ -5,13 +5,14 @@
 // get highlighting for dozens of languages without importing each package.
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
+import { todoBlocks } from "./todo-markdown";
 import type { Extension } from "@uiw/react-codemirror";
 
 export async function languageForName(name: string): Promise<Extension[]> {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
 
   if (ext === "md" || ext === "markdown" || ext === "mdx") {
-    return [markdown({ codeLanguages: languages })];
+    return [markdown({ codeLanguages: languages, extensions: [todoBlocks] })];
   }
 
   const desc = languages.find((l) => l.extensions.includes(ext));
