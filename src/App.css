@@ -867,6 +867,78 @@ body.resizing {
     monospace;
 }
 
+/* ---- To-dos in the preview ----------------------------------------------
+   The box markup is identical to the editor's (see todo-glyph.ts), so every
+   rule above dresses it here too. What is left is the block itself: the entry
+   wears its state's colour, and the dimmed colour sits on the container so the
+   nested lines inherit it — the same grouping the editor draws, arrived at by
+   letting colour cascade instead of decorating each line. */
+.md-body .todo {
+  margin: 0.35em 0;
+}
+.md-body .todo .cm-todo-box {
+  cursor: default; /* not a control here — the preview is read-only */
+  /* In the editor the gap comes free: the space after the tag is still in the
+     document. Here the text is parsed away from it, so the box has to carry
+     its own. */
+  margin-right: 0.35em;
+}
+.md-body .todo-head {
+  display: block;
+}
+.md-body .todo > :not(.todo-head) {
+  margin-left: 1.1em; /* nested content lines up under the entry's text */
+}
+.md-body .todo-doing {
+  color: color-mix(in srgb, var(--todo-cyan) 55%, var(--editor-bg));
+}
+.md-body .todo-doing > .todo-head {
+  color: var(--todo-cyan);
+}
+.md-body .todo-pause {
+  color: color-mix(in srgb, var(--todo-blue) 55%, var(--editor-bg));
+}
+.md-body .todo-pause > .todo-head {
+  color: var(--todo-blue);
+}
+.md-body .todo-wait {
+  color: color-mix(in srgb, var(--todo-slate) 55%, var(--editor-bg));
+}
+.md-body .todo-wait > .todo-head {
+  color: var(--todo-slate);
+}
+.md-body .todo-attn {
+  color: color-mix(in srgb, var(--todo-yellow) 55%, var(--editor-bg));
+}
+.md-body .todo-attn > .todo-head {
+  color: var(--todo-yellow);
+}
+.md-body .todo-done {
+  color: color-mix(in srgb, var(--todo-green) 55%, var(--editor-bg));
+}
+.md-body .todo-done > .todo-head {
+  color: var(--todo-green);
+}
+.md-body .todo-fail {
+  color: color-mix(in srgb, var(--todo-red) 55%, var(--editor-bg));
+}
+.md-body .todo-fail > .todo-head {
+  color: var(--todo-red);
+}
+.md-body .todo-cancel {
+  color: color-mix(in srgb, var(--muted) 70%, var(--editor-bg));
+}
+.md-body .todo-cancel > .todo-head {
+  color: var(--muted);
+}
+/* The open state has no hue of its own: body text, and its children dimmed. */
+.md-body .todo-todo {
+  color: color-mix(in srgb, var(--editor-fg) 55%, var(--editor-bg));
+}
+.md-body .todo-todo > .todo-head {
+  color: var(--editor-fg);
+}
+
 /* ---- Markdown preview --------------------------------------------------- */
 
 .md-preview {
