@@ -55,6 +55,7 @@ import {
   keymap,
 } from "@uiw/react-codemirror";
 import type { DecorationSet, ViewUpdate } from "@uiw/react-codemirror";
+import { kindOf, todoGlyphSvg } from "./todo-glyph";
 import {
   LINE_TAG,
   ownersForRange,
@@ -101,94 +102,6 @@ export const LINE_DECOS: Record<string, Decoration> = {
   DISMISSED: Decoration.line({ class: "cm-todo-line-cancel" }),
 };
 
-/** State → the CSS/glyph name used for it. */
-const KINDS: Record<string, string> = {
-  TODO: "todo",
-  DOING: "doing",
-  PAUSE: "pause",
-  WAIT: "wait",
-  ATTN: "attn",
-  DONE: "done",
-  FAIL: "fail",
-  CANCEL: "cancel",
-};
-
-/**
- * Every glyph is Lucide, verbatim, inlined as raw path data because the widget
- * is plain DOM (no React) — and drawn the way Lucide draws it: stroked
- * outline, round caps and joins, nothing filled.
- */
-const GLYPH_PATHS: Record<string, string[]> = {
-  // check — path spans y 6–17 (center 11.5), viewBox shifted to compensate
-  done: ["M20 6 9 17l-5-5"],
-  // x
-  fail: ["M18 6 6 18", "m6 6 12 12"],
-  // minus — the classic "dismissed / not applicable"
-  cancel: ["M5 12h14"],
-  // asterisk — "look at this one"
-  attn: ["M12 6v12", "M17.196 9 6.804 15", "m6.804 9 10.392 6"],
-  // play
-  doing: [
-    "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z",
-  ],
-  // hourglass — time passing, and not by your hand. The only glyph with
-  // enough internal detail to need a thinner stroke (see STROKE).
-  wait: [
-    "M5 22h14",
-    "M5 2h14",
-    "M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22",
-    "M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2",
-  ],
-};
-
-/** One stroke weight for every glyph — a set of icons that disagree about line
-    width stops looking like a set. It is heavier than Lucide's own 2 because
-    the glyph renders at ~8px here, and no heavier than this because the
-    shapes that enclose space (play, pause, hourglass, asterisk) close up. */
-const STROKE = 2.5;
-
-/**
- * Where each glyph's ink actually sits in Lucide's 24-unit grid — [x0,y0,x1,y1],
- * read off the path data above.
- *
- * Lucide draws every icon on the same grid but none of them fill it the same
- * way: the hourglass runs the full 20 units tall while the x spans 12, so at
- * this size the hourglass renders half again as big as the x sitting right
- * under it. Inside a checkbox that reads as sloppiness, not as variety. So each
- * glyph is scaled to put its longest side at the same length and centered on
- * the box — and the stroke is divided by that scale, so normalizing the size
- * does not un-normalize the line weight.
- */
-const INK: Record<string, [number, number, number, number]> = {
-  doing: [5, 3.27, 20.01, 20.73],
-  pause: [5, 3, 19, 21],
-  wait: [5, 2, 19, 22],
-  attn: [6.8, 6, 17.2, 18],
-  done: [4, 6, 20, 17],
-  fail: [6, 6, 18, 18],
-  cancel: [5, 12, 19, 12],
-};
-
-/** Units the longest side of every glyph ends up at, of the 24-unit grid. */
-const INK_TARGET = 16;
-
-/** The transform that lands a glyph's ink on INK_TARGET, centered, and the
-    scale it used (the caller divides the stroke by it). */
-function fit(kind: string): { transform: string; scale: number } {
-  const [x0, y0, x1, y1] = INK[kind] ?? [0, 0, 24, 24];
-  const scale = INK_TARGET / Math.max(x1 - x0, y1 - y0);
-  const r = (n: number) => Math.round(n * 1000) / 1000;
-  const tx = r(12 - (scale * (x0 + x1)) / 2);
-  const ty = r(12 - (scale * (y0 + y1)) / 2);
-  return { transform: `translate(${tx} ${ty}) scale(${r(scale)})`, scale };
-}
-
-/** Lucide `pause` — two rounded bars, stroked like the rest. */
-const PAUSE_BARS: [number, number][] = [
-  [5, 3],
-  [14, 3],
-];
-
 class TodoBox extends WidgetType {
   constructor(readonly state: string) {
     super();
@@ -198,48 +111,15 @@ class TodoBox extends WidgetType {
   }
   toDOM() {
     const box = document.createElement("span");
-    const state = norm(this.state);
-    const kind = KINDS[state] ?? "cancel";
+    const kind = kindOf(norm(this.state));
     box.className = `cm-todo-box cm-todo-box-${kind}`;
     // The visible square. Inner element so it can be drawn from the zero-height
     // anchor (see App.css) without nudging the line's baseline.
     const glyph = document.createElement("span");
     glyph.className = "cm-todo-glyph";
-    if (kind !== "todo") {
-      const NS = "http://www.w3.org/2000/svg";
-      const svg = document.createElementNS(NS, "svg");
-      svg.setAttribute("viewBox", "0 0 24 24");
-      svg.setAttribute("fill", "none");
-      svg.setAttribute("stroke", "currentColor");
-      svg.setAttribute("stroke-linecap", "round");
-      svg.setAttribute("stroke-linejoin", "round");
-      // Everything is drawn inside this group: it carries the size
-      // normalization, and the stroke divided by that scale so the rendered
-      // line weight comes out the same for every glyph.
-      const { transform, scale } = fit(kind);
-      const g = document.createElementNS(NS, "g");
-      g.setAttribute("transform", transform);
-      g.setAttribute("stroke-width", String(Math.round((STROKE / scale) * 1000) / 1000));
-      svg.appendChild(g);
-      if (kind === "pause") {
-        for (const [x, y] of PAUSE_BARS) {
-          const bar = document.createElementNS(NS, "rect");
-          bar.setAttribute("x", String(x));
-          bar.setAttribute("y", String(y));
-          bar.setAttribute("width", "5");
-          bar.setAttribute("height", "18");
-          bar.setAttribute("rx", "1");
-          g.appendChild(bar);
-        }
-      } else {
-        for (const d of GLYPH_PATHS[kind]) {
-          const p = document.createElementNS(NS, "path");
-          p.setAttribute("d", d);
-          g.appendChild(p);
-        }
-      }
-      glyph.appendChild(svg);
-    }
+    // Same markup the preview inlines — see todo-glyph.ts. Our own constants,
+    // no user text, so there is nothing here to sanitise.
+    glyph.innerHTML = todoGlyphSvg(kind);
     box.appendChild(glyph);
     box.title =
       kind === "done" || kind === "fail" || kind === "cancel"

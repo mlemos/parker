@@ -1,4 +1,5 @@
 import MarkdownIt from "markdown-it";
+import { todoPlugin } from "./todo-markdown-it";
 
 // html:false keeps raw HTML in notes from executing (renders as text);
 // markdown-it also validates link schemes, so javascript: links are dropped.
@@ -7,6 +8,9 @@ const md = new MarkdownIt({
   linkify: true,
   typographer: true,
 });
+
+// To-do lines render as to-do items here too, not as the literal text "/DONE".
+md.use(todoPlugin);
 
 // GFM-style task lists: markdown-it leaves "[ ]" / "[x]" as literal text, so
 // swap them for disabled checkboxes at the start of a list item.
