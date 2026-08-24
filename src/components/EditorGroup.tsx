@@ -1,7 +1,5 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import CodeMirror from "@uiw/react-codemirror";
+import { useDeferredValue, useEffect, useState } from "react";
 import type { Extension } from "@uiw/react-codemirror";
-import { EditorView, Prec } from "@uiw/react-codemirror";
 import {
   SquareSplitHorizontal,
   SquareSplitVertical,
@@ -12,11 +10,10 @@ import {
   Plus,
 } from "lucide-react";
 import { languageForName } from "../lib/lang";
-import { todoHighlighter, todoKeymap } from "../lib/todo";
-import { setActiveView } from "../lib/latency";
 import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Group } from "../lib/layout";
 import { isMarkdown } from "../lib/markdown";
+import { Editor } from "./Editor";
 import { RenameInput } from "./RenameInput";
 import { MarkdownPreview } from "./MarkdownPreview";
 
@@ -89,40 +86,6 @@ export function EditorGroup({
       alive = false;
     };
   }, [active]);
-
-  // All three of these MUST be identity-stable across renders: react-codemirror
-  // dispatches a full StateEffect.reconfigure whenever extensions, basicSetup
-  // or onChange change identity — inline literals here meant a top-level
-  // reconfigure per keystroke in every pane.
-  const cmExtensions: Extension[] = useMemo(
-    () => [
-      Prec.highest(theme.cm),
-      ...(wrapOn ? [EditorView.lineWrapping] : []),
-      todoHighlighter,
-      todoKeymap,
-      ...langExt,
-    ],
-    [theme, wrapOn, langExt]
-  );
-
-  const cmSetup = useMemo(
-    () => ({
-      lineNumbers: gutterOn,
-      foldGutter: false,
-      highlightActiveLine: true,
-      highlightActiveLineGutter: gutterOn,
-      highlightSelectionMatches: false,
-      syntaxHighlighting: false,
-    }),
-    [gutterOn]
-  );
-
-  const onCmChange = useCallback(
-    (v: string) => {
-      if (active) cb.onChange(active, v);
-    },
-    [cb.onChange, active]
-  );
 
   return (
     <div className={"egroup" + (focused ? " focused" : "")} onMouseDown={cb.onFocus}>
@@ -303,16 +266,16 @@ export function EditorGroup({
         {activeBuf && showPreview ? (
           <MarkdownPreview content={previewContent} />
         ) : activeBuf ? (
-          <CodeMirror
-            key={`${group.id}:${activeBuf.name}`}
-            value={activeBuf.content}
-            onChange={onCmChange}
-            theme={theme.mode}
-            extensions={cmExtensions}
-            height="100%"
-            autoFocus={focused}
-            onCreateEditor={(view) => setActiveView(view)}
-            basicSetup={cmSetup}
+          <Editor
+            tab={activeBuf.name}
+            tabs={group.tabs}
+            content={activeBuf.content}
+            focused={focused}
+            theme={theme}
+            gutterOn={gutterOn}
+            wrapOn={wrapOn}
+            langExt={langExt}
+            onChange={cb.onChange}
           />
         ) : (
           <div className="empty-pane">
