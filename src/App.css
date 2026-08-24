@@ -1393,6 +1393,80 @@ body.resizing {
 }
 
 
+/* ---- Folding ------------------------------------------------------------ */
+
+/* Chevrons live in the gutter with the line numbers. An open one (this can be
+   folded) only shows while the pointer is over the editor, so a note you are
+   just reading has no furniture in the margin; a closed one (this IS folded)
+   always shows, because a fold that hides itself is a trap. */
+/* Not centred in the gutter element: a wrapped line's element is as tall as all
+   its visual rows, so centring drops the chevron into the gap between them. The
+   line number stays on the first row because it flows as text — the chevron is
+   given the height of exactly one row so it does the same. */
+.editor-wrap .cm-foldGutter .cm-gutterElement {
+  display: block;
+  padding: 0 3px 0 1px;
+}
+.cm-fold-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.8em;
+  height: 1.6em; /* one line, matching .cm-scroller's line-height */
+  color: var(--muted);
+  cursor: pointer;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.cm-fold-marker svg {
+  width: 0.68em;
+  height: 0.68em;
+  display: block;
+}
+.cm-fold-marker.open {
+  opacity: 0;
+}
+.editor-wrap:hover .cm-fold-marker.open {
+  opacity: 0.75;
+}
+.cm-fold-marker:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+.cm-fold-marker.closed {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* The number of a folded line joins its chevron, so a closed fold is legible
+   from the gutter alone when scanning a long note. */
+.editor-wrap .cm-lineNumbers .cm-folded-number {
+  color: var(--accent);
+}
+
+/* What a fold leaves behind: the number of hidden lines as a badge, in the same
+   language as the git chip's pending count — accent on an accent tint. Small
+   enough to sit mid-sentence without becoming a word. Clicking it unfolds. */
+/* Prefixed with .editor-wrap on purpose: CodeMirror's base theme ships
+   .cm-editor .cm-foldPlaceholder with a light-grey fill and border, which
+   outspecifies a bare class. That is why this badge came out white while its
+   :hover — one pseudo-class heavier — looked right. */
+.editor-wrap .cm-foldPlaceholder {
+  margin: 0 4px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  font-size: 0.78em;
+  font-weight: 600;
+  line-height: 1.55;
+  cursor: pointer;
+  vertical-align: baseline;
+}
+.editor-wrap .cm-foldPlaceholder:hover {
+  background: color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
 /* ---- Status bar --------------------------------------------------------- */
 
 .statusbar {

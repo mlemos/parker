@@ -8,6 +8,7 @@ import {
   getDefaultExtensions,
 } from "@uiw/react-codemirror";
 import type { Extension } from "@uiw/react-codemirror";
+import { foldMarkers, folding } from "../lib/fold";
 import { todoHighlighter, todoKeymap } from "../lib/todo";
 import { setActiveView } from "../lib/latency";
 import type { ThemeDef } from "../lib/themes";
@@ -93,17 +94,24 @@ export function Editor({
     EditorView.theme({}, { dark: t.mode === "dark" }),
   ];
   const wrapExt = (on: boolean): Extension => (on ? EditorView.lineWrapping : []);
-  const gutterExt = (on: boolean): Extension =>
+  // The chevron column rides with the line numbers: one gutter, one switch.
+  // Order matters — gutters are laid out in the order their extensions are
+  // added, so the numbers come first and the chevrons sit between them and the
+  // text, which is where CodeMirror itself puts them.
+  const gutterExt = (on: boolean): Extension => [
     getDefaultExtensions({
       basicSetup: {
         lineNumbers: on,
+        // Ours (foldMarkers) instead — uiw's would draw its own arrows.
         foldGutter: false,
         highlightActiveLine: true,
         highlightActiveLineGutter: on,
         highlightSelectionMatches: false,
         syntaxHighlighting: false,
       },
-    });
+    }),
+    on ? foldMarkers : [],
+  ];
 
   const makeState = (doc: string) => {
     const c = compartments.current;
@@ -116,6 +124,7 @@ export function Editor({
         c.lang.of(langExt),
         todoHighlighter,
         todoKeymap,
+        folding,
         EditorView.updateListener.of((u) => {
           if (!u.docChanged) return;
           const value = u.state.doc.toString();

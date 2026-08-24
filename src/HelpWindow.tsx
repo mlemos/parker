@@ -77,6 +77,8 @@ const EDITOR: Section[] = [
       ["Outdent / Indent", ["⌘[", "⌘]"]],
       ["Indent / outdent selection", ["Tab", "⇧Tab"]],
       ["Delete line", ["⌘⇧K"]],
+      ["Fold / unfold", ["⌘⌥[", "⌘⌥]"]],
+      ["Fold / unfold everything", ["⌃⌥[", "⌃⌥]"]],
       ["Copy line up / down", ["⌘⌥↑", "⌘⌥↓"]],
       ["Move line up / down", ["⌥↑", "⌥↓"]],
     ],
