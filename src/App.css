@@ -1206,8 +1206,9 @@ body.resizing {
   display: flex;
   position: relative;
 }
-/* The react-codemirror wrapper must fill the height, otherwise cm-editor's
-   height:100% resolves against an auto-height box and content is clipped
+/* The element CodeMirror is mounted into must fill the height, otherwise
+   cm-editor's height:100% resolves against an auto-height box and content is
+   clipped
    (no scroll) instead of scrolling. */
 .editor-wrap > * {
   flex: 1;
