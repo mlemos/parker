@@ -59,7 +59,11 @@ const blank = (text: string) => !text.trim();
  * first service that responds — so this one has to stand aside rather than
  * race it.
  */
-export const indentFold = foldService.of((state: EditorState, from: number, to: number) => {
+export function indentedFoldRange(
+  state: EditorState,
+  from: number,
+  to: number
+): { from: number; to: number } | null {
   const line = state.doc.lineAt(from);
   if (blank(line.text)) return null;
   if (/^\s*#{1,6}\s/.test(line.text)) return null;
@@ -73,7 +77,9 @@ export const indentFold = foldService.of((state: EditorState, from: number, to: 
     end = next.to;
   }
   return end < 0 ? null : { from: to, to: end };
-});
+}
+
+export const indentFold = foldService.of(indentedFoldRange);
 
 /** Lucide `chevron-down` and `chevron-right`, drawn the way every other glyph in
     the app is: stroked, round caps, one stroke width. */
