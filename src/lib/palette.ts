@@ -54,6 +54,9 @@ export const tw = {
   fuchsia: {
     300: "#f0abfc", 400: "#e879f9", 500: "#d946ef", 600: "#c026d3",
   },
+  purple: {
+    300: "#d8b4fe", 400: "#c084fc", 500: "#a855f7", 600: "#9333ea",
+  },
   violet: {
     300: "#c4b5fd", 400: "#a78bfa", 500: "#8b5cf6", 600: "#7c3aed",
   },

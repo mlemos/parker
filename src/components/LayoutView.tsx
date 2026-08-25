@@ -25,6 +25,7 @@ export interface LayoutHandlers {
   onTabDragStart: () => void;
   onTabDragEnd: () => void;
   onCloseGroup: (groupId: string) => void;
+  onResolveConflict: (name: string, take: "disk" | "mine") => void;
   onResize: (splitId: string, index: number, delta: number) => void;
   onEqualize: (splitId: string, index: number) => void;
 }
@@ -66,6 +67,7 @@ export function LayoutView({
       onTabDragStart: common.h.onTabDragStart,
       onTabDragEnd: common.h.onTabDragEnd,
       onCloseGroup: () => common.h.onCloseGroup(g.id),
+      onResolveConflict: common.h.onResolveConflict,
     };
     return (
       <EditorGroup

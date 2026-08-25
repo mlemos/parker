@@ -7,6 +7,17 @@ export interface Buffer {
   name: string; // filename — unique id for the note
   content: string;
   dirty: boolean;
+  /** Lines (1-based) rewritten by the last reload from disk. Cleared by the
+   *  first keystroke in the note — see workspace.editBuffer. */
+  changed?: number[];
+  /** Why the last read or write of this note failed. Until now a failed save
+   *  only reached the console, so a note that could not be written looked
+   *  exactly like one that had been. */
+  error?: string;
+  /** Set when the file changed on disk while this buffer had unsaved edits:
+   *  two versions exist and only the user can pick. Autosave stays out of the
+   *  note until it is resolved, so nothing decides this by default. */
+  conflict?: { disk: string };
 }
 
 export interface Group {

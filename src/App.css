@@ -217,18 +217,38 @@ body,
   text-overflow: ellipsis;
 }
 
+/* Status left of the name, the close button right of it: one side says what the
+   note is, the other acts on it.
+   One dot carries every state a tab can be in, by colour — green for your own
+   unsaved typing, amber for text that arrived from outside and you haven't read,
+   red when both are true and only you can decide which survives. */
 .tab-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: transparent;
   flex: none;
 }
-.tab-dot.dirty {
-  background: var(--accent);
+/* Dimmed on purpose: "saved" is the resting state, on nearly every tab nearly
+   all the time. At full strength it competes with the four states that actually
+   ask for something. Mixed with transparent rather than set with opacity, so it
+   does not depend on what the parent's opacity happens to be. */
+.tab-dot.saved {
+  background: color-mix(in srgb, var(--todo-green) 42%, transparent);
 }
-
+.tab-dot.dirty {
+  background: var(--todo-cyan);
+}
+.tab-dot.unseen {
+  background: var(--todo-amber);
+}
+.tab-dot.conflict {
+  background: var(--todo-purple);
+}
+.tab-dot.error {
+  background: var(--todo-red);
+}
 .tab-close {
+  margin-left: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -782,11 +802,11 @@ body,
 }
 .cm-todo-child-wait,
 .cm-todo-child-wait span {
-  color: color-mix(in srgb, var(--todo-slate) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-purple) 55%, var(--editor-bg));
 }
 .cm-todo-child-attn,
 .cm-todo-child-attn span {
-  color: color-mix(in srgb, var(--todo-yellow) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-amber) 55%, var(--editor-bg));
 }
 .cm-todo-child-done,
 .cm-todo-child-done span {
@@ -924,16 +944,16 @@ body.resizing {
   color: var(--todo-blue);
 }
 .md-body .todo-wait {
-  color: color-mix(in srgb, var(--todo-slate) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-purple) 55%, var(--editor-bg));
 }
 .md-body .todo-wait > .todo-head {
-  color: var(--todo-slate);
+  color: var(--todo-purple);
 }
 .md-body .todo-attn {
-  color: color-mix(in srgb, var(--todo-yellow) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-amber) 55%, var(--editor-bg));
 }
 .md-body .todo-attn > .todo-head {
-  color: var(--todo-yellow);
+  color: var(--todo-amber);
 }
 .md-body .todo-done {
   color: color-mix(in srgb, var(--todo-green) 55%, var(--editor-bg));
@@ -1262,14 +1282,28 @@ body.resizing {
      red-not-yet-arrived (amber), and the two stalled states decay from cyan
      toward CANCEL's grey by losing saturation — PAUSE still near motion,
      WAIT further from it. Move one and you break the story. */
-  --todo-green: #2fd45f; /* DONE — the good pole */
-  --todo-cyan: #22c5f0; /* DOING — on the way to green */
-  --todo-blue: #62a0da; /* PAUSE — motion, suspended by you */
-  --todo-slate: #8e9fcc; /* WAIT — suspended by someone else, nearer grey */
-  --todo-yellow: #ffb224; /* ATTN — on the way to red */
-  --todo-red: #ff4d4f; /* FAIL — the bad pole */
-  /* Ink for text sitting on a vivid to-do fill — dark in every theme, since
-     the fills are mid-tone colors that never go dark. */
+  /* Tailwind 400 across the board: on a black canvas the 500s go muddy, and
+     these marks are small — a 7px dot and a checkbox glyph have to carry their
+     colour at a glance. Same rule as palette.ts: every value is a named swatch.
+     DONE / FAIL / CANCEL are the three poles; DOING and ATTN are diluted
+     versions of the pole they head toward. PAUSE and WAIT used to be a ramp
+     decaying from DOING's cyan toward CANCEL's grey, but the far end of that
+     ramp (slate) was too washed out to read at this size — so they are now two
+     *kinds* of stall rather than two degrees of one: blue for the work you
+     stopped, purple for the work somebody else is holding. */
+  --todo-green: #4ade80; /* green-400  · DONE — the good pole */
+  --todo-cyan: #22d3ee; /* cyan-400   · DOING — on the way to green */
+  --todo-blue: #60a5fa; /* blue-400   · PAUSE — motion, suspended by you */
+
+  --todo-amber: #fbbf24; /* amber-400  · ATTN — on the way to red */
+  /* One colour for "somebody else is involved": /WAIT is work another person is
+     holding, a conflict is text another writer changed. Two surfaces — a
+     checkbox in the text, a dot on the tab — one meaning. */
+  --todo-purple: #c084fc; /* purple-400 · WAIT, and conflict */
+  /* red-500, not 400: the Tailwind ramp lightens by dropping saturation, and
+     in the reds that lands on salmon. The one place the 400 rule costs more
+     than it gives. */
+  --todo-red: #ef4444; /* red-500    · FAIL — the bad pole */
   --todo-ink: #10131a;
 }
 /* inline-block + vertical-align: middle keeps alignment independent of the
@@ -1330,12 +1364,12 @@ body.resizing {
   border-color: var(--todo-blue);
 }
 .cm-todo-box-wait .cm-todo-glyph {
-  background: var(--todo-slate);
-  border-color: var(--todo-slate);
+  background: var(--todo-purple);
+  border-color: var(--todo-purple);
 }
 .cm-todo-box-attn .cm-todo-glyph {
-  background: var(--todo-yellow);
-  border-color: var(--todo-yellow);
+  background: var(--todo-amber);
+  border-color: var(--todo-amber);
 }
 .cm-todo-box-done .cm-todo-glyph {
   background: var(--todo-green);
@@ -1362,11 +1396,11 @@ body.resizing {
 }
 .cm-todo-line-wait,
 .cm-todo-line-wait span {
-  color: var(--todo-slate);
+  color: var(--todo-purple);
 }
 .cm-todo-line-attn,
 .cm-todo-line-attn span {
-  color: var(--todo-yellow);
+  color: var(--todo-amber);
 }
 .cm-todo-line-done,
 .cm-todo-line-done span {
@@ -1465,6 +1499,78 @@ body.resizing {
 }
 .editor-wrap .cm-foldPlaceholder:hover {
   background: color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+/* ---- Changed on disk ----------------------------------------------------- */
+
+/* Amber, not the accent: green in Parker means a change of *yours* — the unsaved
+   dot, the git badge. Text that arrived from outside has a different owner.
+   State rather than animation, and quiet enough to read through, because it
+   stays until you type in the note. */
+.editor-wrap .cm-line-changed,
+.editor-wrap .cm-changed-gutter {
+  background: color-mix(in srgb, var(--todo-amber) 13%, transparent);
+}
+/* When the cursor lands on a line that changed, the amber wins over the active
+   line's green — but twice as strong as a merely-changed line, or the cursor
+   disappears into the band. Stated here rather than left to whichever
+   stylesheet loaded last: the mark is the rarer, more perishable information,
+   and the first keystroke takes the amber away and gives the green back. */
+.editor-wrap .cm-line-changed.cm-activeLine,
+.editor-wrap .cm-changed-gutter.cm-activeLineGutter {
+  background: color-mix(in srgb, var(--todo-amber) 26%, transparent);
+}
+
+/* Violet, like the dot on the tab: amber means "text arrived from outside",
+   violet means "two versions exist and only you can choose". The bar and the
+   dot are the same message at two distances, so they cannot disagree. */
+.conflict-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: color-mix(in srgb, var(--todo-purple) 15%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--todo-purple) 42%, transparent);
+  color: var(--todo-purple);
+  font-size: 12px;
+}
+.conflict-msg {
+  flex: 1;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.conflict-btn {
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.conflict-btn:hover {
+  border-color: var(--todo-purple);
+}
+.conflict-btn.primary {
+  background: var(--todo-purple);
+  border-color: var(--todo-purple);
+  color: var(--todo-ink);
+  font-weight: 600;
+}
+
+.status-reloaded {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--todo-amber) 18%, transparent);
+  color: var(--todo-amber);
+  white-space: nowrap;
 }
 
 /* ---- Status bar --------------------------------------------------------- */
