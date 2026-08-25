@@ -6,11 +6,13 @@ import {
   Palette,
   Settings as SettingsIcon,
   CircleQuestionMark,
+  RefreshCw,
 } from "lucide-react";
 import { EditorView } from "@uiw/react-codemirror";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen, emit } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
+import { changedLines } from "./lib/linediff";
 import { prettyPath } from "./lib/path";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import {
@@ -151,11 +153,20 @@ export default function App() {
     }
     const buf = stateRef.current.buffers.find((b) => b.name === name);
     if (!buf) return;
+    // A note with an open conflict is not autosaved: writing would answer the
+    // question on the user's behalf, in favour of whoever was typing — which is
+    // the silence this whole feature exists to break.
+    if (buf.conflict) return;
     try {
       await api.writeNote(name, buf.content);
-      setBuffers((prev) => ws.markSaved(prev, name));
+      setBuffers((prev) => ws.setError(ws.markSaved(prev, name), name, undefined));
     } catch (e) {
+      // Until now this only reached the console: a note that could not be
+      // written looked exactly like one that had been.
       console.error("save failed", name, e);
+      setBuffers((prev) =>
+        ws.setError(prev, name, `Could not save: ${e instanceof Error ? e.message : e}`)
+      );
     }
   }, []);
 
@@ -408,6 +419,23 @@ export default function App() {
     (name: string, value: string) => {
       setBuffers((prev) => ws.editBuffer(prev, name, value));
       scheduleSave(name);
+    },
+    [scheduleSave]
+  );
+
+  const resolveConflict = useCallback(
+    (name: string, take: "disk" | "mine") => {
+      setBuffers((prev) => {
+        const buf = prev.find((b) => b.name === name);
+        const marks =
+          take === "disk" && buf?.conflict
+            ? changedLines(buf.content, buf.conflict.disk)
+            : [];
+        return ws.resolveConflict(prev, name, take, marks);
+      });
+      // Keeping yours leaves the buffer dirty on purpose: autosave, unblocked
+      // now, is what writes the decision to disk.
+      if (take === "mine") scheduleSave(name);
     },
     [scheduleSave]
   );
@@ -825,16 +853,32 @@ export default function App() {
     const timers = new Map<string, number>();
     const reload = async (name: string) => {
       const before = stateRef.current.buffers.find((b) => b.name === name);
-      if (!before || before.dirty) return;
+      if (!before) return;
       let disk: string;
       try {
         disk = await api.readNote(name);
-      } catch {
+      } catch (e) {
+        setBuffers((prev) =>
+          ws.setError(prev, name, `Could not read: ${e instanceof Error ? e.message : e}`)
+        );
         return;
       }
       const now = stateRef.current.buffers.find((b) => b.name === name);
-      if (!now || now.dirty || now.content === disk) return;
-      setBuffers((prev) => ws.reloadBuffer(prev, name, disk));
+      if (!now || now.content === disk) return;
+      if (now.dirty) {
+        // Two versions exist and only the user can choose. Parker used to keep
+        // theirs in silence and let autosave write it over the other one —
+        // which, when the change came from a git pull, meant the next sync
+        // committed the overwrite too.
+        // Always the latest disk text, even if a conflict is already open: the
+        // file can change again while the bar sits there, and "Use disk
+        // version" must not hand back a version that no longer exists.
+        setBuffers((prev) => ws.markConflict(prev, name, disk));
+        return;
+      }
+      setBuffers((prev) =>
+        ws.reloadBuffer(prev, name, disk, changedLines(now.content, disk))
+      );
     };
     const p = listen<string>("parker://note-changed", (e) => {
       const name = e.payload;
@@ -861,6 +905,11 @@ export default function App() {
     return <div className="parker-loading">Parker</div>;
   }
 
+  // Notes reloaded from disk that the user has not typed over yet. The tab
+  // marks say which; this says that it happened at all, for when the tab strip
+  // is scrolled or the note isn't open in this pane.
+  const reloaded = ws.unseenChanges(buffers);
+
   const handlers: LayoutHandlers = {
     onFocus: focusGroup,
     onSelectTab: selectTab,
@@ -878,6 +927,7 @@ export default function App() {
     onTabDragStart: () => setTabDragging(true),
     onTabDragEnd: () => setTabDragging(false),
     onCloseGroup: closeGroup,
+    onResolveConflict: resolveConflict,
     onResize,
     onEqualize,
   };
@@ -954,6 +1004,15 @@ export default function App() {
 
       <div className="statusbar">
         <span className="status-file">{activeName ?? ""}</span>
+        {reloaded.length > 0 && (
+          <span
+            className="status-reloaded"
+            title={`Reloaded from disk: ${reloaded.join(", ")}`}
+          >
+            <RefreshCw size={11} strokeWidth={2.5} aria-hidden />
+            {reloaded.length} {reloaded.length === 1 ? "note" : "notes"} reloaded
+          </span>
+        )}
         <GitMenu onBeforeCommit={flushAll} />
         <span className="status-spacer" />
         <span className="status-count">{statusCounts}</span>

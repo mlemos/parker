@@ -8,6 +8,11 @@ import {
   getDefaultExtensions,
 } from "@uiw/react-codemirror";
 import type { Extension } from "@uiw/react-codemirror";
+import {
+  External,
+  changedLines,
+  setChangedLines,
+} from "../lib/external-change";
 import { foldMarkers, folding } from "../lib/fold";
 import { todoHighlighter, todoKeymap } from "../lib/todo";
 import { setActiveView } from "../lib/latency";
@@ -44,6 +49,7 @@ export function Editor({
   gutterOn,
   wrapOn,
   langExt,
+  changed,
   onChange,
 }: {
   /** Active tab — the document currently in the view. */
@@ -56,6 +62,8 @@ export function Editor({
   gutterOn: boolean;
   wrapOn: boolean;
   langExt: Extension[];
+  /** Lines (1-based) rewritten by the last reload from disk. */
+  changed: number[] | undefined;
   onChange: (name: string, value: string) => void;
 }) {
   const host = useRef<HTMLDivElement | null>(null);
@@ -79,6 +87,8 @@ export function Editor({
   onChangeRef.current = onChange;
   const contentRef = useRef(content);
   contentRef.current = content;
+  const changedRef = useRef(changed);
+  changedRef.current = changed;
 
   const compartments = useRef({
     theme: new Compartment(),
@@ -125,8 +135,13 @@ export function Editor({
         todoHighlighter,
         todoKeymap,
         folding,
+        changedLines,
         EditorView.updateListener.of((u) => {
           if (!u.docChanged) return;
+          // A reload is not an edit. Reporting it back would mark the buffer
+          // dirty, have autosave write the file it just read, and wipe the
+          // marks the reload had just put on.
+          if (u.transactions.some((tr) => tr.annotation(External))) return;
           const value = u.state.doc.toString();
           emitted.current = value;
           if (loaded.current) onChangeRef.current(loaded.current, value);
@@ -187,7 +202,9 @@ export function Editor({
     const parked = states.current.get(tab);
     const fresh = parked && parked.doc.toString() === contentRef.current;
     v.setState(fresh ? parked : makeState(contentRef.current));
-    v.dispatch({ effects: reconfigure() });
+    v.dispatch({
+      effects: [...reconfigure(), setChangedLines.of(changedRef.current ?? [])],
+    });
     v.scrollDOM.scrollTop = fresh ? scroll.current.get(tab) ?? 0 : 0;
 
     loaded.current = tab;
@@ -221,12 +238,21 @@ export function Editor({
     v.dispatch({
       changes: { from: 0, to: current.length, insert: content },
       // Not something the user typed — a reload from disk or another pane. It
-      // must not become a step that ⌘Z walks back into.
-      annotations: Transaction.addToHistory.of(false),
+      // must not be reported back as an edit, and must not become a step that
+      // ⌘Z walks back into.
+      annotations: [External.of(true), Transaction.addToHistory.of(false)],
     });
     emitted.current = content;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, tab]);
+
+  // ---- Marks left by a reload ----------------------------------------------
+
+  useEffect(() => {
+    const v = view.current;
+    if (!v || loaded.current !== tab) return;
+    v.dispatch({ effects: setChangedLines.of(changed ?? []) });
+  }, [changed, tab]);
 
   // ---- Settings ------------------------------------------------------------
 

@@ -4,12 +4,14 @@ import {
   SquareSplitHorizontal,
   SquareSplitVertical,
   SquaresUnite,
+  TriangleAlert,
   Eye,
   Columns2,
   X,
   Plus,
 } from "lucide-react";
 import { languageForName } from "../lib/lang";
+import { tabStatus } from "../lib/workspace";
 import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Group } from "../lib/layout";
 import { isMarkdown } from "../lib/markdown";
@@ -36,6 +38,7 @@ export interface GroupCallbacks {
   onTabDragStart: () => void;
   onTabDragEnd: () => void;
   onCloseGroup: () => void;
+  onResolveConflict: (name: string, take: "disk" | "mine") => void;
 }
 
 export function EditorGroup({
@@ -115,7 +118,17 @@ export function EditorGroup({
         >
           {group.tabs.map((name, i) => {
             const buf = buffers.find((b) => b.name === name);
-            const dirty = buf?.dirty ?? false;
+            // One dot, one colour per state. Green is stated rather than
+            // implied: a tab that says nothing looks the same as a tab whose
+            // indicator is broken.
+            const status = tabStatus(buf);
+            const dotTitle = {
+              error: buf?.error ?? "Something went wrong",
+              conflict: "Changed on disk while you were editing",
+              unseen: "Reloaded from disk — changed lines are marked",
+              dirty: "Unsaved changes",
+              saved: "Saved",
+            }[status];
             return renamingName === name && focused ? (
               <div key={name} className="tab active editing">
                 <RenameInput
@@ -174,11 +187,11 @@ export function EditorGroup({
                 }}
                 title={`${name}  —  double-click to rename`}
               >
+                {/* Status sits left of the name and the close button right of
+                    it: one side says what the note is, the other acts on it,
+                    and a glance never has to tell them apart. */}
+                <span className={`tab-dot ${status}`} title={dotTitle} />
                 <span className="tab-name">{name}</span>
-                <span
-                  className={"tab-dot" + (dirty ? " dirty" : "")}
-                  aria-hidden
-                />
                 <span
                   className="tab-close"
                   onClick={(e) => {
@@ -262,6 +275,32 @@ export function EditorGroup({
         </div>
       </div>
 
+      {activeBuf?.conflict && (
+        <div className="conflict-bar">
+          <TriangleAlert size={13} strokeWidth={2.5} aria-hidden />
+          {/* Truncates in a narrow pane, so the whole sentence is on the
+              element itself rather than only in the layout. */}
+          <span
+            className="conflict-msg"
+            title="Changed on disk while you were editing"
+          >
+            Changed on disk while you were editing
+          </span>
+          <button
+            className="conflict-btn"
+            onClick={() => cb.onResolveConflict(activeBuf.name, "disk")}
+          >
+            Use disk version
+          </button>
+          <button
+            className="conflict-btn primary"
+            onClick={() => cb.onResolveConflict(activeBuf.name, "mine")}
+          >
+            Keep mine
+          </button>
+        </div>
+      )}
+
       <div className="editor-wrap">
         {activeBuf && showPreview ? (
           <MarkdownPreview content={previewContent} />
@@ -275,6 +314,7 @@ export function EditorGroup({
             gutterOn={gutterOn}
             wrapOn={wrapOn}
             langExt={langExt}
+            changed={activeBuf.changed}
             onChange={cb.onChange}
           />
         ) : (

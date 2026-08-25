@@ -56,9 +56,17 @@ function withLayout(ws: Workspace, layout: LayoutNode): Workspace {
 // keystroke, and reading the list back out of a ref would drop an edit made
 // before the next render.
 
-/** Record a typed edit. The buffer goes dirty; autosave is the caller's job. */
+/** Record a typed edit. The buffer goes dirty; autosave is the caller's job.
+ *
+ *  Typing is also what clears the marks left by an external reload — the one
+ *  rule: nothing else does it, not clicking the tab and not arriving by
+ *  keyboard, because neither of those means you read anything. A conflict is
+ *  deliberately *not* cleared: it is a decision, and typing is not an answer
+ *  to it. */
 export function editBuffer(buffers: Buffer[], name: string, content: string): Buffer[] {
-  return buffers.map((b) => (b.name === name ? { ...b, content, dirty: true } : b));
+  return buffers.map((b) =>
+    b.name === name ? { ...b, content, dirty: true, changed: undefined } : b
+  );
 }
 
 /** Mark a buffer as written to disk. */
@@ -70,10 +78,83 @@ export function markSaved(buffers: Buffer[], name: string): Buffer[] {
  *  machine, another editor. The buffer comes back *clean*: this is not the
  *  user's edit, and leaving it dirty would have autosave write the old content
  *  straight back over the new. */
-export function reloadBuffer(buffers: Buffer[], name: string, content: string): Buffer[] {
+export function reloadBuffer(
+  buffers: Buffer[],
+  name: string,
+  content: string,
+  changed: number[] = []
+): Buffer[] {
   return buffers.map((b) =>
-    b.name === name ? { ...b, content, dirty: false } : b
+    b.name === name
+      ? { ...b, content, dirty: false, changed: changed.length ? changed : undefined }
+      : b
   );
+}
+
+/** The file changed on disk while this buffer had unsaved edits. Both versions
+ *  are kept — the buffer stays as the user left it, the disk text rides along
+ *  — until they choose. */
+export function markConflict(buffers: Buffer[], name: string, disk: string): Buffer[] {
+  return buffers.map((b) => (b.name === name ? { ...b, conflict: { disk } } : b));
+}
+
+/** Answer a conflict. Taking the disk version replaces the buffer and marks the
+ *  lines that moved, exactly as a plain reload would; keeping yours drops the
+ *  disk text and leaves the buffer dirty, so autosave writes it out. */
+export function resolveConflict(
+  buffers: Buffer[],
+  name: string,
+  take: "disk" | "mine",
+  changed: number[] = []
+): Buffer[] {
+  return buffers.map((b) => {
+    if (b.name !== name || !b.conflict) return b;
+    if (take === "mine") return { ...b, conflict: undefined };
+    return {
+      ...b,
+      content: b.conflict.disk,
+      dirty: false,
+      conflict: undefined,
+      changed: changed.length ? changed : undefined,
+    };
+  });
+}
+
+/** Record (or clear, with undefined) why this note could not be read or written. */
+export function setError(
+  buffers: Buffer[],
+  name: string,
+  error: string | undefined
+): Buffer[] {
+  return buffers.map((b) => (b.name === name ? { ...b, error } : b));
+}
+
+/**
+ * What a tab's status dot is saying, most serious first.
+ *
+ * Green is the resting state, and it is stated rather than implied: a tab that
+ * says nothing is indistinguishable from a tab whose indicator is broken.
+ *
+ *   error     something failed and the note may not be on disk at all
+ *   conflict  two versions exist and only the user can choose
+ *   unseen    text arrived from outside and hasn't been read
+ *   dirty     your own typing, not yet written
+ *   saved     on disk, unchanged
+ */
+export type TabStatus = "error" | "conflict" | "unseen" | "dirty" | "saved";
+
+export function tabStatus(buffer: Buffer | undefined): TabStatus {
+  if (!buffer) return "saved";
+  if (buffer.error) return "error";
+  if (buffer.conflict) return "conflict";
+  if (buffer.changed?.length) return "unseen";
+  if (buffer.dirty) return "dirty";
+  return "saved";
+}
+
+/** Notes carrying marks from a reload the user has not typed over yet. */
+export function unseenChanges(buffers: Buffer[]): string[] {
+  return buffers.filter((b) => b.changed?.length).map((b) => b.name);
 }
 
 // ---- Tabs ------------------------------------------------------------------

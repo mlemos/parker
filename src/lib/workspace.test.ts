@@ -530,3 +530,117 @@ describe("a working session", () => {
     expect(names(s).filter((n) => !open.has(n))).toEqual([]);
   });
 });
+
+// ---- External changes ------------------------------------------------------
+// The rules agreed for the reload marks: typing is the only thing that clears
+// them, and a conflict is a decision that nothing resolves by default.
+
+describe("external changes", () => {
+  const buf = (over: Partial<Buffer> = {}): Buffer[] => [
+    { name: "a.md", content: "one\ntwo", dirty: false, ...over },
+  ];
+
+  it("keeps the lines a reload rewrote", () => {
+    const out = ws.reloadBuffer(buf(), "a.md", "one\nTWO", [2]);
+    expect(out[0].changed).toEqual([2]);
+    expect(out[0].dirty).toBe(false);
+  });
+
+  it("leaves no marks behind when nothing moved", () => {
+    expect(ws.reloadBuffer(buf(), "a.md", "one\ntwo", [])[0].changed).toBeUndefined();
+  });
+
+  it("clears the marks on the first keystroke, and only then", () => {
+    const marked = ws.reloadBuffer(buf(), "a.md", "one\nTWO", [2]);
+    expect(ws.editBuffer(marked, "a.md", "one\nTWOx")[0].changed).toBeUndefined();
+    // Anything happening to another note leaves these marks alone.
+    expect(ws.editBuffer(marked, "other.md", "x")[0].changed).toEqual([2]);
+  });
+
+  it("holds both versions while a conflict is open", () => {
+    const mine = ws.editBuffer(buf(), "a.md", "mine");
+    const out = ws.markConflict(mine, "a.md", "theirs");
+    expect(out[0].content).toBe("mine");
+    expect(out[0].conflict?.disk).toBe("theirs");
+    expect(out[0].dirty).toBe(true);
+  });
+
+  it("does not let typing answer a conflict", () => {
+    const clash = ws.markConflict(ws.editBuffer(buf(), "a.md", "mine"), "a.md", "theirs");
+    expect(ws.editBuffer(clash, "a.md", "mine!")[0].conflict?.disk).toBe("theirs");
+  });
+
+  it("takes the disk version, with the moved lines marked", () => {
+    const clash = ws.markConflict(ws.editBuffer(buf(), "a.md", "mine"), "a.md", "theirs");
+    const out = ws.resolveConflict(clash, "a.md", "disk", [1]);
+    expect(out[0].content).toBe("theirs");
+    expect(out[0].dirty).toBe(false);
+    expect(out[0].conflict).toBeUndefined();
+    expect(out[0].changed).toEqual([1]);
+  });
+
+  it("keeps mine, dropping the disk text but staying dirty so it gets written", () => {
+    const clash = ws.markConflict(ws.editBuffer(buf(), "a.md", "mine"), "a.md", "theirs");
+    const out = ws.resolveConflict(clash, "a.md", "mine");
+    expect(out[0].content).toBe("mine");
+    expect(out[0].dirty).toBe(true);
+    expect(out[0].conflict).toBeUndefined();
+  });
+
+  it("lists the notes still carrying marks", () => {
+    const marked = ws.reloadBuffer(buf(), "a.md", "one\nTWO", [2]);
+    expect(ws.unseenChanges(marked)).toEqual(["a.md"]);
+    expect(ws.unseenChanges(ws.editBuffer(marked, "a.md", "x"))).toEqual([]);
+  });
+});
+
+describe("a conflict that keeps changing", () => {
+  it("holds the newest disk text, not the first one seen", () => {
+    const mine = ws.editBuffer(
+      [{ name: "a.md", content: "one", dirty: false }],
+      "a.md",
+      "mine"
+    );
+    const first = ws.markConflict(mine, "a.md", "theirs v1");
+    const second = ws.markConflict(first, "a.md", "theirs v2");
+    expect(second[0].conflict?.disk).toBe("theirs v2");
+    expect(ws.resolveConflict(second, "a.md", "disk")[0].content).toBe("theirs v2");
+  });
+});
+
+describe("tabStatus", () => {
+  const b = (over: Partial<Buffer> = {}): Buffer => ({
+    name: "a.md",
+    content: "x",
+    dirty: false,
+    ...over,
+  });
+
+  it("says saved when there is nothing to report", () => {
+    expect(ws.tabStatus(b())).toBe("saved");
+    expect(ws.tabStatus(undefined)).toBe("saved");
+  });
+
+  it("reports each state on its own", () => {
+    expect(ws.tabStatus(b({ dirty: true }))).toBe("dirty");
+    expect(ws.tabStatus(b({ changed: [1] }))).toBe("unseen");
+    expect(ws.tabStatus(b({ conflict: { disk: "x" } }))).toBe("conflict");
+    expect(ws.tabStatus(b({ error: "disk full" }))).toBe("error");
+  });
+
+  it("ranks by what costs most to miss", () => {
+    // A conflict outranks the unsaved dot it always accompanies; an error
+    // outranks everything, because the note may not be on disk at all.
+    expect(ws.tabStatus(b({ dirty: true, conflict: { disk: "x" } }))).toBe("conflict");
+    expect(ws.tabStatus(b({ dirty: true, changed: [1] }))).toBe("unseen");
+    expect(
+      ws.tabStatus(b({ dirty: true, changed: [1], conflict: { disk: "x" }, error: "boom" }))
+    ).toBe("error");
+  });
+
+  it("clears an error once it is set to undefined", () => {
+    const failed = ws.setError([b()], "a.md", "disk full");
+    expect(ws.tabStatus(failed[0])).toBe("error");
+    expect(ws.tabStatus(ws.setError(failed, "a.md", undefined)[0])).toBe("saved");
+  });
+});
