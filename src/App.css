@@ -1471,6 +1471,13 @@ body.resizing {
   color: var(--accent);
 }
 
+/* The numbers beside a selection brighten with it, the way the active line's
+   number does — a selection spanning six lines should be legible from the
+   margin, not only from the text. */
+.editor-wrap .cm-selectedLineGutter {
+  color: var(--text);
+}
+
 /* The number of a folded line joins its chevron, so a closed fold is legible
    from the gutter alone when scanning a long note. */
 .editor-wrap .cm-lineNumbers .cm-folded-number {
