@@ -1412,7 +1412,7 @@ pub fn run() {
             None,
         ))
         .plugin(
-            // Only Alt+Space is ever registered, so any Pressed event is ours.
+            // Only our own accelerator is ever registered, so any Pressed event is ours.
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
                     use tauri_plugin_global_shortcut::ShortcutState;
@@ -1465,7 +1465,7 @@ pub fn run() {
                 build_tray(app.handle())?;
 
                 // Register the summon/dismiss shortcut (from settings, or the
-                // Alt+Space default) — it toggles Parker from anywhere.
+                // ⌃⌥P default) — it toggles Parker from anywhere.
                 use std::str::FromStr;
                 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
                 let sc = Shortcut::from_str(&current_shortcut()).unwrap_or_else(|_| {

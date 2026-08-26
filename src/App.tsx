@@ -329,6 +329,14 @@ export default function App() {
       "--fg": u.text,
       "--text-muted": u.muted,
       "--tab-bg": u.headerBg,
+      // To-do states. CANCEL isn't here: it is the third pole and already has
+      // a role — --muted, set just above.
+      "--todo-doing": theme.todo.doing,
+      "--todo-pause": theme.todo.pause,
+      "--todo-wait": theme.todo.wait,
+      "--todo-attn": theme.todo.attn,
+      "--todo-done": theme.todo.done,
+      "--todo-fail": theme.todo.fail,
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
@@ -694,6 +702,9 @@ export default function App() {
       } else if (k === "d" && e.shiftKey) {
         e.preventDefault();
         setPerfOpen((v) => !v); // ⌘⇧D — performance monitor overlay
+      } else if (k === "t" && e.shiftKey) {
+        e.preventDefault();
+        cycleTheme(); // ⌘⇧T — next theme (the palette button's tooltip says so)
       } else if (k === "r" && e.shiftKey) {
         e.preventDefault();
         startRename();
@@ -749,6 +760,7 @@ export default function App() {
     previewToSide,
     startRename,
     openPicker,
+    cycleTheme,
   ]);
 
   // Measure keydown → painted frame for real typing, all the time: the cost

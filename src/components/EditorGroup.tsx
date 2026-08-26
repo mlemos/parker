@@ -325,7 +325,7 @@ export function EditorGroup({
                 New note
               </button>
               <div className="empty-hint">
-                ⌘T new · ⌘O open · or drop a tab here
+                ⌘N new · ⌘O open · or drop a tab here
               </div>
             </div>
           </div>

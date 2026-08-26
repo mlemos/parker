@@ -38,6 +38,33 @@ export interface ThemeUI {
   danger: string; // errors / destructive
 }
 
+// ---- To-do states ---------------------------------------------------------
+/**
+ * The colour each live to-do state wears, named by the state and not by the
+ * hue — because "green" is only what DONE happens to look like on the house
+ * themes. On the playa it is creosote; on a phosphor tube it is the tube.
+ *
+ * The palette is derived from the state machine, never picked by eye (the rule
+ * that produced it; see App.css). DONE and FAIL are two of the three poles;
+ * DOING is the pole DONE has not arrived at yet and ATTN is FAIL's; PAUSE and
+ * WAIT are two kinds of stall — one you caused, one somebody else did. TODO is
+ * the origin and wears no colour at all, and CANCEL is the third pole, which
+ * every theme already names: it takes `ui.muted`.
+ *
+ * A theme must keep those relationships legible on its own ground. What it
+ * must not do is keep the hexes: at 8px inside a checkbox, a colour that does
+ * not separate from the text around it is a state nobody can read — which is
+ * exactly what the house green did on Matrix, where the body text is green too.
+ */
+export interface TodoColors {
+  doing: string;
+  pause: string;
+  wait: string; // also the "somebody else changed this" conflict marker
+  attn: string;
+  done: string;
+  fail: string;
+}
+
 export interface ThemeDef {
   id: string;
   label: string;
@@ -45,6 +72,7 @@ export interface ThemeDef {
   cm: Extension;
   ui: ThemeUI; // chrome roles
   syntax: SyntaxColors; // editor content roles
+  todo: TodoColors; // to-do state roles
 }
 
 const MONO =
@@ -176,6 +204,28 @@ function editorTheme(
 }
 
 // ---- Themes --------------------------------------------------------------
+
+// The house to-do ramp, on the Tailwind scale the house themes are built from.
+// Two rungs of it: the 400s carry on a dark ground, and wash out on a light
+// one — the same reason `daySyntax` steps down to the 600s.
+const darkTodo: TodoColors = {
+  doing: tw.cyan[400],
+  pause: tw.blue[400],
+  wait: tw.purple[400],
+  attn: tw.amber[400],
+  done: tw.green[400],
+  // red-500, not 400: the Tailwind ramp lightens by dropping saturation, and
+  // in the reds that lands on salmon.
+  fail: tw.red[500],
+};
+const lightTodo: TodoColors = {
+  doing: tw.cyan[600],
+  pause: tw.blue[600],
+  wait: tw.purple[600],
+  attn: tw.amber[600],
+  done: tw.green[600],
+  fail: tw.red[600],
+};
 
 // Vercel Night — zinc scale + emerald accent, pure-black editor.
 const vercelNightUI: ThemeUI = {
@@ -332,6 +382,234 @@ const githubDarkSyntax: SyntaxColors = {
   invalid: "#f85149",
 };
 
+// ---- Guest themes, ported from mdiagrams ---------------------------------
+// Four palettes drawn for the diagram library next door
+// (mdiagrams/packages/core/src/theme.ts) and brought over whole: same grounds,
+// same accents, same intent. What the diagrams call `background`/`surface`/
+// `text`/`muted`/`accent` becomes Parker's editor, chrome, and three text
+// tiers; the syntax palette is new here, because a diagram has no code in it.
+//
+// They are not built on the Tailwind scales above — that is the point of a
+// guest theme. Each one is a place with its own light, and mixing zinc into it
+// would only make it look like the others.
+
+// Playa — noon, white dust, hard sun, nothing in shade. The only light theme
+// here that isn't paper: the ground has a colour of its own.
+const playaUI: ThemeUI = {
+  editorBg: "#e8e0d0",
+  editorFg: "#3d2f1e",
+  currentLine: alpha("#bf641e", 0.1),
+  selection: alpha("#bf641e", 0.22),
+  headerBg: "#ded4c0",
+  fieldBg: "#f2ece0",
+  tabbarBg: "#e2d9c8",
+  tabActiveBg: "#f2ece0",
+  statusBg: "#ded4c0",
+  popoverBg: "#f2ece0",
+  text: "#3d2f1e",
+  secondary: "#5f4d38",
+  muted: "#8a7860",
+  border: "rgba(84, 66, 44, 0.28)",
+  accent: "#bf641e",
+  onAccent: "#f7f2e8",
+  danger: "#b3301c",
+};
+
+// Sun-bleached: the hues are all things the place actually is — rust, sage,
+// creosote, the one teal that is always somebody's shade structure.
+const playaSyntax: SyntaxColors = {
+  plain: "#3d2f1e",
+  heading: "#bf641e",
+  bold: "#8f4a12",
+  italic: "#4f7373",
+  list: "#845947",
+  inlineCode: "#7a5c2e",
+  keyword: "#a8471c",
+  string: "#5b6b3a",
+  number: "#8d6b1f",
+  func: "#4f7373",
+  comment: "#8a7860",
+  punct: "#6b5a44",
+  link: "#2f6f6f",
+  invalid: "#b3301c",
+};
+
+// Playa at Night — the same place after dark, when everything visible is lit
+// from within. Deep ground, and a palette of things that glow rather than
+// reflect: el wire, neon, the flame effect two blocks over.
+const playaNightUI: ThemeUI = {
+  editorBg: "#0b0a14",
+  editorFg: "#ddd6ff",
+  currentLine: alpha("#968cdc", 0.12),
+  selection: alpha("#ff785a", 0.24),
+  headerBg: "#121022",
+  fieldBg: "#0b0a14",
+  tabbarBg: "#0e0c1a",
+  tabActiveBg: "#1b1830",
+  statusBg: "#121022",
+  popoverBg: "#121022",
+  text: "#ddd6ff",
+  secondary: "#a49bd0",
+  muted: "#8b83b5",
+  border: "rgba(150, 140, 220, 0.24)",
+  accent: "#ff785a",
+  onAccent: "#0b0a14",
+  danger: "#ff5a7a",
+};
+
+const playaNightSyntax: SyntaxColors = {
+  plain: "#ddd6ff",
+  heading: "#ff785a",
+  bold: "#ffb26b",
+  italic: "#5adcc8",
+  list: "#b9a8ff",
+  inlineCode: "#ff9ecb",
+  keyword: "#bd93ff",
+  string: "#5adcc8",
+  number: "#ffb26b",
+  func: "#7fd1ff",
+  comment: "#8b83b5",
+  punct: "#9a92c4",
+  link: "#7fd1ff",
+  invalid: "#ff5a7a",
+};
+
+// Matrix — phosphor green on black, the falling-code look. One hue and a
+// brightness ladder, which is what a P1 tube actually gave you.
+const matrixUI: ThemeUI = {
+  editorBg: "#000500",
+  editorFg: "#7dffa4",
+  currentLine: alpha("#00ff66", 0.1),
+  selection: alpha("#00ff66", 0.25),
+  headerBg: "#00190a",
+  fieldBg: "#000500",
+  tabbarBg: "#001206",
+  tabActiveBg: "#00250f",
+  statusBg: "#00190a",
+  popoverBg: "#00190a",
+  text: "#7dffa4",
+  secondary: "#4ec97a",
+  muted: "#2f8f4f",
+  border: "rgba(0, 255, 102, 0.28)",
+  accent: "#00ff66",
+  onAccent: "#000500",
+  // The one thing here that isn't green, and deliberately: a destructive
+  // action that blends into the phosphor is a destructive action nobody sees.
+  danger: "#ff4f4f",
+};
+
+const matrixSyntax: SyntaxColors = {
+  plain: "#7dffa4",
+  heading: "#00ff66",
+  bold: "#b6ffcc",
+  italic: "#5fd68a",
+  list: "#2fbe5f",
+  inlineCode: "#9dffc0",
+  keyword: "#00ff66",
+  string: "#42ad46",
+  number: "#c8ff7d",
+  func: "#70c29a",
+  comment: "#2f8f4f",
+  punct: "#4a9c68",
+  link: "#00ffcc",
+  invalid: "#ff4f4f",
+};
+
+// Blueprint — cyanotype: pale technical linework on deep drawing-office blue.
+// White is the ink here, not the paper, so headings and type names are the
+// brightest thing on the sheet.
+const blueprintUI: ThemeUI = {
+  editorBg: "#0c2a55",
+  editorFg: "#dbe9ff",
+  currentLine: alpha("#cbe3ff", 0.08),
+  selection: alpha("#a6d8ff", 0.24),
+  headerBg: "#0f3466",
+  fieldBg: "#0c2a55",
+  tabbarBg: "#0a2549",
+  tabActiveBg: "#143d78",
+  statusBg: "#0f3466",
+  popoverBg: "#0f3466",
+  text: "#dbe9ff",
+  secondary: "#b3cdf0",
+  muted: "#84a4cd",
+  border: "rgba(210, 232, 255, 0.30)",
+  accent: "#a6d8ff",
+  onAccent: "#0c2a55",
+  // A red would be a second ink the process never had; the correction on a
+  // cyanotype is a warm chalk, and it reads on this ground.
+  danger: "#ff9d8a",
+};
+
+const blueprintSyntax: SyntaxColors = {
+  plain: "#dbe9ff",
+  heading: "#ffffff",
+  bold: "#ffffff",
+  italic: "#a6d8ff",
+  list: "#94cdff",
+  inlineCode: "#cbe3ff",
+  keyword: "#a6d8ff",
+  string: "#a1bdc6",
+  number: "#b8c6e8",
+  func: "#ffffff",
+  comment: "#84a4cd",
+  punct: "#9fb8dd",
+  link: "#a6d8ff",
+  invalid: "#ff9d8a",
+};
+
+
+// The guests keep their own worlds here too. Each one holds the state
+// machine's relationships — arrival, its approach, two kinds of stall, the two
+// failures — in colours that belong to the place.
+
+// Noon: creosote for done, the sun for attention, the rust for failure, and
+// the teal of somebody's shade structure for work in motion. All dark enough
+// to hold on a dusty ground.
+const playaTodo: TodoColors = {
+  doing: "#2f6f6f",
+  pause: "#334f9e",
+  wait: "#7a4f8a",
+  attn: "#bf641e",
+  done: "#5b7a34",
+  fail: "#b3301c",
+};
+
+// After dark, every state is something lit from within.
+const playaNightTodo: TodoColors = {
+  doing: "#41c9ea",
+  pause: "#6aa9ff",
+  wait: "#bd93ff",
+  attn: "#ffb26b",
+  done: "#6ee7a8",
+  fail: "#ff5a7a",
+};
+
+// One tube, mostly. DONE is the phosphor at full brightness and PAUSE is the
+// same tube dimmed; DOING drifts toward cyan because it has not arrived yet,
+// and WAIT greys out because the tube is somebody else's. The two that break
+// the hue are the two that must: ATTN borrows the amber phosphor — the other
+// tube these terminals came in — and FAIL is the theme's red, for the same
+// reason its danger colour is.
+const matrixTodo: TodoColors = {
+  doing: "#00d9a0",
+  pause: "#3fbf72",
+  wait: "#8fb3a5",
+  attn: "#ffb000",
+  done: "#00ff66",
+  fail: "#ff4f4f",
+};
+
+// A drawing office annotates in pale washes, chalk and red pencil, and this
+// palette is those: nothing saturated, everything readable over deep blue.
+const blueprintTodo: TodoColors = {
+  doing: "#a6d8ff",
+  pause: "#4fb3e8",
+  wait: "#c9a8f0",
+  attn: "#ffd28a",
+  done: "#8fd6a8",
+  fail: "#ff9d8a",
+};
+
 export const THEMES: ThemeDef[] = [
   {
     id: "vercel-night",
@@ -340,6 +618,7 @@ export const THEMES: ThemeDef[] = [
     cm: editorTheme(vercelNightUI, "dark", nightSyntax),
     ui: vercelNightUI,
     syntax: nightSyntax,
+    todo: darkTodo,
   },
   {
     id: "vercel-day",
@@ -348,6 +627,7 @@ export const THEMES: ThemeDef[] = [
     cm: editorTheme(vercelDayUI, "light", daySyntax),
     ui: vercelDayUI,
     syntax: daySyntax,
+    todo: lightTodo,
   },
   {
     id: "light",
@@ -356,6 +636,7 @@ export const THEMES: ThemeDef[] = [
     cm: githubLight,
     ui: githubLightUI,
     syntax: githubLightSyntax,
+    todo: lightTodo,
   },
   {
     id: "dark",
@@ -364,6 +645,43 @@ export const THEMES: ThemeDef[] = [
     cm: githubDark,
     ui: githubDarkUI,
     syntax: githubDarkSyntax,
+    todo: darkTodo,
+  },
+  {
+    id: "playa",
+    label: "Playa",
+    mode: "light",
+    cm: editorTheme(playaUI, "light", playaSyntax),
+    ui: playaUI,
+    syntax: playaSyntax,
+    todo: playaTodo,
+  },
+  {
+    id: "playa-night",
+    label: "Playa at Night",
+    mode: "dark",
+    cm: editorTheme(playaNightUI, "dark", playaNightSyntax),
+    ui: playaNightUI,
+    syntax: playaNightSyntax,
+    todo: playaNightTodo,
+  },
+  {
+    id: "matrix",
+    label: "Matrix",
+    mode: "dark",
+    cm: editorTheme(matrixUI, "dark", matrixSyntax),
+    ui: matrixUI,
+    syntax: matrixSyntax,
+    todo: matrixTodo,
+  },
+  {
+    id: "blueprint",
+    label: "Blueprint",
+    mode: "dark",
+    cm: editorTheme(blueprintUI, "dark", blueprintSyntax),
+    ui: blueprintUI,
+    syntax: blueprintSyntax,
+    todo: blueprintTodo,
   },
 ];
 

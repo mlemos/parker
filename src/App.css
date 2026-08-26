@@ -233,19 +233,19 @@ body,
    ask for something. Mixed with transparent rather than set with opacity, so it
    does not depend on what the parent's opacity happens to be. */
 .tab-dot.saved {
-  background: color-mix(in srgb, var(--todo-green) 42%, transparent);
+  background: color-mix(in srgb, var(--todo-done) 42%, transparent);
 }
 .tab-dot.dirty {
-  background: var(--todo-cyan);
+  background: var(--todo-doing);
 }
 .tab-dot.unseen {
-  background: var(--todo-amber);
+  background: var(--todo-attn);
 }
 .tab-dot.conflict {
-  background: var(--todo-purple);
+  background: var(--todo-wait);
 }
 .tab-dot.error {
-  background: var(--todo-red);
+  background: var(--todo-fail);
 }
 .tab-close {
   margin-left: 4px;
@@ -794,27 +794,27 @@ body,
 }
 .cm-todo-child-doing,
 .cm-todo-child-doing span {
-  color: color-mix(in srgb, var(--todo-cyan) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-doing) 55%, var(--editor-bg));
 }
 .cm-todo-child-pause,
 .cm-todo-child-pause span {
-  color: color-mix(in srgb, var(--todo-blue) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-pause) 55%, var(--editor-bg));
 }
 .cm-todo-child-wait,
 .cm-todo-child-wait span {
-  color: color-mix(in srgb, var(--todo-purple) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-wait) 55%, var(--editor-bg));
 }
 .cm-todo-child-attn,
 .cm-todo-child-attn span {
-  color: color-mix(in srgb, var(--todo-amber) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-attn) 55%, var(--editor-bg));
 }
 .cm-todo-child-done,
 .cm-todo-child-done span {
-  color: color-mix(in srgb, var(--todo-green) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-done) 55%, var(--editor-bg));
 }
 .cm-todo-child-fail,
 .cm-todo-child-fail span {
-  color: color-mix(in srgb, var(--todo-red) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-fail) 55%, var(--editor-bg));
 }
 .cm-todo-child-cancel,
 .cm-todo-child-cancel span {
@@ -932,40 +932,40 @@ body.resizing {
   padding-left: var(--todo-box-span);
 }
 .md-body .todo-doing {
-  color: color-mix(in srgb, var(--todo-cyan) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-doing) 55%, var(--editor-bg));
 }
 .md-body .todo-doing > .todo-head {
-  color: var(--todo-cyan);
+  color: var(--todo-doing);
 }
 .md-body .todo-pause {
-  color: color-mix(in srgb, var(--todo-blue) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-pause) 55%, var(--editor-bg));
 }
 .md-body .todo-pause > .todo-head {
-  color: var(--todo-blue);
+  color: var(--todo-pause);
 }
 .md-body .todo-wait {
-  color: color-mix(in srgb, var(--todo-purple) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-wait) 55%, var(--editor-bg));
 }
 .md-body .todo-wait > .todo-head {
-  color: var(--todo-purple);
+  color: var(--todo-wait);
 }
 .md-body .todo-attn {
-  color: color-mix(in srgb, var(--todo-amber) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-attn) 55%, var(--editor-bg));
 }
 .md-body .todo-attn > .todo-head {
-  color: var(--todo-amber);
+  color: var(--todo-attn);
 }
 .md-body .todo-done {
-  color: color-mix(in srgb, var(--todo-green) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-done) 55%, var(--editor-bg));
 }
 .md-body .todo-done > .todo-head {
-  color: var(--todo-green);
+  color: var(--todo-done);
 }
 .md-body .todo-fail {
-  color: color-mix(in srgb, var(--todo-red) 55%, var(--editor-bg));
+  color: color-mix(in srgb, var(--todo-fail) 55%, var(--editor-bg));
 }
 .md-body .todo-fail > .todo-head {
-  color: var(--todo-red);
+  color: var(--todo-fail);
 }
 .md-body .todo-cancel {
   color: color-mix(in srgb, var(--muted) 70%, var(--editor-bg));
@@ -1278,32 +1278,27 @@ body.resizing {
   /* The to-do palette is derived from the state machine, not picked by eye.
      /TODO is the origin (no fill, no hue) and DONE/FAIL/CANCEL are the three
      poles; every live state carries a diluted version of the outcome it is
-     drifting toward. DOING is green-not-yet-arrived (cyan), ATTN is
-     red-not-yet-arrived (amber), and the two stalled states decay from cyan
-     toward CANCEL's grey by losing saturation — PAUSE still near motion,
-     WAIT further from it. Move one and you break the story. */
-  /* Tailwind 400 across the board: on a black canvas the 500s go muddy, and
-     these marks are small — a 7px dot and a checkbox glyph have to carry their
-     colour at a glance. Same rule as palette.ts: every value is a named swatch.
-     DONE / FAIL / CANCEL are the three poles; DOING and ATTN are diluted
-     versions of the pole they head toward. PAUSE and WAIT used to be a ramp
-     decaying from DOING's cyan toward CANCEL's grey, but the far end of that
-     ramp (slate) was too washed out to read at this size — so they are now two
-     *kinds* of stall rather than two degrees of one: blue for the work you
-     stopped, purple for the work somebody else is holding. */
-  --todo-green: #4ade80; /* green-400  · DONE — the good pole */
-  --todo-cyan: #22d3ee; /* cyan-400   · DOING — on the way to green */
-  --todo-blue: #60a5fa; /* blue-400   · PAUSE — motion, suspended by you */
+     drifting toward. DOING is green-not-yet-arrived, ATTN is
+     red-not-yet-arrived, and the two stalled states are two *kinds* of stall
+     rather than two degrees of one — one you caused, one somebody else did.
+     Move one and you break the story.
 
-  --todo-amber: #fbbf24; /* amber-400  · ATTN — on the way to red */
+     The values live in the theme now (TodoColors in lib/themes.ts), because a
+     fixed palette only works while every theme has the same kind of ground:
+     the house green is invisible on Matrix, where the body text is green too.
+     What is left here is the Vercel Night ramp as a fallback, so the marks are
+     never unstyled — before the first theme applies, and in the secondary
+     windows, which paint a subset of the roles. CANCEL takes --muted, which
+     every theme already names. */
+  --todo-done: #4ade80; /* green-400  · the good pole */
+  --todo-doing: #22d3ee; /* cyan-400   · on the way to done */
+  --todo-pause: #60a5fa; /* blue-400   · motion, suspended by you */
+  --todo-attn: #fbbf24; /* amber-400  · on the way to failed */
   /* One colour for "somebody else is involved": /WAIT is work another person is
      holding, a conflict is text another writer changed. Two surfaces — a
      checkbox in the text, a dot on the tab — one meaning. */
-  --todo-purple: #c084fc; /* purple-400 · WAIT, and conflict */
-  /* red-500, not 400: the Tailwind ramp lightens by dropping saturation, and
-     in the reds that lands on salmon. The one place the 400 rule costs more
-     than it gives. */
-  --todo-red: #ef4444; /* red-500    · FAIL — the bad pole */
+  --todo-wait: #c084fc; /* purple-400 · WAIT, and conflict */
+  --todo-fail: #ef4444; /* red-500    · the bad pole */
   --todo-ink: #10131a;
 }
 /* inline-block + vertical-align: middle keeps alignment independent of the
@@ -1353,31 +1348,31 @@ body.resizing {
   display: block;
 }
 .cm-todo-box-todo:hover .cm-todo-glyph {
-  border-color: var(--todo-green);
+  border-color: var(--todo-done);
 }
 .cm-todo-box-doing .cm-todo-glyph {
-  background: var(--todo-cyan);
-  border-color: var(--todo-cyan);
+  background: var(--todo-doing);
+  border-color: var(--todo-doing);
 }
 .cm-todo-box-pause .cm-todo-glyph {
-  background: var(--todo-blue);
-  border-color: var(--todo-blue);
+  background: var(--todo-pause);
+  border-color: var(--todo-pause);
 }
 .cm-todo-box-wait .cm-todo-glyph {
-  background: var(--todo-purple);
-  border-color: var(--todo-purple);
+  background: var(--todo-wait);
+  border-color: var(--todo-wait);
 }
 .cm-todo-box-attn .cm-todo-glyph {
-  background: var(--todo-amber);
-  border-color: var(--todo-amber);
+  background: var(--todo-attn);
+  border-color: var(--todo-attn);
 }
 .cm-todo-box-done .cm-todo-glyph {
-  background: var(--todo-green);
-  border-color: var(--todo-green);
+  background: var(--todo-done);
+  border-color: var(--todo-done);
 }
 .cm-todo-box-fail .cm-todo-glyph {
-  background: var(--todo-red);
-  border-color: var(--todo-red);
+  background: var(--todo-fail);
+  border-color: var(--todo-fail);
 }
 .cm-todo-box-cancel .cm-todo-glyph {
   background: var(--muted);
@@ -1388,27 +1383,27 @@ body.resizing {
    strikethrough. The box glyph stays high-contrast over its vivid fill. */
 .cm-todo-line-doing,
 .cm-todo-line-doing span {
-  color: var(--todo-cyan);
+  color: var(--todo-doing);
 }
 .cm-todo-line-pause,
 .cm-todo-line-pause span {
-  color: var(--todo-blue);
+  color: var(--todo-pause);
 }
 .cm-todo-line-wait,
 .cm-todo-line-wait span {
-  color: var(--todo-purple);
+  color: var(--todo-wait);
 }
 .cm-todo-line-attn,
 .cm-todo-line-attn span {
-  color: var(--todo-amber);
+  color: var(--todo-attn);
 }
 .cm-todo-line-done,
 .cm-todo-line-done span {
-  color: var(--todo-green);
+  color: var(--todo-done);
 }
 .cm-todo-line-fail,
 .cm-todo-line-fail span {
-  color: var(--todo-red);
+  color: var(--todo-fail);
 }
 .cm-todo-line-cancel,
 .cm-todo-line-cancel span {
@@ -1516,7 +1511,7 @@ body.resizing {
    stays until you type in the note. */
 .editor-wrap .cm-line-changed,
 .editor-wrap .cm-changed-gutter {
-  background: color-mix(in srgb, var(--todo-amber) 13%, transparent);
+  background: color-mix(in srgb, var(--todo-attn) 13%, transparent);
 }
 /* When the cursor lands on a line that changed, the amber wins over the active
    line's green — but twice as strong as a merely-changed line, or the cursor
@@ -1525,7 +1520,7 @@ body.resizing {
    and the first keystroke takes the amber away and gives the green back. */
 .editor-wrap .cm-line-changed.cm-activeLine,
 .editor-wrap .cm-changed-gutter.cm-activeLineGutter {
-  background: color-mix(in srgb, var(--todo-amber) 26%, transparent);
+  background: color-mix(in srgb, var(--todo-attn) 26%, transparent);
 }
 
 /* Violet, like the dot on the tab: amber means "text arrived from outside",
@@ -1536,9 +1531,9 @@ body.resizing {
   align-items: center;
   gap: 10px;
   padding: 7px 12px;
-  background: color-mix(in srgb, var(--todo-purple) 15%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--todo-purple) 42%, transparent);
-  color: var(--todo-purple);
+  background: color-mix(in srgb, var(--todo-wait) 15%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--todo-wait) 42%, transparent);
+  color: var(--todo-wait);
   font-size: 12px;
 }
 .conflict-msg {
@@ -1560,11 +1555,11 @@ body.resizing {
   cursor: pointer;
 }
 .conflict-btn:hover {
-  border-color: var(--todo-purple);
+  border-color: var(--todo-wait);
 }
 .conflict-btn.primary {
-  background: var(--todo-purple);
-  border-color: var(--todo-purple);
+  background: var(--todo-wait);
+  border-color: var(--todo-wait);
   color: var(--todo-ink);
   font-weight: 600;
 }
@@ -1575,8 +1570,8 @@ body.resizing {
   gap: 5px;
   padding: 1px 7px;
   border-radius: 5px;
-  background: color-mix(in srgb, var(--todo-amber) 18%, transparent);
-  color: var(--todo-amber);
+  background: color-mix(in srgb, var(--todo-attn) 18%, transparent);
+  color: var(--todo-attn);
   white-space: nowrap;
 }
 

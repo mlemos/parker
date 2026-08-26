@@ -58,9 +58,13 @@ const APP: Section[] = [
   },
   {
     title: "View & app",
+    // ⌘⇧D is deliberately absent: it opens the performance overlay, which is a
+    // development instrument, not a feature of the editor. Somebody auditing
+    // this list against the keymap will find the gap — it is on purpose.
     rows: [
       ["Zoom in / out", ["⌘=", "⌘-"]],
       ["Reset zoom", ["⌘0"]],
+      ["Cycle theme", ["⌘⇧T"]],
       ["Commit & push (quick)", ["⌘⇧S"]],
       ["Settings", ["⌘,"]],
       ["This help", ["⌘K"]],
@@ -79,7 +83,8 @@ const EDITOR: Section[] = [
       ["Delete line", ["⌘⇧K"]],
       ["Fold / unfold", ["⌘⌥[", "⌘⌥]"]],
       ["Fold / unfold everything", ["⌃⌥[", "⌃⌥]"]],
-      ["Copy line up / down", ["⌘⌥↑", "⌘⌥↓"]],
+      ["Copy line up / down", ["⇧⌥↑", "⇧⌥↓"]],
+      ["Add cursor above / below", ["⌘⌥↑", "⌘⌥↓"]],
       ["Move line up / down", ["⌥↑", "⌥↓"]],
     ],
   },
@@ -97,8 +102,10 @@ const EDITOR: Section[] = [
       ["Select all", ["⌘A"]],
       ["Select next occurrence", ["⌘D"]],
       ["Select all occurrences", ["⌘⇧L"]],
+      ["Back to one cursor / close find", ["Esc"]],
       ["Find", ["⌘F"]],
       ["Find next / previous", ["⌘G", "⌘⇧G"]],
+      ["Go to line", ["⌘⌥G"]],
     ],
   },
   {
