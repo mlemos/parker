@@ -158,8 +158,9 @@ export default function App() {
     // the silence this whole feature exists to break.
     if (buf.conflict) return;
     try {
-      await api.writeNote(name, buf.content);
-      setBuffers((prev) => ws.setError(ws.markSaved(prev, name), name, undefined));
+      const written = buf.content;
+      await api.writeNote(name, written);
+      setBuffers((prev) => ws.setError(ws.markSaved(prev, name, written), name, undefined));
     } catch (e) {
       // Until now this only reached the console: a note that could not be
       // written looked exactly like one that had been.
@@ -237,14 +238,14 @@ export default function App() {
         for (const name of session.open ?? []) {
           try {
             const content = await api.readNote(name);
-            restored.push({ name, content, dirty: false });
+            restored.push({ name, content, disk: content, dirty: false });
           } catch {
             // deleted/renamed outside the app — skip it
           }
         }
         if (restored.length === 0) {
           const name = await api.createNote("md");
-          restored.push({ name, content: "", dirty: false });
+          restored.push({ name, content: "", disk: "", dirty: false });
         }
         const active =
           session.active && restored.some((b) => b.name === session.active)
@@ -463,7 +464,7 @@ export default function App() {
       const gid = groupId ?? stateRef.current.focusedId;
       try {
         const name = await api.createNote("md");
-        apply((w) => ws.openNote(w, gid, { name, content: "", dirty: false }));
+        apply((w) => ws.openNote(w, gid, { name, content: "", disk: "", dirty: false }));
       } catch (e) {
         console.error("new tab failed", e);
       }
@@ -493,7 +494,7 @@ export default function App() {
       apply((w) => {
         const { workspace, needsNote: empty } = ws.closeTab(w, groupId, name);
         return empty && fresh
-          ? ws.openNote(workspace, groupId, { name: fresh, content: "", dirty: false })
+          ? ws.openNote(workspace, groupId, { name: fresh, content: "", disk: "", dirty: false })
           : workspace;
       });
     },
@@ -611,7 +612,8 @@ export default function App() {
       let buffer = loaded;
       if (!buffer) {
         try {
-          buffer = { name, content: await api.readNote(name), dirty: false };
+          const text = await api.readNote(name);
+          buffer = { name, content: text, disk: text, dirty: false };
         } catch (e) {
           console.error("open failed", name, e);
           return;
@@ -876,8 +878,10 @@ export default function App() {
         return;
       }
       const now = stateRef.current.buffers.find((b) => b.name === name);
-      if (!now || now.content === disk) return;
-      if (now.dirty) {
+      if (!now) return;
+      const verdict = ws.classifyDiskChange(now, disk);
+      if (verdict === "nothing") return;
+      if (verdict === "conflict") {
         // Two versions exist and only the user can choose. Parker used to keep
         // theirs in silence and let autosave write it over the other one —
         // which, when the change came from a git pull, meant the next sync

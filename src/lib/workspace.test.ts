@@ -9,6 +9,7 @@ import type { Workspace } from "./workspace.ts";
 const buf = (name: string, content = "", dirty = false): Buffer => ({
   name,
   content,
+  disk: content,
   dirty,
 });
 
@@ -66,7 +67,7 @@ describe("buffer contents", () => {
   });
 
   it("clears dirty once the note is written", () => {
-    expect(ws.markSaved([buf("a.md", "x", true)], "a.md")[0].dirty).toBe(false);
+    expect(ws.markSaved([buf("a.md", "x", true)], "a.md", "x")[0].dirty).toBe(false);
   });
 
   // Autosave writes any dirty buffer back. If a reload from disk left the
@@ -537,7 +538,7 @@ describe("a working session", () => {
 
 describe("external changes", () => {
   const buf = (over: Partial<Buffer> = {}): Buffer[] => [
-    { name: "a.md", content: "one\ntwo", dirty: false, ...over },
+    { name: "a.md", content: "one\ntwo", disk: "one\ntwo", dirty: false, ...over },
   ];
 
   it("keeps the lines a reload rewrote", () => {
@@ -594,10 +595,74 @@ describe("external changes", () => {
   });
 });
 
+describe("classifyDiskChange", () => {
+  const b = (over: Partial<Buffer> = {}): Buffer => ({
+    name: "a.md",
+    content: "",
+    disk: "",
+    dirty: false,
+    ...over,
+  });
+
+  // The bug this function exists for. ⌘N writes an empty file; the watcher's
+  // create event is still in flight when the user types the first character,
+  // and 150ms later it lands. The file is empty because nothing has saved yet
+  // — which is not a change, but comparing the disk against the *buffer* said
+  // it was, and the buffer was dirty, so Parker raised a conflict against a
+  // note it had just created itself.
+  it("says nothing happened when a fresh note's own create event lands late", () => {
+    const typing = b({ content: "ab", dirty: true, disk: "" });
+    expect(ws.classifyDiskChange(typing, "")).toBe("nothing");
+  });
+
+  it("says nothing happened when Parker's own autosave comes back", () => {
+    const saved = b({ content: "hello", disk: "hello", dirty: false });
+    expect(ws.classifyDiskChange(saved, "hello")).toBe("nothing");
+  });
+
+  it("reloads a clean buffer when the file really moved", () => {
+    expect(ws.classifyDiskChange(b({ content: "old", disk: "old" }), "new")).toBe("reload");
+  });
+
+  it("conflicts when the file moved and the buffer has unsaved edits", () => {
+    const dirty = b({ content: "mine", disk: "old", dirty: true });
+    expect(ws.classifyDiskChange(dirty, "theirs")).toBe("conflict");
+  });
+
+  it("keeps conflicting while a conflict is open, even on a clean buffer", () => {
+    const open = b({ content: "x", disk: "v1", conflict: { disk: "v1" } });
+    expect(ws.classifyDiskChange(open, "v2")).toBe("conflict");
+  });
+
+  // Unsaved typing is the ordinary state of an editor; on its own it is not
+  // evidence that anybody touched the file.
+  it("does not mistake unsaved typing for an external change", () => {
+    const typing = b({ content: "typed a lot", disk: "on disk", dirty: true });
+    expect(ws.classifyDiskChange(typing, "on disk")).toBe("nothing");
+  });
+});
+
+describe("markSaved", () => {
+  it("moves the baseline to what was actually written", () => {
+    const before: Buffer[] = [{ name: "a.md", content: "v2", disk: "v1", dirty: true }];
+    expect(ws.markSaved(before, "a.md", "v2")[0].disk).toBe("v2");
+  });
+
+  // A write is awaited, and a keystroke can land during the await. Clearing
+  // dirty unconditionally called that keystroke saved, and autosave had no
+  // reason to come back for it.
+  it("stays dirty when a keystroke landed while the write was in flight", () => {
+    const raced: Buffer[] = [{ name: "a.md", content: "v2 plus more", disk: "v1", dirty: true }];
+    const after = ws.markSaved(raced, "a.md", "v2");
+    expect(after[0].dirty).toBe(true);
+    expect(after[0].disk).toBe("v2");
+  });
+});
+
 describe("a conflict that keeps changing", () => {
   it("holds the newest disk text, not the first one seen", () => {
     const mine = ws.editBuffer(
-      [{ name: "a.md", content: "one", dirty: false }],
+      [{ name: "a.md", content: "one", disk: "one", dirty: false }],
       "a.md",
       "mine"
     );
@@ -612,6 +677,7 @@ describe("tabStatus", () => {
   const b = (over: Partial<Buffer> = {}): Buffer => ({
     name: "a.md",
     content: "x",
+    disk: "x",
     dirty: false,
     ...over,
   });

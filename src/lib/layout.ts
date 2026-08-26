@@ -7,6 +7,14 @@ export interface Buffer {
   name: string; // filename — unique id for the note
   content: string;
   dirty: boolean;
+  /** What Parker last saw in the *file* — set when the note is read, written,
+   *  or reloaded. It is what makes "the file changed underneath me" a
+   *  different question from "I have unsaved edits", which the two used to be
+   *  conflated into by comparing the disk against `content`. Without it a
+   *  brand-new note raised a conflict against itself: the watcher's create
+   *  event was still in flight, the file was legitimately empty, and by the
+   *  time it landed the user had typed a character. */
+  disk: string;
   /** Lines (1-based) rewritten by the last reload from disk. Cleared by the
    *  first keystroke in the note — see workspace.editBuffer. */
   changed?: number[];

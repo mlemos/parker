@@ -69,9 +69,16 @@ export function editBuffer(buffers: Buffer[], name: string, content: string): Bu
   );
 }
 
-/** Mark a buffer as written to disk. */
-export function markSaved(buffers: Buffer[], name: string): Buffer[] {
-  return buffers.map((b) => (b.name === name ? { ...b, dirty: false } : b));
+/** Mark a buffer as written to disk. `written` is the exact text that reached
+ *  the file, which becomes the new disk baseline.
+ *
+ *  It also decides `dirty` by comparing, rather than clearing it: a save is
+ *  awaited, and a keystroke that lands during that await produced content the
+ *  write did not carry. Clearing unconditionally called that saved. */
+export function markSaved(buffers: Buffer[], name: string, written: string): Buffer[] {
+  return buffers.map((b) =>
+    b.name === name ? { ...b, disk: written, dirty: b.content !== written } : b
+  );
 }
 
 /** Take in what's on disk after someone else changed it — a git pull, another
@@ -86,7 +93,13 @@ export function reloadBuffer(
 ): Buffer[] {
   return buffers.map((b) =>
     b.name === name
-      ? { ...b, content, dirty: false, changed: changed.length ? changed : undefined }
+      ? {
+          ...b,
+          content,
+          disk: content,
+          dirty: false,
+          changed: changed.length ? changed : undefined,
+        }
       : b
   );
 }
@@ -95,7 +108,11 @@ export function reloadBuffer(
  *  are kept — the buffer stays as the user left it, the disk text rides along
  *  — until they choose. */
 export function markConflict(buffers: Buffer[], name: string, disk: string): Buffer[] {
-  return buffers.map((b) => (b.name === name ? { ...b, conflict: { disk } } : b));
+  // The baseline moves too: Parker has now seen this text in the file, so a
+  // second event carrying the same content is not a second change.
+  return buffers.map((b) =>
+    b.name === name ? { ...b, disk, conflict: { disk } } : b
+  );
 }
 
 /** Answer a conflict. Taking the disk version replaces the buffer and marks the
@@ -113,11 +130,29 @@ export function resolveConflict(
     return {
       ...b,
       content: b.conflict.disk,
+      disk: b.conflict.disk,
       dirty: false,
       conflict: undefined,
       changed: changed.length ? changed : undefined,
     };
   });
+}
+
+/** What to do about a note whose file just changed.
+ *
+ *  The watcher fires on every write to the folder, Parker's own autosaves
+ *  included, so the first question is whether anything actually changed — and
+ *  that is answered against the disk baseline, never against the buffer. A
+ *  buffer differing from the file is the ordinary state of unsaved typing.
+ *
+ *  Only once the file really moved does the user's work matter: unsaved edits
+ *  mean two versions exist and Parker must not pick one. */
+export type DiskChange = "nothing" | "reload" | "conflict";
+
+export function classifyDiskChange(buf: Buffer, disk: string): DiskChange {
+  if (disk === buf.disk) return "nothing";
+  if (buf.dirty || buf.conflict) return "conflict";
+  return "reload";
 }
 
 /** Record (or clear, with undefined) why this note could not be read or written. */
