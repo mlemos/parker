@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="site/brand/logo-horizontal-paper.png">
-    <img alt="parker" src="site/brand/logo-horizontal-ink.png" width="380">
+    <img alt="Parker" src="site/brand/logo-horizontal-ink.png" width="380">
   </picture>
 </p>
 
@@ -22,21 +22,21 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="site/brand/parker-app.png">
-    <img alt="The parker editor: a Markdown scratchpad beside its live preview, with git backup" src="site/brand/parker-app-light.png" width="840">
+    <source media="(prefers-color-scheme: dark)" srcset="site/brand/parker-0.4.5-vercel-night.png">
+    <img alt="The Parker editor: a Markdown scratchpad beside its live preview, with git backup" src="site/brand/parker-0.4.5-vercel-day.png" width="840">
   </picture>
 </p>
 
 ---
 
 > [!NOTE]
-> **parker is beta, and personal.** It isn't a commercial product — it's a passion
+> **Parker is beta, and personal.** It isn't a commercial product — it's a passion
 > project, vibe-coded for my own use and shared with the world. **No guarantees, no
 > support, use at your own risk.** 🙂
 
-## What is parker?
+## What is Parker?
 
-parker is a **resident menu-bar app** for macOS — summon it from anywhere with a
+Parker is a **resident menu-bar app** for macOS — summon it from anywhere with a
 global shortcut, jot or draft, dismiss it, and never lose a thought. It's built for
 the way people work with AI today: long prompts, task lists, quick snippets and
 throwaway notes that deserve something faster than Notes and lighter than VS Code.
@@ -51,14 +51,14 @@ servers of ours — ever.
 - **Lightweight** — a tiny native shell on [Tauri](https://tauri.app/), around 10&nbsp;MB. All editor, no bloat.
 - **Never lose data** — aggressive auto-save, always on, plus optional git backup as a safety net.
 - **Split & preview** — split panes and live Markdown preview, side by side.
-- **Genuinely themeable** — Vercel Night, Vercel Day, GitHub light & dark; monochrome chrome, vivid syntax.
+- **Genuinely themeable** — eight themes: Vercel Night & Day, GitHub Light & Dark, plus Playa, Playa at Night, Matrix and Blueprint.
 - **Your data, your rules** — plain `.md`, `.txt` and code on disk, in a folder you choose.
 
 ## 🔒 Your data, your rules
 
-parker **always writes straight to disk** — plain files in a folder you own. Never a
+Parker **always writes straight to disk** — plain files in a folder you own. Never a
 database, never a cloud you don't control. Sync it however you like (iCloud, Dropbox,
-whatever); parker stays completely sync-agnostic.
+whatever); Parker stays completely sync-agnostic.
 
 Want it all in git? **It's built in.** Flip on git backup and every save is committed
 and pushed — fully versioned, with a history you can roll back. A safety net *on top

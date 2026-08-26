@@ -162,9 +162,46 @@ img { max-width: 100%; height: auto; }
   gap: 26px;
   margin-left: 14px;
   font-size: 14px;
+  /* A label that breaks in half ("Your / data") reads as two items. */
+  white-space: nowrap;
 }
-.nav-links a { color: var(--text-2); transition: color .15s ease; }
+/* Four items plus the actions bar get tight before the mobile breakpoint
+   hides the list; close the gaps rather than let anything wrap. */
+@media (max-width: 940px) {
+  .nav-links { gap: 18px; margin-left: 8px; }
+  .nav-inner { gap: 12px; }
+}
+.nav-links a {
+  position: relative;
+  color: var(--text-2);
+  transition: color .15s ease;
+}
 .nav-links a:hover { color: var(--text); }
+/* Leaves the site. Small enough to read as punctuation rather than as a
+   second thing to click, and dimmer than the label it trails. */
+.nav-links .ext {
+  width: 0.78em;
+  height: 0.78em;
+  vertical-align: -0.02em;
+  margin-left: 1px;
+  opacity: 0.55;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.nav-links a:hover .ext { opacity: 1; transform: translate(1px, -1px); }
+
+/* The page you are on. The nav lists the same places everywhere — a menu that
+   drops the item you are standing on stops being a map. */
+.nav-links a[aria-current="page"] { color: var(--text); }
+.nav-links a[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--accent);
+}
 .nav-actions {
   margin-left: auto;
   display: flex;
@@ -408,7 +445,8 @@ h1 {
   padding-left: 16px;
 }
 .git-note em { color: var(--accent); font-style: normal; font-weight: 600; }
-.strip-text code {
+.strip-text code,
+.sc-text code {
   font-family: var(--font-mono);
   font-size: .88em;
   background: var(--surface-2);
@@ -431,9 +469,54 @@ h1 {
   width: 17px; height: 17px;
   border-radius: 50%;
   background: var(--accent);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/%3E%3C/svg%3E") center/13px no-repeat;
-          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/%3E%3C/svg%3E") center/13px no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/12px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/12px no-repeat;
 }
+
+/* The folder, drawn as a folder. It used to be box-drawing characters —
+   ├─ │ └─ — which Geist Mono renders as thin strokes that do not meet, so the
+   tree read as broken rather than as a tree. Lucide icons instead, matching
+   the app, which uses the same set.
+   The nesting is real nesting (a <ul> inside the <li> it belongs to), and the
+   branch line is a border on that list rather than a glyph per row: one
+   continuous rule down the children, which is what makes them read as
+   children. Every directory takes the same folder icon — .git included. It is
+   a folder; what makes it special is the word next to it, not a second
+   iconographic grammar. */
+.filetree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  color: #d4d4d8;
+}
+.filetree ul {
+  list-style: none;
+  margin: 0;
+  /* The rule sits under the parent's icon, so it drops out of the folder it
+     belongs to instead of floating in the margin. */
+  margin-left: 7px;
+  padding: 0 0 0 17px;
+  border-left: 1px solid #27272a;
+}
+.t-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 0;
+  white-space: nowrap;
+}
+.t-row .ti {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: #52525b; /* files recede; the folders are the structure */
+}
+.t-root { color: #71717a; }
+.t-root .ti,
+.t-dir .ti { color: #10b981; }
+.t-note { color: #52525b; font-size: 12.5px; }
 
 .strip-visual {
   background: #000;
@@ -549,3 +632,391 @@ h1 {
   h1 { letter-spacing: -0.03em; }
   .window { border-radius: 12px; }
 }
+
+/* ============================================================
+   Features page (/features)
+   Same tokens as the landing page; only the layouts below are new.
+   ============================================================ */
+
+/* ---------- Page hero ---------- */
+.fhero {
+  position: relative;
+  z-index: 1;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: clamp(52px, 10vh, 96px) 24px 0;
+  text-align: center;
+}
+.fhero h1 { max-width: 18ch; font-size: clamp(36px, 6vw, 60px); }
+.fhero .lede { margin-top: 20px; }
+
+/* "jump to" chips — a table of contents that costs one line of markup */
+.jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 30px auto 0;
+  max-width: 760px;
+}
+.jump a {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  letter-spacing: -0.01em;
+  color: var(--text-2);
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  transition: color .15s ease, border-color .15s ease;
+}
+.jump a:hover { color: var(--text); border-color: var(--muted); }
+
+/* ---------- Showcase rows ---------- */
+.showcase {
+  position: relative;
+  z-index: 1;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: clamp(64px, 11vh, 118px) 24px 0;
+  scroll-margin-top: 80px;
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: clamp(28px, 5vw, 62px);
+  align-items: center;
+}
+/* alternate which side the shot lands on, without touching source order */
+.showcase.flip .sc-text { order: 2; }
+
+.sc-text h2 {
+  font-size: clamp(25px, 3.6vw, 36px);
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  line-height: 1.12;
+  margin: 0 0 16px;
+}
+.sc-text p {
+  color: var(--text-2);
+  font-size: 16.5px;
+  margin: 0 0 20px;
+}
+.sc-text p strong { color: var(--text); font-weight: 600; }
+.sc-text p:last-child { margin-bottom: 0; }
+.sc-text .checks { margin-top: 20px; }
+
+/* a row of shortcut chips under the copy */
+.kbds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+kbd {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-bottom-color: color-mix(in srgb, var(--muted) 45%, var(--border));
+  border-radius: 7px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.kbds kbd span { color: var(--muted); padding-left: 6px; }
+
+/* Key glyphs, as Lucide rather than as characters. The Unicode symbols carry
+   the meaning, but a font draws them at whatever weight it likes and Geist
+   Mono's ⌥ and ⏎ come out lighter than the letters beside them, so a chip read
+   as half text and half smudge. These are drawn at the text's own weight.
+   Sized to the cap height, not the em: an icon matched to the em box floats
+   above the baseline of the letters it sits next to. */
+.ki {
+  width: 0.92em;
+  height: 0.92em;
+  vertical-align: -0.13em;
+  flex: none;
+}
+/* Letters and icons in one chip need the same optical spacing; the glyphs used
+   to supply it themselves. */
+kbd .ki + .ki { margin-left: 0.06em; }
+
+/* ---------- Screenshot frames ---------- */
+/* Feature shots are Vercel Night captures in both site themes — they're
+   product shots of the app's default look, the way the hero already is. */
+.shot-frame {
+  margin: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #000;
+  box-shadow: var(--shadow);
+}
+.shot-frame img { display: block; width: 100%; height: auto; }
+.shot-frame figcaption {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-elevated);
+}
+
+
+/* ---------- Lead showcase (full-width, centered) ---------- */
+.showcase.lead {
+  display: block;
+  text-align: center;
+  padding-top: clamp(40px, 7vh, 80px);
+}
+.showcase.lead .sc-text { max-width: 62ch; margin: 0 auto; }
+.showcase.lead .sc-text h2 { font-size: clamp(28px, 4.4vw, 42px); }
+.showcase.lead .sc-shot { margin-top: clamp(32px, 5vw, 52px); }
+.showcase.lead .checks {
+  max-width: 720px;
+  margin: 26px auto 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  text-align: left;
+}
+
+/* ---------- Always-dark demo card (to-dos) ---------- */
+.demo {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.demo-head {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #52525b;
+  border-bottom: 1px solid #27272a;
+}
+.demo-head span { padding: 11px 18px; }
+.demo-head span + span { border-left: 1px solid #27272a; }
+
+.todo-rows { display: grid; }
+.todo-row {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  align-items: stretch;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  border-top: 1px solid #131316;
+}
+.todo-rows .todo-row:first-child { border-top: 0; }
+.todo-src, .todo-out {
+  padding: 9px 18px;
+  color: #d4d4d8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.todo-out { border-left: 1px solid #27272a; }
+.todo-tag { color: #71717a; }
+
+/* the checkbox, rebuilt from the app's own geometry (src/App.css) */
+.tbox {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 0.95em;
+  height: 0.95em;
+  /* In the app the marker is an atomic widget (0.95em, with 3px/1px of margin)
+     and the space after it is still a real character in the document. Those
+     three together measure almost exactly three monospace cells, which is why
+     the text after a checkbox lands on the same grid as everything else.
+     Reproduce that footprint rather than the widget alone: 0.95 + 0.85 = 1.8em,
+     and Geist Mono's cell is 0.6em. Using margin instead of a literal space
+     keeps the markup free of whitespace that HTML would be free to collapse. */
+  margin-left: 0.21em;
+  margin-right: 0.64em;
+  overflow: hidden;
+  vertical-align: -0.07em;
+}
+.tglyph {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: 1.5px solid #71717a;
+  border-radius: 4px;
+  color: #000; /* knockout: the glyph is punched out of the fill */
+  transition: border-color .12s ease, background .12s ease;
+}
+.tglyph svg { width: 0.85em; height: 0.85em; display: block; }
+
+/* one colour per state, straight from the app's state machine */
+.todo-row { --c: #d4d4d8; }
+.todo-row[data-state="doing"]  { --c: #22d3ee; }
+.todo-row[data-state="pause"]  { --c: #60a5fa; }
+.todo-row[data-state="wait"]   { --c: #c084fc; }
+.todo-row[data-state="attn"]   { --c: #fbbf24; }
+.todo-row[data-state="done"]   { --c: #4ade80; }
+.todo-row[data-state="fail"]   { --c: #ef4444; }
+.todo-row[data-state="cancel"] { --c: #71717a; }
+.todo-row:not([data-state="todo"]) .todo-out { color: var(--c); }
+.todo-row:not([data-state="todo"]) .tglyph {
+  background: var(--c);
+  border-color: var(--c);
+}
+.todo-row[data-state="todo"] .tglyph { background: transparent; }
+
+button.todo-out {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-left: 1px solid #27272a;
+  cursor: pointer;
+}
+button.todo-out:hover { background: rgba(255,255,255,0.03); }
+button.todo-out:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.demo-foot {
+  /* It is a <p>: without this its default margin sits OUTSIDE the border, so
+     the rule floats away from the last row and the card gains a dead strip
+     under the text. */
+  margin: 0;
+  font-size: 13px;
+  color: #71717a;
+  padding: 12px 18px;
+  border-top: 1px solid #27272a;
+}
+.demo-foot b { color: #a1a1aa; font-weight: 500; }
+
+/* ---------- Theme cards ---------- */
+.themes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 8px;
+}
+.theme-card {
+  margin: 0;
+  border: 1px solid var(--tbd);
+  border-radius: var(--radius-sm);
+  background: var(--tbg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.theme-code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.95;
+  padding: 14px 15px 16px;
+  color: var(--tfg);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.theme-code .h { color: var(--th); font-weight: 600; }
+.theme-code .b { color: var(--tb); font-weight: 600; }
+.theme-code .l { color: var(--tl); }
+.theme-code .c { color: var(--tc); }
+.theme-code .m { color: var(--tm); }
+.theme-card figcaption {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--tm);
+  padding: 9px 15px;
+  border-top: 1px solid var(--tbd);
+}
+
+/* ---------- Shortcut reference ---------- */
+.keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.keycol {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px 22px;
+}
+.keycol h3 {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin: 0 0 14px;
+  font-weight: 500;
+}
+.keycol dl { margin: 0; display: grid; gap: 9px; }
+.keyrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 14px;
+}
+.keyrow dt { color: var(--text-2); }
+.keyrow dd { margin: 0; display: flex; gap: 4px; flex: none; }
+
+/* ---------- Spec strip ---------- */
+.specs {
+  margin: 0; /* it is a <dl> */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.spec {
+  background: var(--bg-elevated);
+  padding: 22px 20px;
+}
+.spec dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.spec dd { margin: 0; font-size: 15px; color: var(--text); font-weight: 500; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 940px) {
+  .themes { grid-template-columns: repeat(2, 1fr); }
+  .keys { grid-template-columns: 1fr; }
+  .specs { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 860px) {
+  .showcase { grid-template-columns: 1fr; }
+  .showcase.flip .sc-text { order: 0; }
+  .showcase.lead .checks { grid-template-columns: 1fr; }
+  .demo-head, .todo-row { grid-template-columns: 84px 1fr; }
+  .demo-head span, .todo-src, .todo-out, button.todo-out { padding-left: 12px; padding-right: 12px; }
+  .demo-head span { letter-spacing: 0.08em; }
+}
+@media (max-width: 560px) {
+  .themes { grid-template-columns: 1fr; }
+  .specs { grid-template-columns: 1fr; }
+}
+
+/* "See every feature →" under the home grid */
+.more-link {
+  text-align: center;
+  margin: 34px 0 0;
+  font-size: 15px;
+}
+.more-link a {
+  color: var(--accent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  padding-bottom: 2px;
+  transition: border-color .15s ease;
+}
+.more-link a:hover { border-bottom-color: var(--accent); }
+.more-link span { display: inline-block; transition: transform .15s ease; }
+.more-link a:hover span { transform: translateX(3px); }

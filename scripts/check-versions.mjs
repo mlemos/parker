@@ -59,6 +59,17 @@ checkAll("site/index.html", "the DMG filename", site,
 checkAll("site/index.html", "the version under the download button", site,
   new RegExp(String.raw`v(${SEMVER})\s*·`, "g"));
 
+// The features page carries its own download CTA — added after this guard was
+// written, which is exactly how a check goes stale: the page it does not know
+// about is the one that ships a dead link.
+const features = read("site/features/index.html");
+checkAll("site/features/index.html", "the release tag in the download link", features,
+  new RegExp(String.raw`/releases/download/v(${SEMVER})/`, "g"));
+checkAll("site/features/index.html", "the DMG filename", features,
+  new RegExp(String.raw`Parker_(${SEMVER})_`, "g"));
+checkAll("site/features/index.html", "the version under the download button", features,
+  new RegExp(String.raw`v(${SEMVER})\s*·`, "g"));
+
 if (problems.length) {
   console.error(`Version mismatch — package.json says ${want}:\n`);
   for (const p of problems) console.error(`  ✗ ${p}`);
