@@ -149,6 +149,35 @@ export function resolveConflict(
  *  mean two versions exist and Parker must not pick one. */
 export type DiskChange = "nothing" | "reload" | "conflict";
 
+/** What Parker last put in a file, and how many times it has written it. App
+ *  records this the moment a write returns, outside React state. */
+export interface OwnWrite {
+  text: string;
+  seq: number;
+}
+
+/** Is this disk text Parker's own writing coming back?
+ *
+ *  The disk baseline in the buffer answers that most of the time, but it is
+ *  React state and so lags the write in two ways the watcher can catch it out:
+ *
+ *   - the text was written and the baseline has not re-rendered yet;
+ *   - the read straddled a save, so it came back older than the file now is —
+ *     `seq` moved while it was in flight.
+ *
+ *  Either way there is nothing from outside to react to. The second case needs
+ *  no retry: the save that overtook the read changed the file, so the watcher
+ *  fires again with the settled text.
+ */
+export function isOwnWrite(
+  mine: OwnWrite | undefined,
+  disk: string,
+  seqAtRead: number
+): boolean {
+  if (!mine) return false;
+  return mine.text === disk || mine.seq !== seqAtRead;
+}
+
 export function classifyDiskChange(buf: Buffer, disk: string): DiskChange {
   if (disk === buf.disk) return "nothing";
   if (buf.dirty || buf.conflict) return "conflict";

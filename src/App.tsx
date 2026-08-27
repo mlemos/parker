@@ -92,6 +92,11 @@ export default function App() {
   stateRef.current = { buffers, layout, focusedId, themeId };
 
   const saveTimers = useRef<Map<string, number>>(new Map());
+  // What Parker itself last wrote into each note, and a count of those writes.
+  // Recorded the instant the write returns — before React has re-rendered the
+  // new baseline, and whatever path did the writing — so the watcher can tell
+  // Parker's own echo from somebody else's edit.
+  const lastWrite = useRef<Map<string, { text: string; seq: number }>>(new Map());
   const sessionTimer = useRef<number | null>(null);
   const didInit = useRef(false);
 
@@ -160,6 +165,8 @@ export default function App() {
     try {
       const written = buf.content;
       await api.writeNote(name, written);
+      const seq = (lastWrite.current.get(name)?.seq ?? 0) + 1;
+      lastWrite.current.set(name, { text: written, seq });
       setBuffers((prev) => ws.setError(ws.markSaved(prev, name, written), name, undefined));
     } catch (e) {
       // Until now this only reached the console: a note that could not be
@@ -181,13 +188,15 @@ export default function App() {
     [flushSave]
   );
 
+  // Write every unsaved note now — on the way to hiding the window, quitting,
+  // or committing. It goes through flushSave rather than writing directly: a
+  // write nobody recorded looks exactly like an outside edit, and the change
+  // event it fires opened a conflict against Parker's own save. flushSave also
+  // leaves a note with an open conflict alone, which a blanket write answered
+  // on the user's behalf.
   const flushAll = useCallback(async () => {
     const s = stateRef.current;
-    await Promise.all(
-      s.buffers
-        .filter((b) => b.dirty)
-        .map((b) => api.writeNote(b.name, b.content).catch(() => {}))
-    );
+    await Promise.all(s.buffers.filter((b) => b.dirty).map((b) => flushSave(b.name)));
     if (!sessionRestored.current) return; // never overwrite a session we couldn't read
     await api
       .saveSession({
@@ -198,7 +207,7 @@ export default function App() {
         focused: s.focusedId,
       })
       .catch(() => {});
-  }, []);
+  }, [flushSave]);
 
   const scheduleSessionSave = useCallback(() => {
     if (sessionTimer.current) clearTimeout(sessionTimer.current);
@@ -491,12 +500,15 @@ export default function App() {
           return;
         }
       }
-      apply((w) => {
+      const after = apply((w) => {
         const { workspace, needsNote: empty } = ws.closeTab(w, groupId, name);
         return empty && fresh
           ? ws.openNote(workspace, groupId, { name: fresh, content: "", disk: "", dirty: false })
           : workspace;
       });
+      // The echo record outlives the buffer otherwise, holding a copy of a note
+      // nothing has open any more.
+      if (!after.buffers.some((b) => b.name === name)) lastWrite.current.delete(name);
     },
     [apply, flushSave]
   );
@@ -868,6 +880,7 @@ export default function App() {
     const reload = async (name: string) => {
       const before = stateRef.current.buffers.find((b) => b.name === name);
       if (!before) return;
+      const seqAtRead = lastWrite.current.get(name)?.seq ?? 0;
       let disk: string;
       try {
         disk = await api.readNote(name);
@@ -879,6 +892,9 @@ export default function App() {
       }
       const now = stateRef.current.buffers.find((b) => b.name === name);
       if (!now) return;
+      // Parker's own writing, which the disk baseline alone cannot always
+      // recognise — see isOwnWrite.
+      if (ws.isOwnWrite(lastWrite.current.get(name), disk, seqAtRead)) return;
       const verdict = ws.classifyDiskChange(now, disk);
       if (verdict === "nothing") return;
       if (verdict === "conflict") {

@@ -642,6 +642,31 @@ describe("classifyDiskChange", () => {
   });
 });
 
+// The disk baseline lives in React state, so it lags the write that moved it.
+// Every write Parker makes fires the folder watcher, and a read that comes back
+// before the baseline has caught up looks exactly like somebody else's edit —
+// against a dirty buffer, that meant a conflict bar over Parker's own save.
+describe("isOwnWrite", () => {
+  it("recognises the text Parker just wrote", () => {
+    expect(ws.isOwnWrite({ text: "v2", seq: 1 }, "v2", 1)).toBe(true);
+  });
+
+  it("does not claim a write nobody made", () => {
+    expect(ws.isOwnWrite(undefined, "theirs", 0)).toBe(false);
+  });
+
+  it("leaves somebody else's text to the classifier", () => {
+    expect(ws.isOwnWrite({ text: "v2", seq: 1 }, "theirs", 1)).toBe(false);
+  });
+
+  // The read went out, a save landed, and the read answered with the file as it
+  // was before that save. Its answer is stale whatever it says; the save's own
+  // change event brings the settled text along in a moment.
+  it("distrusts a read that a save overtook", () => {
+    expect(ws.isOwnWrite({ text: "v3", seq: 2 }, "v2", 1)).toBe(true);
+  });
+});
+
 describe("markSaved", () => {
   it("moves the baseline to what was actually written", () => {
     const before: Buffer[] = [{ name: "a.md", content: "v2", disk: "v1", dirty: true }];
