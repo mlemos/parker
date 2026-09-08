@@ -1,5 +1,6 @@
 import { Text } from "@codemirror/state";
 import { describe, expect, it } from "vitest";
+import fixtures from "../../shared/fixtures/todo-model.json";
 import {
   LINE_TAG,
   ORDER,
@@ -12,38 +13,42 @@ import {
   type State,
 } from "./todo-model.ts";
 
+// The fixtures are shared with the Swift port (ios/ParkerCore): the same JSON
+// drives both suites, so the two grammars cannot drift apart unnoticed.
+interface Fixtures {
+  order: State[];
+  aliases: Record<string, State>;
+  notTags: string[];
+  click: { completes: State[]; reopens: State[]; altCycle: State[]; altFromDone: State };
+  cursorCases: { name: string; text: string; head: number; want: number }[];
+  sweepDocs: Record<string, string>;
+  ownerCases: { name: string; lines: string[]; from?: number; to?: number; want: (State | null)[] }[];
+}
+const FX = fixtures as unknown as Fixtures;
+
 // ---- The state machine ----------------------------------------------------
 // Every state must be reachable and every cycle must close, or a state becomes
 // a trap the user can only leave by editing the raw text.
 
 describe("norm", () => {
   it("folds every alias onto its canonical state", () => {
-    const aliases: [string, State][] = [
-      ["WIP", "DOING"],
-      ["PAUSED", "PAUSE"],
-      ["HOLD", "PAUSE"],
-      ["WAITING", "WAIT"],
-      ["BLOCKED", "WAIT"],
-      ["MISSED", "FAIL"],
-      ["DISMISSED", "CANCEL"],
-    ];
-    for (const [alias, canonical] of aliases) expect(norm(alias)).toBe(canonical);
+    for (const [alias, canonical] of Object.entries(FX.aliases)) expect(norm(alias)).toBe(canonical);
   });
 
-  it("leaves canonical states untouched", () => {
+  it("leaves canonical states untouched, in the fixture's order", () => {
+    expect([...ORDER]).toEqual(FX.order);
     for (const st of ORDER) expect(norm(st)).toBe(st);
   });
 });
 
 describe("LINE_TAG", () => {
   it("recognises every state and alias", () => {
-    const tags = [...ORDER, "WIP", "PAUSED", "HOLD", "WAITING", "BLOCKED", "MISSED", "DISMISSED"];
+    const tags = [...FX.order, ...Object.keys(FX.aliases)];
     for (const tag of tags) expect(LINE_TAG.exec(`/${tag} something`)?.[2]).toBe(tag);
   });
 
   it("does not match words that merely start like a tag, or a tag mid-line", () => {
-    const notTags = ["/WAITER x", "/PAUSES x", "/HOLDING x", "/DO x", "/TODOS x", "TODO x", "x /TODO"];
-    for (const line of notTags) expect(LINE_TAG.exec(line)).toBeNull();
+    for (const line of FX.notTags) expect(LINE_TAG.exec(line)).toBeNull();
   });
 });
 
@@ -57,13 +62,11 @@ describe("⌘⏎ rotation", () => {
 
 describe("clicking a tag", () => {
   it("completes any open state", () => {
-    for (const st of ["TODO", "DOING", "PAUSE", "WAIT", "ATTN"])
-      expect(nextOnClick(st as State, false)).toBe("DONE");
+    for (const st of FX.click.completes) expect(nextOnClick(st, false)).toBe("DONE");
   });
 
   it("reopens any closed state", () => {
-    for (const st of ["DONE", "FAIL", "CANCEL"])
-      expect(nextOnClick(st as State, false)).toBe("TODO");
+    for (const st of FX.click.reopens) expect(nextOnClick(st, false)).toBe("TODO");
   });
 
   it("cycles the open states under ⌥ and returns where it started", () => {
@@ -73,11 +76,11 @@ describe("clicking a tag", () => {
       cycle.push(cur);
       cur = nextOnClick(cur, true);
     } while (cur !== "TODO" && cycle.length <= ORDER.length + 1);
-    expect(cycle).toEqual(["TODO", "DOING", "PAUSE", "WAIT", "ATTN", "FAIL", "CANCEL"]);
+    expect(cycle).toEqual(FX.click.altCycle);
   });
 
   it("sends a done item back into the cycle under ⌥", () => {
-    expect(nextOnClick("DONE", true)).toBe("ATTN");
+    expect(nextOnClick("DONE", true)).toBe(FX.click.altFromDone);
   });
 });
 
@@ -86,12 +89,7 @@ describe("clicking a tag", () => {
 describe("cursorAfterRotate", () => {
   // The cursor must never land in front of the tag ⌘⏎ just created, or the
   // next keystroke ends up outside it.
-  const cases: [string, string, number, number][] = [
-    ["an empty line, cursor at the start", "", 0, 6],
-    ["existing text, cursor at the start", "buy milk", 0, 6],
-    ["existing text, cursor mid-word", "buy milk", 5, 11],
-  ];
-  for (const [name, text, head, want] of cases) {
+  for (const { name, text, head, want } of FX.cursorCases) {
     it(`lands after the tag — ${name}`, () => {
       const doc = Text.of([text]);
       expect(cursorAfterRotate(planRotate(doc, head, head), head)).toBe(want);
@@ -106,13 +104,7 @@ describe("cursorAfterRotate", () => {
 // on the line below" bug was found — selections ending at the start of the next
 // line used to act on that next line.
 
-const DOCS = {
-  "no trailing newline": "# list\n\n\nfirst\nsecond\nthird",
-  "trailing newline": "# list\n\n\nfirst\nsecond\nthird\n",
-  "already tagged":
-    "/TODO first\n/DOING second\n/PAUSE third\n/WAIT fourth\n/ATTN fifth\n/DONE sixth",
-  indented: "  buy milk\n    call bank\nship",
-};
+const DOCS = FX.sweepDocs;
 
 function expected(doc: Text, from: number, to: number): number[] {
   const start = doc.lineAt(from);
@@ -157,78 +149,9 @@ describe("ownersForRange", () => {
     return ownersForRange(d, from, to ?? d.lines);
   };
 
-  it("gives a to-do's nested lines to it", () => {
-    expect(owners(["/DOING Ship it", "  - a detail", "  - another"])).toEqual([
-      null, // the to-do wears its own state
-      "DOING",
-      "DOING",
-    ]);
-  });
-
-  it("ends the group when the text steps back out", () => {
-    expect(owners(["/DONE Shipped", "  - a detail", "back at the margin"])).toEqual([
-      null,
-      "DONE",
-      null,
-    ]);
-  });
-
-  it("hands the group over at the next to-do", () => {
-    expect(owners(["/DONE Shipped", "  - hers", "/TODO Next", "  - his"])).toEqual([
-      null,
-      "DONE",
-      null,
-      "TODO",
-    ]);
-  });
-
-  // An empty line between two sub-items has not left the nesting.
-  it("reads through a blank line inside a group", () => {
-    expect(owners(["/WAIT On them", "  - one", "", "  - two"])).toEqual([
-      null,
-      "WAIT",
-      null,
-      "WAIT",
-    ]);
-  });
-
-  it("nests a to-do inside a to-do", () => {
-    expect(
-      owners([
-        "/DOING Outer",
-        "  - outer detail",
-        "  /TODO Inner",
-        "    - inner detail",
-        "  - back to outer",
-      ])
-    ).toEqual([null, "DOING", null, "TODO", "DOING"]);
-  });
-
-  it("normalises an alias before handing it down", () => {
-    expect(owners(["/WIP Ship it", "  - a detail"])).toEqual([null, "DOING"]);
-  });
-
-  it("owns nothing when there is no to-do above", () => {
-    expect(owners(["Just a heading", "  - a detail"])).toEqual([null, null]);
-  });
-
-  it("counts deeper indentation as still inside", () => {
-    expect(owners(["/ATTN Look", "  - one", "      - deeper"])).toEqual([
-      null,
-      "ATTN",
-      "ATTN",
-    ]);
-  });
-
-  // The viewport can open anywhere, so a range starting mid-group has to walk
-  // back far enough to find out who owns it.
-  it("finds the owner when asked about the middle of a group", () => {
-    const doc = ["/DONE Shipped", "  - one", "  - two", "  - three"];
-    expect(owners(doc, 3, 4)).toEqual(["DONE", "DONE"]);
-  });
-
-  it("does not invent an owner from a group that already closed", () => {
-    const doc = ["/DONE Shipped", "  - one", "prose at the margin", "  - orphan"];
-    expect(owners(doc, 4, 4)).toEqual([null]);
-  });
+  for (const { name, lines, from, to, want } of FX.ownerCases) {
+    it(name, () => {
+      expect(owners(lines, from ?? 1, to)).toEqual(want);
+    });
+  }
 });
