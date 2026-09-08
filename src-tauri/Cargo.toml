@@ -1,6 +1,6 @@
 [package]
 name = "parker"
-version = "1.0.1"
+version = "1.0.2"
 description = "Parker — a fast, minimal editor for notes, code and markdown"
 authors = ["mlemos"]
 edition = "2021"
