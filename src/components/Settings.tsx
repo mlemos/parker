@@ -262,7 +262,7 @@ export function Settings({
               </div>
             </div>
 
-            {/* Ligatures — editor only, stored client-side like font size */}
+            {/* Ligatures — editor only; saved in settings.json like the rest */}
             <div className="settings-row">
               <div className="settings-label">
                 <div className="settings-title">Ligatures</div>
