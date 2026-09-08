@@ -28,3 +28,6 @@ dist-ssr
 
 # Local, non-versioned private files (personal docs, account records, etc.)
 /private/
+
+# SwiftPM build output (ios/ParkerCore)
+.build/

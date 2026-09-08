@@ -73,3 +73,8 @@ jobs:
       # See the tests module at the end of src-tauri/src/lib.rs.
       - name: Backend tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      # The iPhone companion's UI-free core: the to-do grammar (checked against
+      # the same fixtures as the TypeScript suite) and the design-token contract.
+      - name: iOS core tests
+        run: swift test --package-path ios/ParkerCore

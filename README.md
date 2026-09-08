@@ -114,8 +114,15 @@ parker/
 ├─ src/          # frontend — React / TypeScript / CodeMirror
 ├─ src-tauri/    # backend — Rust (menu-bar app, file & session commands)
 ├─ public/       # static assets, app entry
-└─ site/         # the landing page → getparker.dev (deploys to Vercel, root = site/)
+├─ site/         # the landing page → getparker.dev (deploys to Vercel, root = site/)
+├─ shared/       # contracts both apps read: to-do fixtures, design tokens (generated)
+└─ ios/          # the iPhone companion (in progress) — ParkerCore is its UI-free Swift core
 ```
+
+The Mac and the iPhone must paint a note the same way, so the tables that
+define it live once: `shared/design-tokens.json` is generated from `src/lib`
+by `node scripts/export-design-tokens.mjs`, and `shared/fixtures/` drives the
+to-do grammar tests on both sides (`pnpm test` and `swift test` in `ios/ParkerCore`).
 
 ## 🤝 Contributing
 

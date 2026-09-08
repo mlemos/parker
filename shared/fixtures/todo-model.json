@@ -1,0 +1,43 @@
+{
+  "_comment": "Shared fixtures for the to-do grammar. Read by src/lib/todo-model.test.ts (TypeScript) and Tests/ParkerCoreTests (Swift). Change here, and both suites move together.",
+  "order": ["TODO", "DOING", "PAUSE", "WAIT", "ATTN", "DONE", "FAIL", "CANCEL"],
+  "aliases": {
+    "WIP": "DOING",
+    "PAUSED": "PAUSE",
+    "HOLD": "PAUSE",
+    "WAITING": "WAIT",
+    "BLOCKED": "WAIT",
+    "MISSED": "FAIL",
+    "DISMISSED": "CANCEL"
+  },
+  "notTags": ["/WAITER x", "/PAUSES x", "/HOLDING x", "/DO x", "/TODOS x", "TODO x", "x /TODO"],
+  "click": {
+    "completes": ["TODO", "DOING", "PAUSE", "WAIT", "ATTN"],
+    "reopens": ["DONE", "FAIL", "CANCEL"],
+    "altCycle": ["TODO", "DOING", "PAUSE", "WAIT", "ATTN", "FAIL", "CANCEL"],
+    "altFromDone": "ATTN"
+  },
+  "cursorCases": [
+    { "name": "an empty line, cursor at the start", "text": "", "head": 0, "want": 6 },
+    { "name": "existing text, cursor at the start", "text": "buy milk", "head": 0, "want": 6 },
+    { "name": "existing text, cursor mid-word", "text": "buy milk", "head": 5, "want": 11 }
+  ],
+  "sweepDocs": {
+    "no trailing newline": "# list\n\n\nfirst\nsecond\nthird",
+    "trailing newline": "# list\n\n\nfirst\nsecond\nthird\n",
+    "already tagged": "/TODO first\n/DOING second\n/PAUSE third\n/WAIT fourth\n/ATTN fifth\n/DONE sixth",
+    "indented": "  buy milk\n    call bank\nship"
+  },
+  "ownerCases": [
+    { "name": "gives a to-do's nested lines to it", "lines": ["/DOING Ship it", "  - a detail", "  - another"], "want": [null, "DOING", "DOING"] },
+    { "name": "ends the group when the text steps back out", "lines": ["/DONE Shipped", "  - a detail", "back at the margin"], "want": [null, "DONE", null] },
+    { "name": "hands the group over at the next to-do", "lines": ["/DONE Shipped", "  - hers", "/TODO Next", "  - his"], "want": [null, "DONE", null, "TODO"] },
+    { "name": "reads through a blank line inside a group", "lines": ["/WAIT On them", "  - one", "", "  - two"], "want": [null, "WAIT", null, "WAIT"] },
+    { "name": "nests a to-do inside a to-do", "lines": ["/DOING Outer", "  - outer detail", "  /TODO Inner", "    - inner detail", "  - back to outer"], "want": [null, "DOING", null, "TODO", "DOING"] },
+    { "name": "normalises an alias before handing it down", "lines": ["/WIP Ship it", "  - a detail"], "want": [null, "DOING"] },
+    { "name": "owns nothing when there is no to-do above", "lines": ["Just a heading", "  - a detail"], "want": [null, null] },
+    { "name": "counts deeper indentation as still inside", "lines": ["/ATTN Look", "  - one", "      - deeper"], "want": [null, "ATTN", "ATTN"] },
+    { "name": "finds the owner when asked about the middle of a group", "lines": ["/DONE Shipped", "  - one", "  - two", "  - three"], "from": 3, "to": 4, "want": ["DONE", "DONE"] },
+    { "name": "does not invent an owner from a group that already closed", "lines": ["/DONE Shipped", "  - one", "prose at the margin", "  - orphan"], "from": 4, "to": 4, "want": [null] }
+  ]
+}

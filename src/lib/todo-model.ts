@@ -29,7 +29,7 @@ export type State = (typeof ORDER)[number];
       /PAUSE  you stopped it — nothing external is missing, you chose to park it
       /WAIT   someone else has it — you cannot move it even if you wanted to
       /ATTN   it needs *you* — the next move is yours and you haven't made it */
-const ALIASES: Record<string, State> = {
+export const ALIASES: Record<string, State> = {
   WIP: "DOING",
   PAUSED: "PAUSE",
   HOLD: "PAUSE",
