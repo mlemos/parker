@@ -66,29 +66,13 @@ of* your files, never where they live.
 
 ## ⬇️ Install
 
-> **Beta, and not code-signed.** Parker is provided as-is, with no warranty — use at your own risk and keep backups (its Git sync helps).
+> Provided as-is, with no warranty — use at your own risk and keep backups (its Git sync helps).
 
 1. Download the latest `.dmg` from **[Releases](https://github.com/mlemos/parker/releases)**.
-   Requires **macOS on Apple Silicon** (M1/M2/M3…) — the build is `arm64` and does **not** run on Intel Macs.
+   Requires **macOS 12+ on Apple Silicon** (M1/M2/M3…) — the build is `arm64` and does **not** run on Intel Macs.
 2. Open the `.dmg` and drag **Parker** into **Applications**.
 
-### "Parker.app is damaged and can't be opened" — this is expected
-
-Parker isn't signed with an Apple Developer ID or notarized, so after a browser download macOS quarantines it and, on Apple Silicon, shows this:
-
-<p align="center">
-  <img src="docs/gatekeeper-damaged.png" alt="macOS Gatekeeper dialog: Parker.app is damaged and can't be opened" width="360">
-</p>
-
-**The app is not actually damaged** — that's just Gatekeeper blocking an un-notarized download. Do **not** click _Move to Trash_. Instead, clear the quarantine flag once, in the Terminal:
-
-```bash
-xattr -cr /Applications/Parker.app
-```
-
-Then open Parker normally (double-click). You only need to do this once per install.
-
-> To remove this step entirely, the app would need to be signed and notarized with an Apple Developer ID.
+Parker is **signed with an Apple Developer ID and notarized by Apple**, so it opens normally — no "damaged" warning and no Terminal workaround needed.
 
 ## 🛠️ Build from source
 

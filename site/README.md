@@ -93,6 +93,6 @@ LinkedIn), which Lucide does not carry. Keyboard modifiers are Lucide too
 ## TODO before launch
 
 - [x] Make the GitHub repo public (links point to `github.com/mlemos/parker`).
-- [ ] Real download link (`/releases`) once the first `.dmg` ships.
+- [x] Real download link (`/releases`) once the first `.dmg` ships. (v1.0.0, signed & notarized)
 - [x] Social card `og.png` (1200×630).
 - [x] Real brand mark, wordmark and favicons wired in.

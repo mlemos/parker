@@ -25,3 +25,6 @@ dist-ssr
 
 # Claude Code (local agent tooling)
 .claude/
+
+# Local, non-versioned private files (personal docs, account records, etc.)
+/private/
