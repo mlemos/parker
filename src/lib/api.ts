@@ -31,6 +31,10 @@ export interface SettingsInfo {
   git_sync_interval: number;
   /** Webview zoom factor; 1 = 100%. */
   zoom: number;
+  /** Editor toggles — Parker's settings, not the webview's storage. */
+  editor_gutter: boolean;
+  editor_wrap: boolean;
+  editor_ligatures: boolean;
 }
 
 export interface GitFileChange {
@@ -92,6 +96,9 @@ export const api = {
     invoke<void>("set_git_sync_interval", { minutes }),
   /** Zoom the whole interface. Returns the value actually applied (clamped). */
   setZoom: (scale: number) => invoke<number>("set_zoom", { scale }),
+  /** Persist the three editor toggles together. */
+  setEditorPrefs: (gutter: boolean, wrap: boolean, ligatures: boolean) =>
+    invoke<void>("set_editor_prefs", { gutter, wrap, ligatures }),
   gitStatus: () => invoke<GitStatus>("git_status"),
   gitLog: (limit?: number) => invoke<GitLogEntry[]>("git_log", { limit }),
   gitCommit: (message: string, push: boolean) =>

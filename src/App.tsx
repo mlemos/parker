@@ -70,17 +70,18 @@ export default function App() {
   // owns the value (it applies the saved one before the first paint), so this
   // is only the ladder and the current rung.
   const [zoom, setZoom] = useState(1);
-  const [gutterOn, setGutterOn] = useState<boolean>(
-    () => localStorage.getItem("parker.gutter") === "1"
-  );
-  const [wrapOn, setWrapOn] = useState<boolean>(
-    () => localStorage.getItem("parker.wrap") !== "0"
-  );
+  // Editor toggles. Rust owns the saved values (settings.json, alongside git
+  // and zoom); these start at the defaults and take the saved ones on load.
+  // They used to live in localStorage, which macOS keys by bundle identifier —
+  // the 1.0.2 identifier change is what moved them.
+  const [gutterOn, setGutterOn] = useState<boolean>(false);
+  const [wrapOn, setWrapOn] = useState<boolean>(true);
   // Coding ligatures in the editor (→ ⇒ ≠ …). Off by default: in prose a "->"
   // silently becoming an arrow is a surprise, not a feature.
-  const [ligaturesOn, setLigaturesOn] = useState<boolean>(
-    () => localStorage.getItem("parker.ligatures") === "1"
-  );
+  const [ligaturesOn, setLigaturesOn] = useState<boolean>(false);
+  // Until the saved toggles have been read, a flip must not be written back —
+  // it would overwrite the file with the defaults before they were loaded.
+  const prefsLoaded = useRef(false);
   // Option (⌥) held → the pane's split buttons become a merge (unsplit) button.
   const [altHeld, setAltHeld] = useState(false);
   // True while a tab is being dragged — lets every pane show a full-body drop
@@ -356,11 +357,17 @@ export default function App() {
   }, [theme]);
 
   // Read back what Rust already applied, so ⌘= steps from the real rung
-  // instead of from 100%.
+  // instead of from 100% — and the editor toggles along with it.
   useEffect(() => {
     api
       .getSettings()
-      .then((s) => setZoom(s.zoom || 1))
+      .then((s) => {
+        setZoom(s.zoom || 1);
+        setGutterOn(s.editor_gutter);
+        setWrapOn(s.editor_wrap);
+        setLigaturesOn(s.editor_ligatures);
+        prefsLoaded.current = true;
+      })
       .catch(() => {});
   }, []);
 
@@ -421,14 +428,9 @@ export default function App() {
     [applyZoom]
   );
   useEffect(() => {
-    localStorage.setItem("parker.gutter", gutterOn ? "1" : "0");
-  }, [gutterOn]);
-  useEffect(() => {
-    localStorage.setItem("parker.wrap", wrapOn ? "1" : "0");
-  }, [wrapOn]);
-  useEffect(() => {
-    localStorage.setItem("parker.ligatures", ligaturesOn ? "1" : "0");
-  }, [ligaturesOn]);
+    if (!prefsLoaded.current) return;
+    api.setEditorPrefs(gutterOn, wrapOn, ligaturesOn).catch(() => {});
+  }, [gutterOn, wrapOn, ligaturesOn]);
 
   // ---- Buffer / tab actions -----------------------------------------------
 

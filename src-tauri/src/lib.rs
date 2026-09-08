@@ -58,11 +58,26 @@ struct Settings {
     /// Webview zoom factor. 1.0 = 100%.
     #[serde(default = "one")]
     zoom: f64,
+    /// Editor toggles. These lived in the webview's localStorage until 1.0.2,
+    /// which macOS keys by bundle identifier — so changing the identifier
+    /// silently reset them. Settings are Parker's, not the webview's.
+    #[serde(default)]
+    editor_gutter: bool,
+    #[serde(default = "yes")]
+    editor_wrap: bool,
+    #[serde(default)]
+    editor_ligatures: bool,
 }
 
 /// serde default for `zoom` — a missing value means "no zoom", not 0×.
 fn one() -> f64 {
     1.0
+}
+
+/// serde default for `editor_wrap` — wrapping is on unless turned off, so a
+/// settings file from before the key existed keeps wrapping.
+fn yes() -> bool {
+    true
 }
 
 // Written by hand rather than derived: a derived Default gives `zoom` the f64
@@ -77,6 +92,9 @@ impl Default for Settings {
             git_auto_sync: false,
             git_sync_interval: 0,
             zoom: 1.0,
+            editor_gutter: false,
+            editor_wrap: true,
+            editor_ligatures: false,
         }
     }
 }
@@ -447,6 +465,9 @@ struct SettingsInfo {
     git_auto_sync: bool,
     git_sync_interval: u32,
     zoom: f64,
+    editor_gutter: bool,
+    editor_wrap: bool,
+    editor_ligatures: bool,
 }
 
 #[tauri::command]
@@ -461,7 +482,21 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
         git_auto_sync: s.git_auto_sync,
         git_sync_interval: s.git_sync_interval,
         zoom: s.zoom,
+        editor_gutter: s.editor_gutter,
+        editor_wrap: s.editor_wrap,
+        editor_ligatures: s.editor_ligatures,
     }
+}
+
+/// The editor toggles, all three at once — the frontend owns the live values
+/// and writes them whenever one flips, so a partial update has nothing to add.
+#[tauri::command]
+fn set_editor_prefs(gutter: bool, wrap: bool, ligatures: bool) -> Result<(), String> {
+    let mut s = load_settings();
+    s.editor_gutter = gutter;
+    s.editor_wrap = wrap;
+    s.editor_ligatures = ligatures;
+    write_settings(&s)
 }
 
 #[tauri::command]
@@ -1513,6 +1548,7 @@ pub fn run() {
             set_git_auto_sync,
             set_git_sync_interval,
             set_zoom,
+            set_editor_prefs,
             open_help,
             git_status,
             git_commit,
@@ -1584,6 +1620,9 @@ mod tests {
             git_auto_sync: true,
             git_sync_interval: 15,
             zoom: 1.25,
+            editor_gutter: true,
+            editor_wrap: false,
+            editor_ligatures: true,
         };
         let back: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
         assert_eq!(back.notes_dir, s.notes_dir);
@@ -1591,6 +1630,24 @@ mod tests {
         assert_eq!(back.git_auto_sync, s.git_auto_sync);
         assert_eq!(back.git_sync_interval, s.git_sync_interval);
         assert_eq!(back.zoom, s.zoom);
+        assert_eq!(back.editor_gutter, s.editor_gutter);
+        assert_eq!(back.editor_wrap, s.editor_wrap);
+        assert_eq!(back.editor_ligatures, s.editor_ligatures);
+    }
+
+    // The editor toggles arrived in 1.0.2. A settings file from before then has
+    // none of them, and must come up the way the editor always did: gutter
+    // off, wrapping ON, ligatures off. Wrapping is the one that would flip if
+    // it took bool's default.
+    #[test]
+    fn a_settings_file_without_editor_toggles_keeps_wrapping_on() {
+        let s: Settings = serde_json::from_str(r#"{"zoom":1.0}"#).unwrap();
+        assert!(!s.editor_gutter);
+        assert!(s.editor_wrap);
+        assert!(!s.editor_ligatures);
+        // and an explicit off stays off
+        let off: Settings = serde_json::from_str(r#"{"editor_wrap":false}"#).unwrap();
+        assert!(!off.editor_wrap);
     }
 
     // A settings file written by an older Parker is missing whatever was added
