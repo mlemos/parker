@@ -90,17 +90,42 @@ export function EditorGroup({
     };
   }, [active]);
 
+  // A drag that began in another group never reaches this group's tab
+  // onDragEnd, so the hover state it left here is cleared when the app-wide
+  // drag ends instead — otherwise a stale insertion bar would stay behind.
+  useEffect(() => {
+    if (!dragging) {
+      setOverIndex(null);
+      setDragIndex(null);
+    }
+  }, [dragging]);
+
   return (
     <div className={"egroup" + (focused ? " focused" : "")} onMouseDown={cb.onFocus}>
       <div className="tabstrip">
         <div
-          className="tabs"
+          className={
+            "tabs" +
+            (dragging && overIndex === group.tabs.length ? " drop-end" : "")
+          }
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes(TAB_MIME)) {
               e.preventDefault();
               e.stopPropagation();
               e.dataTransfer.dropEffect = "move";
+              // Over the strip itself or the + button, past the last tab: the
+              // tab would be appended, so the insertion bar goes after it.
+              if (
+                !(e.target as HTMLElement).closest(".tab") &&
+                overIndex !== group.tabs.length
+              )
+                setOverIndex(group.tabs.length);
             }
+          }}
+          onDragLeave={(e) => {
+            // Leaving the strip altogether, not just moving between its tabs.
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null))
+              setOverIndex(null);
           }}
           onDrop={(e) => {
             const raw = e.dataTransfer.getData(TAB_MIME);
@@ -144,7 +169,9 @@ export function EditorGroup({
                   "tab" +
                   (name === active ? " active" : "") +
                   (i === dragIndex ? " dragging" : "") +
-                  (i === overIndex && dragIndex !== null && dragIndex !== i
+                  // App-wide `dragging` rather than this group's dragIndex, so
+                  // a tab arriving from another pane also shows where it lands.
+                  (i === overIndex && dragging && dragIndex !== i
                     ? " drag-over"
                     : "")
                 }

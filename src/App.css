@@ -211,6 +211,11 @@ body,
 .tab.drag-over {
   box-shadow: inset 2px 0 0 0 var(--accent);
 }
+/* Past the last tab (over the strip or the + button) the dragged tab would be
+   appended, so the same bar stands on the + button — right after the last tab. */
+.tabs.drop-end .tab-new {
+  box-shadow: inset 2px 0 0 0 var(--accent);
+}
 
 .tab-name {
   overflow: hidden;
@@ -755,12 +760,10 @@ body,
 }
 .split-divider.row {
   width: 1px;
-  margin: 0 2px;
   cursor: col-resize;
 }
 .split-divider.col {
   height: 1px;
-  margin: 2px 0;
   cursor: row-resize;
 }
 .split-divider:hover {
@@ -843,8 +846,9 @@ body.resizing {
   z-index: 6;
   background: transparent;
 }
+/* A ring, not a wash: tinting the whole pane read as "everything is selected"
+   rather than "drop here". */
 .drop-catcher.active {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 

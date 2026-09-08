@@ -795,14 +795,24 @@ export default function App() {
   // element never fires dragend — which used to leave `tabDragging` stuck on,
   // covering every pane with an invisible drop catcher that swallowed clicks
   // and keystrokes. The window hears the end of the drag either way.
+  //
+  // `drop` is listened to in the BUBBLE phase, deliberately. In capture it ran
+  // before React's root listener, and the setTabDragging(false) it issued was
+  // flushed in a microtask between native listeners — unmounting the
+  // `dragging`-gated drop-catcher while the event was still on its way. React
+  // then found no mounted fiber for the target and never dispatched the pane's
+  // onDrop, so dropping a tab on a pane body silently did nothing (the tab bar
+  // still worked: it isn't gated on the flag). In bubble the pane handles the
+  // drop first — and dropTab clears the flag itself — so this is only the
+  // safety net for drops that land on nothing.
   useEffect(() => {
     const clear = () => setTabDragging(false);
     window.addEventListener("dragend", clear, true);
-    window.addEventListener("drop", clear, true);
+    window.addEventListener("drop", clear);
     window.addEventListener("blur", clear);
     return () => {
       window.removeEventListener("dragend", clear, true);
-      window.removeEventListener("drop", clear, true);
+      window.removeEventListener("drop", clear);
       window.removeEventListener("blur", clear);
     };
   }, []);
