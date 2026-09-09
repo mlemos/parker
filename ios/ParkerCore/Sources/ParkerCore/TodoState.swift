@@ -47,7 +47,10 @@ public enum Todo {
         TodoState(rawValue: word) ?? aliases[word]
     }
 
-    /// The slash tag at the start of a line, after optional indent.
+    /// The slash tag at the start of a line, after optional indent, with an
+    /// optional priority: one to three bangs glued to the word — `/TODO!!`.
+    /// Four bangs, or a space before them, is not a priority: `/TODO !!` is a
+    /// to-do whose text is "!!".
     public struct Tag: Equatable, Sendable {
         /// Leading whitespace, as written (the regex's `\s*`).
         public let indent: String
@@ -55,12 +58,17 @@ public enum Todo {
         public let word: String
         /// The canonical state.
         public let state: TodoState
-        /// UTF-16 length of the whole match: indent + "/" + word.
+        /// The bangs, as written: "", "!", "!!" or "!!!".
+        public let bangs: String
+        /// UTF-16 length of the whole match: indent + "/" + word + bangs.
         public let length: Int
+
+        /// The priority: 0 (none) to 3.
+        public var priority: Int { bangs.utf16.count }
     }
 
     private static let lineTag = try! NSRegularExpression(
-        pattern: #"^(\s*)/(TODO|DOING|WIP|PAUSED|PAUSE|HOLD|WAITING|WAIT|BLOCKED|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(?=\s|$)"#
+        pattern: #"^(\s*)/(TODO|DOING|WIP|PAUSED|PAUSE|HOLD|WAITING|WAIT|BLOCKED|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(!{1,3})?(?=\s|$)"#
     )
 
     /// LINE_TAG: the tag on a line, or nil. Only at the start of the line, and
@@ -72,8 +80,9 @@ public enum Todo {
         }
         let indent = ns.substring(with: m.range(at: 1))
         let word = ns.substring(with: m.range(at: 2))
+        let bangs = m.range(at: 3).location == NSNotFound ? "" : ns.substring(with: m.range(at: 3))
         guard let state = norm(word) else { return nil }
-        return Tag(indent: indent, word: word, state: state, length: m.range.length)
+        return Tag(indent: indent, word: word, state: state, bangs: bangs, length: m.range.length)
     }
 
     /// The state a tap on the box moves to: a plain tap completes or reopens;

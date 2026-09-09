@@ -18,21 +18,23 @@ import Testing
         }
     }
 
-    // The Mac normalises each glyph from a hand-read INK table (todo-glyph.ts),
-    // so "16" is as exact as that reading: six glyphs land within 0.01, the
-    // play triangle within 0.5 (its INK top is read a little high). The point
-    // of this test is that we apply the SAME transform the Mac does — a wrong
-    // arc or a dropped translate would miss by units, not tenths.
-    @Test("the ink is normalised: longest side 16 units, centred on the grid, like the Mac")
+    // The point of this test is that we apply the SAME transform the Mac does —
+    // a wrong arc or a dropped translate would miss by units, not hundredths.
+    // Every glyph's longest side lands on 16 of the 24 grid. Six are centred on
+    // 12; the play is deliberately not: its INK box is declared 3…21 so that
+    // Lucide's own optical offset (the triangle sits one unit right of centre
+    // in Lucide's grid) survives the normalisation — centre 12.889.
+    @Test("the ink is normalised: longest side 16 units, centred like the Mac")
     func normalised() throws {
         for st in TodoState.order where st != .todo {
             let g = try #require(try GlyphSVG.parse(Self.tokens.todo.glyphs[st.rawValue]!))
             let box = g.path.boundingBoxOfPath
             let longest = max(box.width, box.height)
-            let tolerance: CGFloat = st == .doing ? 0.6 : 0.05
-            #expect(abs(longest - 16) < tolerance, Comment(rawValue: "\(st): longest side \(longest)"))
-            #expect(abs(box.midX - 12) < tolerance && abs(box.midY - 12) < tolerance, Comment(rawValue: "\(st): centre \(box.midX),\(box.midY)"))
-            #expect(g.strokeWidth > 1 && g.strokeWidth < 4, Comment(rawValue: "\(st): stroke \(g.strokeWidth)"))
+            let midX: CGFloat = st == .doing ? 12.889 : 12
+            #expect(abs(longest - 16) < 0.05, Comment(rawValue: "\(st): longest side \(longest)"))
+            #expect(abs(box.midX - midX) < 0.05 && abs(box.midY - 12) < 0.05, Comment(rawValue: "\(st): centre \(box.midX),\(box.midY)"))
+            // the group's pen: 4 for line glyphs, 1.2 for solids, 2.5 for the hourglass's caps — all divided by the glyph's scale
+            #expect(g.strokeWidth > 1 && g.strokeWidth < 4.5, Comment(rawValue: "\(st): stroke \(g.strokeWidth)"))
         }
     }
 

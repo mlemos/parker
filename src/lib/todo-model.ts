@@ -3,9 +3,15 @@
 // interface (satisfied by CodeMirror's Text), so it can be unit-tested
 // headlessly. todo.ts owns the rendering and wires these into transactions.
 
-/** Slash tag at the start of a line (after optional indent). */
+/** Slash tag at the start of a line (after optional indent), with an optional
+    priority: one to three bangs glued to the word — `/TODO!!`. Four bangs, or a
+    space before them, is not a tag: `/TODO !!` is a to-do whose text is "!!".
+    Groups: 1 indent · 2 word (state or alias) · 3 bangs, if any. */
 export const LINE_TAG =
-  /^(\s*)\/(TODO|DOING|WIP|PAUSED|PAUSE|HOLD|WAITING|WAIT|BLOCKED|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(?=\s|$)/;
+  /^(\s*)\/(TODO|DOING|WIP|PAUSED|PAUSE|HOLD|WAITING|WAIT|BLOCKED|ATTN|DONE|FAIL|MISSED|CANCEL|DISMISSED)(!{1,3})?(?=\s|$)/;
+
+/** The priority a tag carries: 0 (none) to 3. */
+export const priorityOf = (tag: RegExpExecArray): number => tag[3]?.length ?? 0;
 
 /** ⌘⏎ rotation order: the states you pass through, then the outcomes.
     The aliases (WIP, WAITING/BLOCKED, MISSED, DISMISSED) normalize to their
@@ -57,15 +63,16 @@ export interface DocLike {
 export type Change = { from: number; to?: number; insert?: string };
 
 /** Edit that rewrites a line's tag to `next` (null removes it, plus the one
-    space that separated it from the text). */
+    space that separated it from the text). The priority bangs travel with the
+    state: rotating `/TODO!!` gives `/DOING!!`. */
 export function tagChange(
   line: { from: number; text: string },
   tag: RegExpExecArray,
   next: string | null
 ): Change {
   const from = line.from + tag[1].length;
-  const tagEnd = from + 1 + tag[2].length;
-  if (next) return { from, to: tagEnd, insert: "/" + next };
+  const tagEnd = line.from + tag[0].length;
+  if (next) return { from, to: tagEnd, insert: "/" + next + (tag[3] ?? "") };
   const hasSpace = line.text[tag[0].length] === " ";
   return { from, to: tagEnd + (hasSpace ? 1 : 0) };
 }

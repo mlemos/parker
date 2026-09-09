@@ -24,6 +24,15 @@ struct Fixtures: Decodable {
         let to: Int?
         let want: [String?]
     }
+    struct Priority: Decodable {
+        struct TagCase: Decodable { let line: String; let word: String; let level: Int }
+        struct Rotate: Decodable { let line: String; let after: String }
+        struct ClickCase: Decodable { let line: String; let alt: Bool; let after: String }
+        let tags: [TagCase]
+        let notTags: [String]
+        let rotate: [Rotate]
+        let click: [ClickCase]
+    }
     let order: [String]
     let aliases: [String: String]
     let notTags: [String]
@@ -31,6 +40,7 @@ struct Fixtures: Decodable {
     let cursorCases: [CursorCase]
     let sweepDocs: [String: String]
     let ownerCases: [OwnerCase]
+    let priority: Priority
 
     /// shared/fixtures/todo-model.json, found relative to this source file —
     /// SwiftPM resources cannot reach outside the target, and the fixtures are
@@ -232,5 +242,59 @@ private func expectedLines(_ doc: TextDocument, _ from: Int, _ to: Int) -> [Int]
         #expect(doc.line(1).to == 3)
         #expect(doc.line(2).from == 4)
         #expect(Todo.planRotate(doc, from: 4, to: 4) == [Change(from: 4, insert: "/TODO ")])
+    }
+}
+
+// ---- Priority ------------------------------------------------------------------------
+// Bangs glued to the tag are part of it: recognised, kept, and carried along
+// when the state rotates or is tapped. Same fixtures as the TypeScript suite.
+
+/// Apply changes (as planRotate/tagChange produce them) to a one-line doc.
+private func applied(_ text: String, _ changes: [Change]) -> String {
+    var u = Array(text.utf16)
+    for c in changes.sorted(by: { $0.from > $1.from }) {
+        let to = c.to ?? c.from
+        u.replaceSubrange(c.from..<to, with: Array((c.insert ?? "").utf16))
+    }
+    return String(utf16CodeUnits: u, count: u.count)
+}
+
+@Suite("priority bangs") struct PriorityTests {
+    @Test("are read off the tag, 0 to 3")
+    func levels() {
+        for c in Fixtures.shared.priority.tags {
+            let t = Todo.tag(of: c.line)
+            #expect(t?.word == c.word, Comment(rawValue: c.line))
+            #expect(t?.priority == c.level, Comment(rawValue: c.line))
+        }
+    }
+
+    @Test("do not make a tag out of four bangs, a bang before a letter, or a bang before the slash")
+    func rejects() {
+        for line in Fixtures.shared.priority.notTags { #expect(Todo.tag(of: line) == nil, Comment(rawValue: line)) }
+    }
+
+    @Test("travel with the state through the rotation")
+    func rotate() {
+        for c in Fixtures.shared.priority.rotate {
+            let doc = TextDocument(lines: [c.line])
+            #expect(applied(c.line, Todo.planRotate(doc, from: 0, to: 0)) == c.after, Comment(rawValue: c.line))
+        }
+    }
+
+    @Test("travel with the state through a tap")
+    func tap() {
+        for c in Fixtures.shared.priority.click {
+            let doc = TextDocument(lines: [c.line])
+            let tag = Todo.tag(of: c.line)!
+            let change = Todo.tagChange(line: doc.line(1), tag: tag, next: Todo.nextOnClick(tag.state, alt: c.alt))
+            #expect(applied(c.line, [change]) == c.after, Comment(rawValue: c.line))
+        }
+    }
+
+    @Test("the whole tag, bangs included, is what the box covers")
+    func length() {
+        #expect(Todo.tag(of: "  /TODO!! x")?.length == 9)
+        #expect(Todo.tag(of: "/WIP x")?.length == 4)
     }
 }

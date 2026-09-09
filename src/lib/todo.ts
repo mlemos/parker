@@ -159,7 +159,10 @@ function build(view: EditorView): Built {
       if (tag) {
         const state = tag[2];
         const tagFrom = line.from + tag[1].length;
-        const tagTo = tagFrom + 1 + state.length;
+        // The whole tag, bangs included: `/TODO!!` is one box. The priority
+        // has no visual on the Mac yet (it lives in the file, the iPhone shows
+        // it), but it must stay behind the box or the text starts with "!!".
+        const tagTo = line.from + tag[0].length;
         const lineDeco = LINE_DECOS[state];
         if (lineDeco) builder.add(line.from, line.from, lineDeco);
         const widget = Decoration.replace({ widget: new TodoBox(state) });
@@ -226,7 +229,7 @@ const deleteMarker = (backward: boolean) => (view: EditorView): boolean => {
   const tag = LINE_TAG.exec(line.text);
   if (!tag) return false;
   const from = line.from + tag[1].length;
-  const to = from + 1 + tag[2].length;
+  const to = line.from + tag[0].length;
   if (sel.head !== (backward ? to : from)) return false;
   const hasSpace = line.text[tag[0].length] === " ";
   view.dispatch({

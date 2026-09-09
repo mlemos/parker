@@ -71,26 +71,15 @@
     };
     var G = {
       todo: "",
-      doing: g("translate(0.541 1.003) scale(0.916)", 2.728,
-        '<path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>'),
-      pause: g("translate(1.333 1.333) scale(0.889)", 2.813,
-        '<rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/>'),
-      wait: g("translate(2.4 2.4) scale(0.8)", 3.125,
-        '<path d="M5 22h14"/><path d="M5 2h14"/>' +
-        '<path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/>' +
-        '<path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>'),
-      attn: g("translate(-4 -4) scale(1.333)", 1.875,
-        '<path d="M12 6v12"/><path d="M17.196 9 6.804 15"/><path d="m6.804 9 10.392 6"/>'),
-      done: g("translate(0 0.5) scale(1)", 2.5, '<path d="M20 6 9 17l-5-5"/>'),
-      fail: g("translate(-4 -4) scale(1.333)", 1.875, '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
-      cancel: g("translate(-1.714 -1.714) scale(1.143)", 2.188, '<path d="M5 12h14"/>')
+      doing: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><g transform=\"translate(1.333 1.333) scale(0.889)\" stroke-width=\"1.35\"><path d=\"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z\" fill=\"currentColor\"/></g></svg>",
+      pause: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><g transform=\"translate(1.333 1.333) scale(0.889)\" stroke-width=\"1.35\"><rect x=\"5\" y=\"3\" width=\"5\" height=\"18\" rx=\"1\" fill=\"currentColor\"/><rect x=\"14\" y=\"3\" width=\"5\" height=\"18\" rx=\"1\" fill=\"currentColor\"/></g></svg>",
+      wait: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><g transform=\"translate(2.4 2.4) scale(0.8)\" stroke-width=\"3.125\"><path d=\"M5 22h14\"/><path d=\"M5 2h14\"/><path d=\"M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22\" fill=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2\" fill=\"currentColor\" stroke-width=\"1.5\"/></g></svg>",
+      attn: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><g transform=\"translate(-4 -4) scale(1.333)\" stroke-width=\"3\"><path d=\"M12 6v12\"/><path d=\"M17.196 9 6.804 15\"/><path d=\"m6.804 9 10.392 6\"/></g></svg>",
+      done: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><g transform=\"translate(0 0.5) scale(1)\" stroke-width=\"4\"><path d=\"M20 6 9 17l-5-5\"/></g></svg>",
+      fail: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><g transform=\"translate(-4 -4) scale(1.333)\" stroke-width=\"3\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></g></svg>",
+      cancel: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><g transform=\"translate(-1.714 -1.714) scale(1.143)\" stroke-width=\"3.5\"><path d=\"M5 12h14\"/></g></svg>"
     };
 
-    function g(transform, width, shapes) {
-      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-        'stroke-linecap="round" stroke-linejoin="round"><g transform="' + transform +
-        '" stroke-width="' + width + '">' + shapes + "</g></svg>";
-    }
 
     demo.addEventListener("click", function (e) {
       var btn = e.target.closest ? e.target.closest("button.todo-out") : null;

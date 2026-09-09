@@ -10,6 +10,9 @@ import {
   norm,
   ownersForRange,
   planRotate,
+  priorityOf,
+  tagChange,
+  type Change,
   type State,
 } from "./todo-model.ts";
 
@@ -23,6 +26,12 @@ interface Fixtures {
   cursorCases: { name: string; text: string; head: number; want: number }[];
   sweepDocs: Record<string, string>;
   ownerCases: { name: string; lines: string[]; from?: number; to?: number; want: (State | null)[] }[];
+  priority: {
+    tags: { line: string; word: string; level: number }[];
+    notTags: string[];
+    rotate: { line: string; after: string }[];
+    click: { line: string; alt: boolean; after: string }[];
+  };
 }
 const FX = fixtures as unknown as Fixtures;
 
@@ -154,4 +163,46 @@ describe("ownersForRange", () => {
       expect(owners(lines, from ?? 1, to)).toEqual(want);
     });
   }
+});
+
+// ---- Priority --------------------------------------------------------------
+// Bangs glued to the tag are part of it: recognised by the grammar, kept behind
+// the box, and carried along when the state rotates or is clicked. The Mac
+// shows nothing for them yet; the iPhone does. Same fixtures on both sides.
+
+/** Apply changes (as planRotate/tagChange produce them) to a one-line doc. */
+function applied(text: string, changes: Change[]): string {
+  let out = text;
+  for (const c of [...changes].sort((a, b) => b.from - a.from))
+    out = out.slice(0, c.from) + (c.insert ?? "") + out.slice(c.to ?? c.from);
+  return out;
+}
+
+describe("priority bangs", () => {
+  it("are read off the tag, 0 to 3", () => {
+    for (const { line, word, level } of FX.priority.tags) {
+      const tag = LINE_TAG.exec(line);
+      expect(tag?.[2], line).toBe(word);
+      expect(tag && priorityOf(tag), line).toBe(level);
+    }
+  });
+
+  it("do not make a tag out of four bangs, a bang before a letter, or a bang before the slash", () => {
+    for (const line of FX.priority.notTags) expect(LINE_TAG.exec(line), line).toBeNull();
+  });
+
+  it("travel with the state through ⌘⏎", () => {
+    for (const { line, after } of FX.priority.rotate) {
+      const doc = Text.of([line]);
+      expect(applied(line, planRotate(doc, 0, 0)), line).toBe(after);
+    }
+  });
+
+  it("travel with the state through a click", () => {
+    for (const { line, alt, after } of FX.priority.click) {
+      const tag = LINE_TAG.exec(line)!;
+      const change = tagChange({ from: 0, text: line }, tag, nextOnClick(norm(tag[2]), alt));
+      expect(applied(line, [change]), line).toBe(after);
+    }
+  });
 });
