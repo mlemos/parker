@@ -11,6 +11,7 @@ struct NoteView: View {
     let name: String
     @State private var text = ""
     @State private var loaded = false
+    @State private var onDisk = ""
     @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
@@ -21,7 +22,7 @@ struct NoteView: View {
                     saveTask?.cancel()
                     saveTask = Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(500))
-                        if !Task.isCancelled { workspace.write(name, new) }
+                        if !Task.isCancelled { workspace.write(name, new); onDisk = new }
                     }
                 }
             } else {
@@ -38,14 +39,16 @@ struct NoteView: View {
         .ignoresSafeArea(.container, edges: .bottom)
         .navigationTitle(name.replacingOccurrences(of: ".md", with: ""))
         .navigationBarTitleDisplayMode(.inline)
-        .task { if !loaded { text = await workspace.load(name); loaded = true } }
+        .task { if !loaded { text = await workspace.load(name); onDisk = text; loaded = true } }
         .onChange(of: workspace.notes) { _, _ in
             // the folder changed underneath: take the disk's version when we have nothing unsaved
             if loaded, saveTask == nil || saveTask?.isCancelled == true {
                 let disk = workspace.read(name)
-                if disk != text { text = disk }
+                if disk != text { text = disk; onDisk = disk }
             }
         }
-        .onDisappear { saveTask?.cancel(); if loaded { workspace.write(name, text) } }
+        // Only a changed note is written: rewriting an untouched one would
+        // bump its date and make every synced device fetch it again.
+        .onDisappear { saveTask?.cancel(); if loaded, text != onDisk { workspace.write(name, text); onDisk = text } }
     }
 }

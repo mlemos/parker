@@ -36,9 +36,13 @@ struct NoteTextView: UIViewRepresentable {
     func updateUIView(_ tv: UITextView, context: Context) {
         context.coordinator.parent = self
         tv.backgroundColor = UIColor(theme.editorBg)
-        // Reload only when the file changed underneath (not when we wrote it).
+        tv.tintColor = UIColor(theme.accent)
+        // Reload when the file changed underneath (not when we wrote it), and
+        // when the theme changed: colours and the boxes' images are baked in.
         if context.coordinator.lastEmitted != text, NoteStorage.plainText(tv.attributedText) != text {
             context.coordinator.load(text)
+        } else if context.coordinator.styledWith != theme.def.id {
+            context.coordinator.load(NoteStorage.plainText(tv.attributedText))
         }
     }
 
@@ -49,6 +53,7 @@ struct NoteTextView: UIViewRepresentable {
         var parent: NoteTextView
         weak var textView: UITextView?
         var lastEmitted: String?
+        var styledWith: String?
         private var normalizing = false
 
         init(_ parent: NoteTextView) { self.parent = parent }
@@ -61,6 +66,7 @@ struct NoteTextView: UIViewRepresentable {
             Perf.timed("ensureLayout") { tv.layoutManager.ensureLayout(for: tv.textContainer) }
             tv.selectedRange = NSRange(location: min(sel.location, tv.attributedText.length), length: 0)
             lastEmitted = text
+            styledWith = parent.theme.def.id
         }
 
         // ---- Editing ----------------------------------------------------------------------

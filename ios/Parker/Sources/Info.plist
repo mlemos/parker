@@ -45,6 +45,11 @@
 			<string>Any</string>
 		</dict>
 	</dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>GeistMono-Variable.ttf</string>
+		<string>GeistMono-Italic-Variable.ttf</string>
+	</array>
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>UILaunchScreen</key>

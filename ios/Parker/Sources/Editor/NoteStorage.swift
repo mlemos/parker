@@ -9,7 +9,21 @@ import UIKit
 enum NoteStorage {
     static let fontSize: CGFloat = 15
     static let lineHeightMultiple: CGFloat = 1.6
-    static var font: UIFont { .monospacedSystemFont(ofSize: fontSize, weight: .regular) }
+
+    /// Geist Mono, the Mac editor's face, bundled with the app. Ligatures off,
+    /// as on the Mac by default: in prose an "->" turning into an arrow is a
+    /// surprise. The system's monospace stands in if the font ever fails to load.
+    static var font: UIFont { geist("GeistMono-Regular", weight: .regular) }
+    static var bold: UIFont { geist("GeistMono-Bold", weight: .bold) }
+    static var italic: UIFont { geist("GeistMono-Italic", weight: .regular) }
+    static var boldItalic: UIFont { geist("GeistMono-BoldItalic", weight: .bold) }
+
+    private static func geist(_ name: String, weight: UIFont.Weight) -> UIFont {
+        guard let base = UIFont(name: name, size: fontSize) else { return .monospacedSystemFont(ofSize: fontSize, weight: weight) }
+        let noLigatures: [UIFontDescriptor.FeatureKey: Int] = [.type: kLigaturesType, .selector: kCommonLigaturesOffSelector]
+        let descriptor = base.fontDescriptor.addingAttributes([.featureSettings: [noLigatures]])
+        return UIFont(descriptor: descriptor, size: fontSize)
+    }
 
     /// File text → editor storage, styled.
     static func attributed(from text: String, theme: Theme) -> NSMutableAttributedString {
@@ -52,10 +66,16 @@ enum NoteStorage {
     static func style(_ s: NSMutableAttributedString, theme: Theme) {
         let whole = NSRange(location: 0, length: s.length)
         let para = NSMutableParagraphStyle()
-        para.lineHeightMultiple = lineHeightMultiple
+        // CSS `line-height: 1.6` is 1.6 × the font size; TextKit's multiple
+        // would scale the font's own (taller) line height instead. Fix the
+        // line and centre the text in it, as a browser does.
+        let lineHeight = (fontSize * lineHeightMultiple).rounded()
+        para.minimumLineHeight = lineHeight
+        para.maximumLineHeight = lineHeight
+        let leading = (lineHeight - font.lineHeight) / 2
         // addAttributes, never setAttributes: the latter would strip the
         // .attachment attribute and turn every box back into a blank.
-        s.addAttributes([.font: font, .foregroundColor: UIColor(theme.editorFg), .paragraphStyle: para], range: whole)
+        s.addAttributes([.font: font, .foregroundColor: UIColor(theme.editorFg), .paragraphStyle: para, .baselineOffset: leading], range: whole)
 
         // Who owns each line, from the file's text — the grammar works on that.
         // Storage lines and file lines match one to one: an attachment is one
@@ -65,12 +85,25 @@ enum NoteStorage {
 
         let ns = s.string as NSString
         var location = 0
+        var inFence = false
         for (i, storageLine) in s.string.components(separatedBy: "\n").enumerated() {
             let length = (storageLine as NSString).length
             let range = NSRange(location: location, length: length)
             location += length + 1
             guard length > 0, i < doc.lineCount else { continue }
             let fileLine = doc.line(i + 1).text
+            // A fenced block: its fences and its text wear the code colour,
+            // and nothing inside is markdown. (The Mac highlights a named
+            // language properly; this is the plain-fence look for all of them.)
+            if fileLine.hasPrefix("```") || fileLine.hasPrefix("~~~") {
+                inFence.toggle()
+                s.addAttribute(.foregroundColor, value: UIColor(Color(css: theme.def.syntax.inlineCode)), range: range)
+                continue
+            }
+            if inFence {
+                s.addAttribute(.foregroundColor, value: UIColor(Color(css: theme.def.syntax.inlineCode)), range: range)
+                continue
+            }
             if let tag = Todo.tag(of: fileLine) {
                 let color = tag.state == .todo ? theme.editorFg : (tag.state == .cancel ? theme.muted : theme.stateColor(tag.state))
                 s.addAttribute(.foregroundColor, value: UIColor(color), range: range)
@@ -85,23 +118,48 @@ enum NoteStorage {
         _ = ns
     }
 
-    /// A little of the Mac's markdown tint: headings, list markers, bold, inline code, links.
+    /// The patterns, compiled once: a note is restyled on every keystroke.
+    private enum Re {
+        static let heading = try! NSRegularExpression(pattern: "^#{1,6} .*$")
+        static let quote = try! NSRegularExpression(pattern: "^\\s*>.*$")
+        // the whole item, as the Mac does (BulletList/OrderedList → t.list)
+        static let list = try! NSRegularExpression(pattern: "^\\s*([-*+]|\\d+\\.) .*$")
+        static let boldItalic = try! NSRegularExpression(pattern: "\\*\\*\\*[^*\\n]+?\\*\\*\\*|___[^_\\n]+?___")
+        // *x* or _x_, not touching ** / __ and not across spaces at the edges
+        static let italic = try! NSRegularExpression(pattern: "(?<![*\\w])\\*(?!\\*)[^*\\n]+?\\*(?!\\*)|(?<![_\\w])_(?!_)[^_\\n]+?_(?![_\\w])")
+        static let bold = try! NSRegularExpression(pattern: "\\*\\*[^*\\n]+?\\*\\*|__[^_\\n]+?__")
+        static let code = try! NSRegularExpression(pattern: "`[^`\\n]+`")
+        // [text](url) only: a bare url is plain text on the Mac too
+        static let link = try! NSRegularExpression(pattern: "\\[[^\\]]+\\]\\([^)]+\\)")
+    }
+
+    /// A little of the Mac's markdown tint: headings, list markers, bold, italic, inline code, links.
     private static func markdown(_ line: String, in range: NSRange, of s: NSMutableAttributedString, theme: Theme) {
         let ns = line as NSString
-        func paint(_ pattern: String, _ color: Color, bold: Bool = false) {
-            guard let re = try? NSRegularExpression(pattern: pattern) else { return }
+        // The Mac's rules (themes.ts syntaxStyles): marks (#, **, [], ()) wear
+        // the colour of what they mark, bold-italic is bold's colour in italic.
+        func paint(_ re: NSRegularExpression, _ color: Color, bold: Bool = false, italic: Bool = false, underline: Bool = false) {
             for m in re.matches(in: line, range: NSRange(location: 0, length: ns.length)) {
                 let r = NSRange(location: range.location + m.range.location, length: min(m.range.length, range.length - m.range.location))
                 guard r.length > 0 else { continue }
                 s.addAttribute(.foregroundColor, value: UIColor(color), range: r)
-                if bold { s.addAttribute(.font, value: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .bold), range: r) }
+                if bold || italic {
+                    let wasItalic = (s.attribute(.font, at: r.location, effectiveRange: nil) as? UIFont).map { $0.fontDescriptor.symbolicTraits.contains(.traitItalic) } ?? false
+                    let wasBold = (s.attribute(.font, at: r.location, effectiveRange: nil) as? UIFont).map { $0.fontDescriptor.symbolicTraits.contains(.traitBold) } ?? false
+                    let b = bold || wasBold, i = italic || wasItalic
+                    s.addAttribute(.font, value: b && i ? boldItalic : b ? self.bold : i ? self.italic : font, range: r)
+                }
+                if underline { s.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: r) }
             }
         }
-        if line.hasPrefix("#") { paint("^#{1,6} .*$", theme.heading, bold: true); return }
-        paint("^\\s*([-*+]|\\d+\\.)(?= )", theme.list)
-        paint("\\*\\*[^*]+\\*\\*", Color(css: theme.def.syntax.bold), bold: true)
-        paint("`[^`]+`", Color(css: theme.def.syntax.inlineCode))
-        paint("\\[[^\\]]+\\]\\([^)]+\\)|https?://\\S+", Color(css: theme.def.syntax.link))
+        if line.hasPrefix("#") { paint(Re.heading, theme.heading, bold: true); return }
+        paint(Re.quote, Color(css: theme.def.syntax.string))
+        paint(Re.list, theme.list)
+        paint(Re.boldItalic, Color(css: theme.def.syntax.bold), bold: true, italic: true)
+        paint(Re.italic, Color(css: theme.def.syntax.italic), italic: true)
+        paint(Re.bold, Color(css: theme.def.syntax.bold), bold: true)
+        paint(Re.code, Color(css: theme.def.syntax.inlineCode))
+        paint(Re.link, Color(css: theme.def.syntax.link), underline: true)
     }
 }
 
