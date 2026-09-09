@@ -17,42 +17,53 @@ struct OnboardingView: View {
 
     var body: some View {
         let theme = Theme.current(scheme)
-        VStack(spacing: 0) {
-            Spacer()
-            VStack(spacing: 14) {
-                Image("ParkerHead").resizable().renderingMode(.template).aspectRatio(contentMode: .fit)
-                    .frame(width: 96, height: 96).foregroundStyle(theme.text)
-                Text("Parker for iPhone")
-                    .font(.system(size: 30, weight: .bold)).multilineTextAlignment(.center)
-                    .foregroundStyle(theme.text)
-                Text("The companion to Parker for Mac.")
-                    .font(.title3.weight(.medium)).multilineTextAlignment(.center)
-                    .foregroundStyle(theme.text)
-                Text("Your notes are plain files in a folder you own. This app reads the same folder your Mac does: search it, work through your to-dos, jot things down. No account, no server of ours, nothing leaves your folder.")
-                    .font(.body).multilineTextAlignment(.center).foregroundStyle(theme.secondary)
-                    .frame(maxWidth: 340)
-            }
-            .padding(.horizontal, 28)
-            Spacer()
-            VStack(spacing: 10) {
-                OptionCard(icon: "icloud", title: workspace.busy ? "Setting up your folder…" : "Start fresh",
-                           detail: "We create a Parker folder in your iCloud Drive. A Mac with Parker finds it by itself. No iCloud? It lives on this phone instead.",
-                           theme: theme) { if !workspace.busy { workspace.startFresh() } }
-                OptionCard(icon: "folder", title: "I already have notes",
-                           detail: "Pick the folder in Files. iCloud Drive, Google Drive and Dropbox all work.",
-                           theme: theme) { picking = true }
-                Button { help = true } label: {
-                    Label("Where is my folder?", systemImage: "info.circle").font(.subheadline.weight(.medium))
+        GeometryReader { geo in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 24)
+                    VStack(spacing: 12) {
+                        // The brand, as the site wears it: the figure and the wordmark, ink on
+                        // paper in the light theme and paper on ink in the dark one.
+                        Image("Lockup").resizable().aspectRatio(contentMode: .fit)
+                            .frame(width: min(geo.size.width - 96, 250))
+                            .padding(.bottom, 10)
+                            .accessibilityLabel("Parker")
+                        Text("for iPhone")
+                            .font(.system(size: 26, weight: .bold)).foregroundStyle(theme.text)
+                        Text("The companion to Parker for Mac")
+                            .font(.headline).foregroundStyle(theme.text)
+                        Text("Your notes are plain files in a folder you own. This app reads the same folder your Mac does. No account, no server of ours, nothing leaves your folder.")
+                            .font(.subheadline).multilineTextAlignment(.center).foregroundStyle(theme.secondary)
+                            .frame(maxWidth: 320)
+                    }
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+                    Spacer(minLength: 28)
+                    VStack(spacing: 10) {
+                        OptionCard(icon: "icloud", title: workspace.busy ? "Setting up your folder…" : "Start fresh",
+                                   detail: "A Parker folder in your iCloud Drive. A Mac with Parker finds it by itself. No iCloud? It lives on this phone.",
+                                   theme: theme) { if !workspace.busy { workspace.startFresh() } }
+                        OptionCard(icon: "folder", title: "I already have notes",
+                                   detail: "Pick the folder in Files. iCloud Drive, Google Drive and Dropbox all work.",
+                                   theme: theme) { picking = true }
+                    }
+                    .padding(.horizontal, 20)
+                    VStack(spacing: 2) {
+                        Button { help = true } label: {
+                            Label("Where is my folder?", systemImage: "info.circle").font(.subheadline.weight(.medium))
+                        }
+                        .tint(theme.accent).frame(height: 40)
+                        Link(destination: URL(string: "https://getparker.dev")!) {
+                            Text("No Mac app yet? Parker for Mac is free at getparker.dev")
+                                .font(.footnote).foregroundStyle(theme.secondary)
+                        }
+                    }
+                    .padding(.top, 8).padding(.bottom, 16)
+                    if let err = workspace.lastError {
+                        Text(err).font(.footnote).foregroundStyle(.red).padding(.bottom, 12)
+                    }
                 }
-                .tint(theme.accent).frame(height: 44)
-                Link(destination: URL(string: "https://getparker.dev")!) {
-                    Text("No Mac app yet? Parker for Mac is free at getparker.dev")
-                        .font(.footnote).foregroundStyle(theme.secondary).multilineTextAlignment(.center)
-                }
-            }
-            .padding(.horizontal, 20).padding(.bottom, 24)
-            if let err = workspace.lastError {
-                Text(err).font(.footnote).foregroundStyle(.red).padding(.bottom, 12)
+                .frame(minHeight: geo.size.height) // short phones scroll, tall ones centre
             }
         }
         .background(theme.editorBg.ignoresSafeArea())
