@@ -7,7 +7,18 @@ import ParkerCore
 import UIKit
 
 enum NoteStorage {
-    static let fontSize: CGFloat = 15
+    /// The text size, the way the Mac's interface zoom sets it: chosen once by
+    /// pinching, remembered. Larger than the Mac's 14px by default, because a
+    /// phone is read at arm's length and a box has to be hit with a thumb.
+    static let defaultFontSize: CGFloat = 17
+    static let fontSizeRange: ClosedRange<CGFloat> = 13...30
+    static var fontSize: CGFloat {
+        get {
+            let v = UserDefaults.standard.double(forKey: "editorFontSize")
+            return v > 0 ? CGFloat(v) : defaultFontSize
+        }
+        set { UserDefaults.standard.set(Double(min(max(newValue, fontSizeRange.lowerBound), fontSizeRange.upperBound)), forKey: "editorFontSize") }
+    }
     static let lineHeightMultiple: CGFloat = 1.6
 
     /// Geist Mono, the Mac editor's face, bundled with the app. Ligatures off,

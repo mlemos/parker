@@ -47,6 +47,10 @@ struct NoteTextView: UIViewRepresentable {
         for other in tv.gestureRecognizers ?? [] where other is UILongPressGestureRecognizer && other !== press {
             other.require(toFail: press)
         }
+        // Pinch = the Mac's interface zoom: the text size, kept between notes.
+        let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.pinched(_:)))
+        pinch.delegate = context.coordinator
+        tv.addGestureRecognizer(pinch)
         context.coordinator.textView = tv
         tv.inputAccessoryView = context.coordinator.makeBar(theme)
         context.coordinator.load(text)
@@ -61,7 +65,7 @@ struct NoteTextView: UIViewRepresentable {
         // when the theme changed: colours and the boxes' images are baked in.
         if context.coordinator.lastEmitted != text, NoteStorage.plainText(tv.attributedText) != text {
             context.coordinator.load(text)
-        } else if context.coordinator.styledWith != theme.def.id {
+        } else if context.coordinator.styledWith != theme.def.id || context.coordinator.styledAtSize != NoteStorage.fontSize {
             tv.inputAccessoryView = context.coordinator.makeBar(theme)
             tv.reloadInputViews()
             context.coordinator.load(NoteStorage.plainText(tv.attributedText))
@@ -80,7 +84,9 @@ struct NoteTextView: UIViewRepresentable {
         weak var textView: UITextView?
         var lastEmitted: String?
         var styledWith: String?
+        var styledAtSize: CGFloat = 0
         private var normalizing = false
+        private var pinchStartSize: CGFloat = 0
         /// A held finger opened the sheet; the tap that fires when it lifts is not a tap.
         private var pressOpenedSheet = false
 
@@ -95,6 +101,28 @@ struct NoteTextView: UIViewRepresentable {
             tv.selectedRange = NSRange(location: min(sel.location, tv.attributedText.length), length: 0)
             lastEmitted = text
             styledWith = parent.theme.def.id
+            styledAtSize = NoteStorage.fontSize
+        }
+
+        @objc func pinched(_ g: UIPinchGestureRecognizer) {
+            guard let tv = textView else { return }
+            switch g.state {
+            case .began: pinchStartSize = NoteStorage.fontSize
+            case .changed:
+                let wanted = (pinchStartSize * g.scale * 2).rounded() / 2 // half-point steps
+                let size = min(max(wanted, NoteStorage.fontSizeRange.lowerBound), NoteStorage.fontSizeRange.upperBound)
+                guard size != NoteStorage.fontSize else { return }
+                NoteStorage.fontSize = size
+                // keep the text under the fingers where it is: scale the offset with the size
+                let ratio = size / styledAtSize
+                let offset = tv.contentOffset
+                let sel = tv.selectedRange
+                tv.attributedText = NoteStorage.attributed(from: NoteStorage.plainText(tv.attributedText), theme: parent.theme)
+                tv.selectedRange = NSRange(location: min(sel.location, tv.attributedText.length), length: 0)
+                tv.setContentOffset(CGPoint(x: 0, y: max(0, offset.y * ratio)), animated: false)
+                styledAtSize = size
+            default: break
+            }
         }
 
         // ---- Editing ----------------------------------------------------------------------
@@ -175,15 +203,7 @@ struct NoteTextView: UIViewRepresentable {
 
         @objc func tapped(_ g: UITapGestureRecognizer) {
             if pressOpenedSheet { pressOpenedSheet = false; return }
-            guard let tv = textView else { return }
-            let point = g.location(in: tv)
-            let inContainer = CGPoint(x: point.x - tv.textContainerInset.left, y: point.y - tv.textContainerInset.top)
-            let index = tv.layoutManager.characterIndex(for: inContainer, in: tv.textContainer, fractionOfDistanceBetweenInsertionPoints: nil)
-            guard index < tv.textStorage.length,
-                  let a = tv.textStorage.attribute(.attachment, at: index, effectiveRange: nil) as? TodoAttachment else { return }
-            // only when the tap really lands on the box, not on the line's text
-            let glyphRect = tv.layoutManager.boundingRect(forGlyphRange: NSRange(location: index, length: 1), in: tv.textContainer)
-            guard glyphRect.insetBy(dx: -6, dy: -4).contains(inContainer) else { return }
+            guard let tv = textView, let (index, a) = box(at: g.location(in: tv), in: tv) else { return }
             setTag(at: index, state: Todo.nextOnClick(a.state, alt: false), bangs: a.bangs)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
@@ -191,11 +211,17 @@ struct NoteTextView: UIViewRepresentable {
         /// The box under a point, if the point is on the box itself.
         private func box(at point: CGPoint, in tv: UITextView) -> (Int, TodoAttachment)? {
             let inContainer = CGPoint(x: point.x - tv.textContainerInset.left, y: point.y - tv.textContainerInset.top)
-            let index = tv.layoutManager.characterIndex(for: inContainer, in: tv.textContainer, fractionOfDistanceBetweenInsertionPoints: nil)
+            var index = tv.layoutManager.characterIndex(for: inContainer, in: tv.textContainer, fractionOfDistanceBetweenInsertionPoints: nil)
+            // just past the box the nearest character is the space after it: look one back
+            if index > 0, index < tv.textStorage.length, !(tv.textStorage.attribute(.attachment, at: index, effectiveRange: nil) is TodoAttachment),
+               tv.textStorage.attribute(.attachment, at: index - 1, effectiveRange: nil) is TodoAttachment { index -= 1 }
             guard index < tv.textStorage.length,
                   let a = tv.textStorage.attribute(.attachment, at: index, effectiveRange: nil) as? TodoAttachment else { return nil }
+            // the target is the whole line height, from the left edge to a little past the box
             let glyphRect = tv.layoutManager.boundingRect(forGlyphRange: NSRange(location: index, length: 1), in: tv.textContainer)
-            guard glyphRect.insetBy(dx: -6, dy: -4).contains(inContainer) else { return nil }
+            let target = CGRect(x: -tv.textContainerInset.left, y: glyphRect.minY - 6,
+                                width: glyphRect.maxX + tv.textContainerInset.left + 8, height: glyphRect.height + 12)
+            guard target.contains(inContainer) else { return nil }
             return (index, a)
         }
 
