@@ -38,19 +38,36 @@ final class Workspace {
         open(url, accessing: true)
     }
 
-    /// "Start fresh": a folder of our own, visible in Files under On My iPhone ›
-    /// Parker, born with one note that teaches by tapping.
+    /// "Start fresh": a folder of our own, born with one note that teaches by
+    /// tapping. In iCloud Drive › Parker when iCloud is on — every Mac with the
+    /// same account sees it — and in Files under On My iPhone › Parker when it
+    /// is not, with a word about it.
     func startFresh() {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        busy = true
+        Task.detached(priority: .userInitiated) {
+            // Resolving the ubiquity container can block; never on the main thread.
+            let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents", isDirectory: true)
+            await MainActor.run { self.finishStartFresh(ubiquity: ubiquity) }
+        }
+    }
+
+    private(set) var busy = false
+    private(set) var inICloud = false
+
+    private func finishStartFresh(ubiquity: URL?) {
+        busy = false
+        let local = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let target = ubiquity ?? local
         do {
-            try FileManager.default.createDirectory(at: docs, withIntermediateDirectories: true)
-            let f = NotesFolder(url: docs)
+            try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+            let f = NotesFolder(url: target, coordinated: true)
             if try f.list().isEmpty {
                 try f.write("Welcome to Parker.md", Self.welcomeNote)
             }
             UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
-            UserDefaults.standard.set(true, forKey: "usesOwnFolder")
-            open(docs, accessing: false)
+            UserDefaults.standard.set(ubiquity != nil ? "icloud" : "local", forKey: "ownFolder")
+            inICloud = ubiquity != nil
+            open(target, accessing: false)
         } catch {
             lastError = "Couldn't create the folder: \(error.localizedDescription)"
         }
@@ -61,7 +78,7 @@ final class Workspace {
         if accessing { folder?.url.stopAccessingSecurityScopedResource(); accessing = false }
         folder = nil; notes = []
         UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
-        UserDefaults.standard.removeObject(forKey: "usesOwnFolder")
+        UserDefaults.standard.removeObject(forKey: "ownFolder")
     }
 
     private func restore() {
@@ -73,8 +90,20 @@ final class Workspace {
                 return
             }
         }
-        if UserDefaults.standard.bool(forKey: "usesOwnFolder") {
+        switch UserDefaults.standard.string(forKey: "ownFolder") {
+        case "local":
             open(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0], accessing: false)
+        case "icloud":
+            busy = true
+            Task.detached(priority: .userInitiated) {
+                let url = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents", isDirectory: true)
+                await MainActor.run {
+                    self.busy = false
+                    if let url { self.inICloud = true; self.open(url, accessing: false) }
+                    else { self.lastError = "iCloud Drive is off, so your Parker folder is out of reach on this phone." }
+                }
+            }
+        default: break
         }
     }
 
@@ -82,7 +111,7 @@ final class Workspace {
         self.accessing = accessing
         let f = NotesFolder(url: url, coordinated: true)
         folder = f
-        folderLabel = accessing ? url.lastPathComponent : "On My iPhone › Parker"
+        folderLabel = accessing ? url.lastPathComponent : (inICloud ? "iCloud Drive › Parker" : "On My iPhone › Parker")
         refresh()
         let w = FolderWatcher(folder: f, pollInterval: 3, queue: .main) { [weak self] _ in self?.refresh() }
         w.start()
