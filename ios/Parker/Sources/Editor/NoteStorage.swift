@@ -15,11 +15,13 @@ enum NoteStorage {
     static func attributed(from text: String, theme: Theme) -> NSMutableAttributedString {
         let out = NSMutableAttributedString()
         let lines = text.components(separatedBy: "\n")
-        for (i, line) in lines.enumerated() {
-            out.append(paragraph(from: line, theme: theme))
-            if i < lines.count - 1 { out.append(NSAttributedString(string: "\n")) }
+        Perf.timed("paragraphs \(lines.count) lines") {
+            for (i, line) in lines.enumerated() {
+                out.append(paragraph(from: line, theme: theme))
+                if i < lines.count - 1 { out.append(NSAttributedString(string: "\n")) }
+            }
         }
-        style(out, theme: theme)
+        Perf.timed("style") { style(out, theme: theme) }
         return out
     }
 

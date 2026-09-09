@@ -56,7 +56,9 @@ struct NoteTextView: UIViewRepresentable {
         func load(_ text: String) {
             guard let tv = textView else { return }
             let sel = tv.selectedRange
-            tv.attributedText = NoteStorage.attributed(from: text, theme: parent.theme)
+            let s = NoteStorage.attributed(from: text, theme: parent.theme)
+            Perf.timed("setAttributedText") { tv.attributedText = s }
+            Perf.timed("ensureLayout") { tv.layoutManager.ensureLayout(for: tv.textContainer) }
             tv.selectedRange = NSRange(location: min(sel.location, tv.attributedText.length), length: 0)
             lastEmitted = text
         }

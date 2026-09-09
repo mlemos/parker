@@ -89,6 +89,36 @@ public struct NotesFolder: Sendable {
         return out
     }
 
+    // ---- Fetching from the cloud -------------------------------------------
+
+    /// Is the note's content here on this device? A folder that a cloud
+    /// provider syncs can list a note long before its bytes arrive; reading
+    /// such a note blocks until they do.
+    public func isLocal(_ name: String) -> Bool {
+        guard let target = try? path(name),
+              let values = try? target.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]),
+              let status = values.ubiquitousItemDownloadingStatus else { return true }
+        return status == .current
+    }
+
+    /// Ask the cloud for every note whose bytes are not here yet, so the
+    /// folder is readable at once and the search never waits on a download.
+    /// Notes are small; a whole scratchpad is a few megabytes. Returns how
+    /// many were requested.
+    @discardableResult
+    public func fetchAll() -> Int {
+        guard let items = try? FileManager.default.contentsOfDirectory(
+            at: url, includingPropertiesForKeys: [.ubiquitousItemDownloadingStatusKey], options: []
+        ) else { return 0 }
+        var requested = 0
+        for item in items where Self.isListedNote(item.lastPathComponent) {
+            guard let status = (try? item.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]))?.ubiquitousItemDownloadingStatus,
+                  status != .current else { continue }
+            if (try? FileManager.default.startDownloadingUbiquitousItem(at: item)) != nil { requested += 1 }
+        }
+        return requested
+    }
+
     // ---- Reading and writing ------------------------------------------------
 
     public func read(_ name: String) throws -> String {
