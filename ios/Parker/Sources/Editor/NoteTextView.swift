@@ -13,6 +13,19 @@ enum EditorCommand: Equatable {
     case setTag(at: Int, state: TodoState?, bangs: String)
 }
 
+/// A text view whose own gestures keep off the boxes: a touch that begins on a
+/// box belongs to the box's tap and long press alone — no caret placement,
+/// no selection, no edit menu from the text view underneath.
+final class BoxTextView: UITextView {
+    var isBox: ((CGPoint) -> Bool)?
+    var boxRecognizers: [UIGestureRecognizer] = []
+
+    override func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
+        if !boxRecognizers.contains(where: { $0 === g }), let isBox, isBox(g.location(in: self)) { return false }
+        return super.gestureRecognizerShouldBegin(g)
+    }
+}
+
 struct NoteTextView: UIViewRepresentable {
     @Binding var text: String
     let theme: Theme
@@ -22,7 +35,7 @@ struct NoteTextView: UIViewRepresentable {
     @Binding var command: EditorCommand?
 
     func makeUIView(context: Context) -> UITextView {
-        let tv = UITextView(usingTextLayoutManager: false) // TextKit 1: attachments and hit-testing behave
+        let tv = BoxTextView(usingTextLayoutManager: false) // TextKit 1: attachments and hit-testing behave
         tv.delegate = context.coordinator
         tv.backgroundColor = UIColor(theme.editorBg)
         tv.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 200, right: 8)
@@ -34,17 +47,21 @@ struct NoteTextView: UIViewRepresentable {
         tv.keyboardDismissMode = .interactive
         tv.alwaysBounceVertical = true
         tv.tintColor = UIColor(theme.accent)
-        // One recognizer for the box, deciding when the finger lifts: a short
-        // touch completes, a held one opens the sheet. Two recognizers raced.
+        // The box's two gestures, UIKit's own way: the tap waits for the long
+        // press to fail, which a lifted finger does at once; a held one opens
+        // the sheet and the tap never fires. Both receive touches on boxes only.
         let press = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.pressed(_:)))
-        press.minimumPressDuration = 0
+        press.minimumPressDuration = 0.3
         press.delegate = context.coordinator
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped(_:)))
+        tap.delegate = context.coordinator
+        tap.require(toFail: press)
         tv.addGestureRecognizer(press)
-        // The text view's own presses (selection, loupe, edit menu) wait for
-        // ours: on a box ours wins outright; elsewhere ours never receives the
-        // touch, counts as failed, and theirs go on as usual.
-        for other in tv.gestureRecognizers ?? [] where other is UILongPressGestureRecognizer && other !== press {
-            other.require(toFail: press)
+        tv.addGestureRecognizer(tap)
+        tv.boxRecognizers = [press, tap]
+        tv.isBox = { [weak coordinator = context.coordinator] point in
+            guard let coordinator, let tv = coordinator.textView else { return false }
+            return coordinator.box(at: point, in: tv) != nil
         }
         // Pinch = the Mac's interface zoom: the text size, kept between notes.
         let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.pinched(_:)))
@@ -86,16 +103,9 @@ struct NoteTextView: UIViewRepresentable {
         var styledAtSize: CGFloat = 0
         private var normalizing = false
         private var pinchStartSize: CGFloat = 0
-        // The touch on a box, from down to up.
-        private var pressBox: (Int, TodoAttachment)?
-        private var pressOrigin = CGPoint.zero
-        private var pressMoved = false
-        private var sheetTimer: Timer?
-        private var sheetOpened = false
         /// While a touch that began on a box is recent, the text view's own
         /// edit menu (Select, Select All, AutoFill) stays away.
         private var boxTouchUntil = Date.distantPast
-        static let holdToOpen: TimeInterval = 0.3
 
         init(_ parent: NoteTextView) { self.parent = parent }
 
@@ -190,9 +200,9 @@ struct NoteTextView: UIViewRepresentable {
 
         func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 
-        /// A press on a box is ours; the system's press on text is still the system's.
+        /// Ours act on boxes only; a touch on text is the text view's.
         func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-            guard g is UILongPressGestureRecognizer, let tv = textView else { return true }
+            guard let tv = textView else { return false }
             return box(at: touch.location(in: tv), in: tv) != nil
         }
 
@@ -220,7 +230,7 @@ struct NoteTextView: UIViewRepresentable {
 
 
         /// The box under a point, if the point is on the box itself.
-        private func box(at point: CGPoint, in tv: UITextView) -> (Int, TodoAttachment)? {
+        func box(at point: CGPoint, in tv: UITextView) -> (Int, TodoAttachment)? {
             let inContainer = CGPoint(x: point.x - tv.textContainerInset.left, y: point.y - tv.textContainerInset.top)
             var index = tv.layoutManager.characterIndex(for: inContainer, in: tv.textContainer, fractionOfDistanceBetweenInsertionPoints: nil)
             // just past the box the nearest character is the space after it: look one back
@@ -236,42 +246,18 @@ struct NoteTextView: UIViewRepresentable {
             return (index, a)
         }
 
+        @objc func tapped(_ g: UITapGestureRecognizer) {
+            guard let tv = textView, let (index, a) = box(at: g.location(in: tv), in: tv) else { return }
+            boxTouchUntil = Date().addingTimeInterval(1)
+            setTag(at: index, state: Todo.nextOnClick(a.state, alt: false), bangs: a.bangs)
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+
         @objc func pressed(_ g: UILongPressGestureRecognizer) {
-            guard let tv = textView else { return }
-            switch g.state {
-            case .began:
-                guard let hit = box(at: g.location(in: tv), in: tv) else { return }
-                pressBox = hit
-                boxTouchUntil = Date().addingTimeInterval(1.5)
-                pressOrigin = g.location(in: tv)
-                pressMoved = false
-                sheetOpened = false
-                sheetTimer?.invalidate()
-                let timer = Timer(timeInterval: Self.holdToOpen, repeats: false) { [weak self] _ in
-                    guard let self, let (index, a) = self.pressBox, !self.pressMoved else { return }
-                    self.sheetOpened = true
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    self.parent.onBoxLongPress(index, a)
-                }
-                // .common, not .default: while a finger is down the run loop is
-                // tracking, and a default-mode timer would wait for the lift.
-                RunLoop.main.add(timer, forMode: .common)
-                sheetTimer = timer
-            case .changed:
-                let p = g.location(in: tv)
-                if hypot(p.x - pressOrigin.x, p.y - pressOrigin.y) > 10 { pressMoved = true; sheetTimer?.invalidate() }
-            case .ended:
-                sheetTimer?.invalidate()
-                if let (index, a) = pressBox, !pressMoved, !sheetOpened {
-                    setTag(at: index, state: Todo.nextOnClick(a.state, alt: false), bangs: a.bangs)
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                }
-                pressBox = nil
-            case .cancelled, .failed:
-                sheetTimer?.invalidate()
-                pressBox = nil
-            default: break
-            }
+            guard g.state == .began, let tv = textView, let (index, a) = box(at: g.location(in: tv), in: tv) else { return }
+            boxTouchUntil = Date().addingTimeInterval(1.5)
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            parent.onBoxLongPress(index, a)
         }
 
         /// Rewrite the box at `index`: a new state and priority, or no tag at all.
