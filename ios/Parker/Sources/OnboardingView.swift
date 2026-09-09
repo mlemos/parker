@@ -19,14 +19,18 @@ struct OnboardingView: View {
         let theme = Theme.current(scheme)
         VStack(spacing: 0) {
             Spacer()
-            VStack(spacing: 12) {
-                Image(systemName: "checkmark.square").font(.system(size: 56, weight: .regular)).foregroundStyle(theme.text)
-                Text("Your notes, as plain files in a folder you own.")
-                    .font(.system(size: 28, weight: .bold)).multilineTextAlignment(.center)
+            VStack(spacing: 14) {
+                Image("ParkerHead").resizable().renderingMode(.template).aspectRatio(contentMode: .fit)
+                    .frame(width: 96, height: 96).foregroundStyle(theme.text)
+                Text("Parker for iPhone")
+                    .font(.system(size: 30, weight: .bold)).multilineTextAlignment(.center)
                     .foregroundStyle(theme.text)
-                Text("No account. No servers of ours, ever. The folder syncs however you like, and any app can read it.")
+                Text("The companion to Parker for Mac.")
+                    .font(.title3.weight(.medium)).multilineTextAlignment(.center)
+                    .foregroundStyle(theme.text)
+                Text("Your notes are plain files in a folder you own. This app reads the same folder your Mac does: search it, work through your to-dos, jot things down. No account, no server of ours, nothing leaves your folder.")
                     .font(.body).multilineTextAlignment(.center).foregroundStyle(theme.secondary)
-                    .frame(maxWidth: 320)
+                    .frame(maxWidth: 340)
             }
             .padding(.horizontal, 28)
             Spacer()
@@ -41,6 +45,10 @@ struct OnboardingView: View {
                     Label("Where is my folder?", systemImage: "info.circle").font(.subheadline.weight(.medium))
                 }
                 .tint(theme.accent).frame(height: 44)
+                Link(destination: URL(string: "https://getparker.dev")!) {
+                    Text("No Mac app yet? Parker for Mac is free at getparker.dev")
+                        .font(.footnote).foregroundStyle(theme.secondary).multilineTextAlignment(.center)
+                }
             }
             .padding(.horizontal, 20).padding(.bottom, 24)
             if let err = workspace.lastError {
