@@ -34,11 +34,10 @@ struct NoteTextView: UIViewRepresentable {
         tv.keyboardDismissMode = .interactive
         tv.alwaysBounceVertical = true
         tv.tintColor = UIColor(theme.accent)
-        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped(_:)))
-        tap.delegate = context.coordinator
-        tv.addGestureRecognizer(tap)
+        // One recognizer for the box, deciding when the finger lifts: a short
+        // touch completes, a held one opens the sheet. Two recognizers raced.
         let press = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.pressed(_:)))
-        press.minimumPressDuration = 0.3
+        press.minimumPressDuration = 0
         press.delegate = context.coordinator
         tv.addGestureRecognizer(press)
         // The text view's own presses (selection, loupe, edit menu) wait for
@@ -87,8 +86,13 @@ struct NoteTextView: UIViewRepresentable {
         var styledAtSize: CGFloat = 0
         private var normalizing = false
         private var pinchStartSize: CGFloat = 0
-        /// A held finger opened the sheet; the tap that fires when it lifts is not a tap.
-        private var pressOpenedSheet = false
+        // The touch on a box, from down to up.
+        private var pressBox: (Int, TodoAttachment)?
+        private var pressOrigin = CGPoint.zero
+        private var pressMoved = false
+        private var sheetTimer: Timer?
+        private var sheetOpened = false
+        static let holdToOpen: TimeInterval = 0.3
 
         init(_ parent: NoteTextView) { self.parent = parent }
 
@@ -201,12 +205,6 @@ struct NoteTextView: UIViewRepresentable {
             return .init(menu: defaultMenu)
         }
 
-        @objc func tapped(_ g: UITapGestureRecognizer) {
-            if pressOpenedSheet { pressOpenedSheet = false; return }
-            guard let tv = textView, let (index, a) = box(at: g.location(in: tv), in: tv) else { return }
-            setTag(at: index, state: Todo.nextOnClick(a.state, alt: false), bangs: a.bangs)
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
 
         /// The box under a point, if the point is on the box itself.
         private func box(at point: CGPoint, in tv: UITextView) -> (Int, TodoAttachment)? {
@@ -226,15 +224,36 @@ struct NoteTextView: UIViewRepresentable {
         }
 
         @objc func pressed(_ g: UILongPressGestureRecognizer) {
-            if g.state == .ended || g.state == .cancelled {
-                // the lift's tap, if any, has been delivered by now
-                DispatchQueue.main.async { self.pressOpenedSheet = false }
-                return
+            guard let tv = textView else { return }
+            switch g.state {
+            case .began:
+                guard let hit = box(at: g.location(in: tv), in: tv) else { return }
+                pressBox = hit
+                pressOrigin = g.location(in: tv)
+                pressMoved = false
+                sheetOpened = false
+                sheetTimer?.invalidate()
+                sheetTimer = Timer.scheduledTimer(withTimeInterval: Self.holdToOpen, repeats: false) { [weak self] _ in
+                    guard let self, let (index, a) = self.pressBox, !self.pressMoved else { return }
+                    self.sheetOpened = true
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    self.parent.onBoxLongPress(index, a)
+                }
+            case .changed:
+                let p = g.location(in: tv)
+                if hypot(p.x - pressOrigin.x, p.y - pressOrigin.y) > 10 { pressMoved = true; sheetTimer?.invalidate() }
+            case .ended:
+                sheetTimer?.invalidate()
+                if let (index, a) = pressBox, !pressMoved, !sheetOpened {
+                    setTag(at: index, state: Todo.nextOnClick(a.state, alt: false), bangs: a.bangs)
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                pressBox = nil
+            case .cancelled, .failed:
+                sheetTimer?.invalidate()
+                pressBox = nil
+            default: break
             }
-            guard g.state == .began, let tv = textView, let (index, a) = box(at: g.location(in: tv), in: tv) else { return }
-            pressOpenedSheet = true
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            parent.onBoxLongPress(index, a)
         }
 
         /// Rewrite the box at `index`: a new state and priority, or no tag at all.
