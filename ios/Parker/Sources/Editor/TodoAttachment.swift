@@ -24,8 +24,8 @@ final class TodoAttachment: NSTextAttachment {
         image = Self.render(state: state, priority: bangs.utf16.count, em: em, theme: theme)
         // The Mac's box: 0.95em, with 3px before and 1px after (the space that
         // follows the tag in the text brings the rest of the gap).
-        let box = em * 0.95
-        bounds = CGRect(x: 0, y: -(em * 0.07) - (box - em * 0.75) / 2 + 1, width: 3 + box + 1, height: box)
+        let box = em * 0.95, unit = em / 14
+        bounds = CGRect(x: 0, y: -(em * 0.07) - (box - em * 0.75) / 2 + 1 * unit, width: 3 * unit + box + 1 * unit, height: box)
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
@@ -39,18 +39,21 @@ final class TodoAttachment: NSTextAttachment {
         let key = "\(state.rawValue)-\(priority)-\(em)-\(theme.def.id)"
         if let img = cache[key] { return img }
         let box = em * 0.95
-        let size = CGSize(width: 3 + box + 1, height: box)
+        // Every measure is the Mac's at 14px, scaled with the size — the way the
+        // Mac's interface zoom scales the whole box — so a pinch keeps its shape.
+        let unit = em / 14
+        let size = CGSize(width: 3 * unit + box + 1 * unit, height: box)
         let scale = UIScreen.main.scale
         let img = UIGraphicsImageRenderer(size: size, format: { let f = UIGraphicsImageRendererFormat(); f.scale = scale; f.opaque = false; return f }()).image { ctx in
             let c = ctx.cgContext
-            let rect = CGRect(x: 3, y: 0, width: box, height: box)
+            let rect = CGRect(x: 3 * unit, y: 0, width: box, height: box)
             let filled = state != .todo
             let fill = filled ? (state == .cancel ? theme.muted : theme.stateColor(state)) : nil
             let border = filled ? fill! : theme.priorityColor(priority)
-            // the Mac's 4px radius on a 13px box: it scales with the box, or a small one turns round
-            let path = UIBezierPath(roundedRect: rect.insetBy(dx: 0.75, dy: 0.75), cornerRadius: box * 0.3)
+            // 1.5px border, 4px radius, on the Mac's 14px
+            let path = UIBezierPath(roundedRect: rect.insetBy(dx: 0.75 * unit, dy: 0.75 * unit), cornerRadius: 4 * unit)
             if let fill { c.setFillColor(UIColor(fill).cgColor); c.addPath(path.cgPath); c.fillPath() }
-            c.setStrokeColor(UIColor(border).cgColor); c.setLineWidth(1.5); c.addPath(path.cgPath); c.strokePath()
+            c.setStrokeColor(UIColor(border).cgColor); c.setLineWidth(1.5 * unit); c.addPath(path.cgPath); c.strokePath()
             // the glyph: 0.85em of a 0.7em font, centred — knocked out in the editor's background
             if state != .todo, let glyph = glyph(for: state, theme: theme) {
                 let g = em * 0.7 * 0.85
