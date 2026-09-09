@@ -9,6 +9,7 @@ import {
   nextOnClick,
   norm,
   ownersForRange,
+  planEnter,
   planRotate,
   priorityOf,
   tagChange,
@@ -31,6 +32,9 @@ interface Fixtures {
     notTags: string[];
     rotate: { line: string; after: string }[];
     click: { line: string; alt: boolean; after: string }[];
+  };
+  enter: {
+    cases: { line: string; col: number; kind: "newline" | "continue" | "exit"; prefix?: string; from?: number; to?: number }[];
   };
 }
 const FX = fixtures as unknown as Fixtures;
@@ -203,6 +207,18 @@ describe("priority bangs", () => {
       const tag = LINE_TAG.exec(line)!;
       const change = tagChange({ from: 0, text: line }, tag, nextOnClick(norm(tag[2]), alt));
       expect(applied(line, [change]), line).toBe(after);
+    }
+  });
+});
+
+describe("Enter continues a task or a list, and an empty one ends it", () => {
+  it("matches the shared cases", () => {
+    for (const c of FX.enter.cases) {
+      const plan = planEnter(c.line, c.col);
+      const label = `${JSON.stringify(c.line)} @${c.col}`;
+      expect(plan.kind, label).toBe(c.kind);
+      if (plan.kind === "continue") expect(plan.prefix, label).toBe(c.prefix);
+      if (plan.kind === "exit") expect([plan.from, plan.to], label).toEqual([c.from, c.to]);
     }
   });
 });

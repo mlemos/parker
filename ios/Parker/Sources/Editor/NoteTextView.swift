@@ -144,6 +144,26 @@ struct NoteTextView: UIViewRepresentable {
 
         // ---- Editing ----------------------------------------------------------------------
 
+        /// Enter continues a task or a list item and ends an empty one — the
+        /// core's planEnter, on the note's plain text. Anything else is typed.
+        func textView(_ tv: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            guard text == "\n", range.length == 0 else { return true }
+            let (plain, from, _) = plainSelection(tv)
+            let doc = TextDocument(plain)
+            let line = doc.lineAt(from)
+            switch Todo.planEnter(line: line.text, col: from - line.from) {
+            case .newline:
+                return true
+            case .exit(let a, let b):
+                applyPlain(replace(plain, Change(from: line.from + a, to: line.from + b)), caret: line.from + a, in: tv)
+                return false
+            case .continue(let prefix):
+                let insert = "\n" + prefix
+                applyPlain(replace(plain, Change(from: from, insert: insert)), caret: from + insert.utf16.count, in: tv)
+                return false
+            }
+        }
+
         func textViewDidChange(_ tv: UITextView) {
             guard !normalizing else { return }
             normalizing = true
