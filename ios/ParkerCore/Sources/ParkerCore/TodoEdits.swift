@@ -20,11 +20,12 @@ public struct Change: Equatable, Sendable {
 
 extension Todo {
     /// Edit that rewrites a line's tag to `next` (nil removes it, plus the one
-    /// space that separated it from the text).
+    /// space that separated it from the text). The priority bangs travel with
+    /// the state: rotating `/TODO!!` gives `/DOING!!`.
     public static func tagChange(line: DocLine, tag: Tag, next: TodoState?) -> Change {
         let from = line.from + tag.indent.utf16.count
-        let tagEnd = from + 1 + tag.word.utf16.count
-        if let next { return Change(from: from, to: tagEnd, insert: "/" + next.rawValue) }
+        let tagEnd = line.from + tag.length
+        if let next { return Change(from: from, to: tagEnd, insert: "/" + next.rawValue + tag.bangs) }
         let u = Array(line.text.utf16)
         let hasSpace = tag.length < u.count && u[tag.length] == 0x20
         return Change(from: from, to: tagEnd + (hasSpace ? 1 : 0))

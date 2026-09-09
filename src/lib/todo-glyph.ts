@@ -46,11 +46,30 @@ const GLYPH_PATHS: Record<string, string[]> = {
   ],
 };
 
-/** One stroke weight for every glyph — a set of icons that disagree about line
-    width stops looking like a set. It is heavier than Lucide's own 2 because
-    the glyph renders at ~8px here, and no heavier than this because the
-    shapes that enclose space (play, pause, hourglass, asterisk) close up. */
-const STROKE = 2.5;
+/**
+ * The pen, decided on the visual spec (design/todo-visuals) on 2026-09-08.
+ *
+ * The shapes that enclose an area — play, pause, the hourglass's bulbs — are
+ * painted solid, with just enough stroke left to keep their corners round:
+ * a stroke sized for outlines would eat the 4-unit gap between the pause
+ * bars and close the hourglass's waist. The glyphs that are only lines —
+ * check, x, asterisk, minus — get a heavier stroke so their visual mass
+ * matches the solids. The hourglass's two caps are lines on the very top and
+ * bottom edges, where half of any stroke grows outward, so they keep the
+ * plain line weight: heavier made the glyph taller than its neighbours.
+ *
+ * Everything is in Lucide's 24-unit grid and divided by each glyph's scale
+ * below, so normalising the size does not un-normalise the weight.
+ */
+const PEN = {
+  line: 4, // check, x, asterisk, minus
+  solid: 1.2, // play, pause, hourglass bulbs (filled)
+  cap: 2.5, // the hourglass's top and bottom lines
+};
+
+/** Which shapes are solid. The hourglass is mixed: its first two paths are
+    the caps, the last two the bulbs. */
+const SOLID = new Set(["doing", "pause", "wait"]);
 
 /**
  * Where each glyph's ink actually sits in Lucide's 24-unit grid — [x0,y0,x1,y1],
@@ -65,7 +84,11 @@ const STROKE = 2.5;
  * does not un-normalize the line weight.
  */
 const INK: Record<string, [number, number, number, number]> = {
-  doing: [5, 3.27, 20.01, 20.73],
+  // The play's three corners are arcs that bulge past their endpoints: the
+  // real ink is 5…21 × 3…21, not the endpoints' 5…20.01 × 3.27…20.73. It is
+  // declared 3…21 in x, symmetric about 12, so Lucide's own optical offset —
+  // the triangle sits one unit right of centre — survives the normalisation.
+  doing: [3, 3, 21, 21],
   pause: [5, 3, 19, 21],
   wait: [5, 2, 19, 22],
   attn: [6.8, 6, 17.2, 18],
@@ -109,18 +132,32 @@ export const kindOf = (state: string): string => KINDS[state] ?? "cancel";
 export function todoGlyphSvg(kind: string): string {
   if (kind === "todo") return "";
   const { transform, scale } = fit(kind);
-  const width = Math.round((STROKE / scale) * 1000) / 1000;
-  const shapes =
-    kind === "pause"
-      ? PAUSE_BARS.map(
-          ([x, y]) =>
-            `<rect x="${attr(x)}" y="${attr(y)}" width="5" height="18" rx="1"/>`
-        ).join("")
-      : (GLYPH_PATHS[kind] ?? []).map((d) => `<path d="${attr(d)}"/>`).join("");
+  const w = (units: number) => attr(Math.round((units / scale) * 1000) / 1000);
+  const solid = SOLID.has(kind);
+  // The group carries the glyph's main pen; a shape only states its own when
+  // it differs (the hourglass's bulbs inside a caps-weight group).
+  const groupWidth = w(solid ? (kind === "wait" ? PEN.cap : PEN.solid) : PEN.line);
+  let shapes: string;
+  if (kind === "pause") {
+    shapes = PAUSE_BARS.map(
+      ([x, y]) =>
+        `<rect x="${attr(x)}" y="${attr(y)}" width="5" height="18" rx="1" fill="currentColor"/>`
+    ).join("");
+  } else if (kind === "wait") {
+    const [cap1, cap2, bulb1, bulb2] = GLYPH_PATHS.wait;
+    shapes =
+      `<path d="${attr(cap1)}"/><path d="${attr(cap2)}"/>` +
+      [bulb1, bulb2]
+        .map((d) => `<path d="${attr(d)}" fill="currentColor" stroke-width="${w(PEN.solid)}"/>`)
+        .join("");
+  } else {
+    const fill = solid ? ` fill="currentColor"` : "";
+    shapes = (GLYPH_PATHS[kind] ?? []).map((d) => `<path d="${attr(d)}"${fill}/>`).join("");
+  }
   return (
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
     `stroke-linecap="round" stroke-linejoin="round">` +
-    `<g transform="${attr(transform)}" stroke-width="${attr(width)}">${shapes}</g>` +
+    `<g transform="${attr(transform)}" stroke-width="${groupWidth}">${shapes}</g>` +
     `</svg>`
   );
 }
