@@ -28,9 +28,9 @@ struct TodoBoxView: View {
         let fill = filled ? (state == .cancel ? theme.muted : theme.stateColor(state)) : Color.clear
         let border = filled ? fill : theme.priorityColor(priority)
         ZStack {
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
+            RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
                 .fill(fill)
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
+            RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
                 .strokeBorder(border, lineWidth: 1.5)
             if let glyph {
                 GlyphShapeView(glyph: glyph, color: theme.editorBg)

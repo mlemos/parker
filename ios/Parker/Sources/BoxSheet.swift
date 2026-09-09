@@ -30,14 +30,25 @@ struct BoxSheet: View {
         NavigationStack {
             List {
                 Section("Priority") {
-                    Picker("Priority", selection: $priority) {
-                        Text("None").tag(0)
-                        Text("!").tag(1)
-                        Text("!!").tag(2)
-                        Text("!!!").tag(3)
+                    // The four levels as the empty box wears them: the border's colour.
+                    HStack(spacing: 8) {
+                        ForEach(0..<4, id: \.self) { level in
+                            Button {
+                                priority = level
+                                pick(current, String(repeating: "!", count: level))
+                            } label: {
+                                VStack(spacing: 6) {
+                                    TodoBoxView(state: .todo, priority: level, theme: theme, em: 22)
+                                    Text(level == 0 ? "none" : String(repeating: "!", count: level))
+                                        .font(.system(size: 13, design: .monospaced))
+                                        .foregroundStyle(level == 0 ? theme.secondary : theme.priorityColor(level))
+                                }
+                                .frame(maxWidth: .infinity).padding(.vertical, 8)
+                                .background(level == priority ? theme.border.opacity(0.5) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .pickerStyle(.segmented)
-                    .onChange(of: priority) { _, new in pick(current, String(repeating: "!", count: new)) }
                 }
                 Section("State") {
                     ForEach(TodoState.order, id: \.self) { state in
