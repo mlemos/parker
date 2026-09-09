@@ -1,6 +1,6 @@
-// The note: plain text in Geist Mono, saved on every change (debounced), read
-// back when the folder watcher says it changed underneath. A first cut: the
-// editor is the system text view; the to-do line styling comes next.
+// The note, as the Mac shows it: to-do lines with their box, colours by
+// state, nested lines in their owner's colour, headings and marks tinted —
+// over the plain text of the file, saved on every change.
 
 import ParkerCore
 import SwiftUI
@@ -15,24 +15,25 @@ struct NoteView: View {
 
     var body: some View {
         let theme = Theme.current(scheme)
-        TextEditor(text: $text)
-            .font(.system(size: 15, design: .monospaced))
-            .lineSpacing(6)
-            .scrollContentBackground(.hidden)
-            .background(theme.editorBg)
-            .foregroundStyle(theme.editorFg)
-            .padding(.horizontal, 8)
-            .navigationTitle(name.replacingOccurrences(of: ".md", with: ""))
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear { if !loaded { text = workspace.read(name); loaded = true } }
-            .onChange(of: text) { _, new in
-                guard loaded else { return }
-                saveTask?.cancel()
-                saveTask = Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(500))
-                    if !Task.isCancelled { workspace.write(name, new) }
-                }
+        NoteTextView(text: $text, theme: theme) { new in
+            saveTask?.cancel()
+            saveTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(500))
+                if !Task.isCancelled { workspace.write(name, new) }
             }
-            .onDisappear { saveTask?.cancel(); if loaded { workspace.write(name, text) } }
+        }
+        .background(theme.editorBg)
+        .ignoresSafeArea(.container, edges: .bottom)
+        .navigationTitle(name.replacingOccurrences(of: ".md", with: ""))
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { if !loaded { text = workspace.read(name); loaded = true } }
+        .onChange(of: workspace.notes) { _, _ in
+            // the folder changed underneath: take the disk's version when we have nothing unsaved
+            if loaded, saveTask == nil || saveTask?.isCancelled == true {
+                let disk = workspace.read(name)
+                if disk != text { text = disk }
+            }
+        }
+        .onDisappear { saveTask?.cancel(); if loaded { workspace.write(name, text) } }
     }
 }
