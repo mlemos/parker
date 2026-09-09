@@ -21,6 +21,23 @@ final class Workspace {
         restore()
     }
 
+    // ---- Naming a folder -----------------------------------------------------------
+
+    /// The name Files shows for a folder. An iCloud container root is called
+    /// "Parker Dev" on screen while its path ends in "Documents", so the last
+    /// path component is the wrong thing to show or to judge.
+    static func displayName(of url: URL) -> String {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        return (try? url.resourceValues(forKeys: [.localizedNameKey]).localizedName) ?? url.lastPathComponent
+    }
+
+    /// Debug builds only: does this folder look like it is meant for development?
+    /// Our own dev container counts, whatever it is called on screen.
+    static func looksLikeDevFolder(_ url: URL) -> Bool {
+        url.path.contains("~parker~dev") || displayName(of: url).localizedCaseInsensitiveContains("dev")
+    }
+
     // ---- Choosing a folder ---------------------------------------------------------
 
     /// "I already have notes": the folder the user picked in Files.
@@ -111,7 +128,7 @@ final class Workspace {
         self.accessing = accessing
         let f = NotesFolder(url: url, coordinated: true)
         folder = f
-        folderLabel = accessing ? url.lastPathComponent : (inICloud ? "iCloud Drive › Parker" : "On My iPhone › Parker")
+        folderLabel = accessing ? Self.displayName(of: url) : (inICloud ? "iCloud Drive › Parker" : "On My iPhone › Parker")
         refresh()
         let w = FolderWatcher(folder: f, pollInterval: 3, queue: .main) { [weak self] _ in self?.refresh() }
         w.start()

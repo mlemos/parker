@@ -51,7 +51,7 @@ struct OnboardingView: View {
         .fileImporter(isPresented: $picking, allowedContentTypes: [.folder]) { result in
             guard case .success(let url) = result else { return }
             #if DEBUG
-            if !url.lastPathComponent.localizedCaseInsensitiveContains("dev") { suspect = url; return }
+            if !Workspace.looksLikeDevFolder(url) { suspect = url; return }
             #endif
             workspace.choose(url)
         }
@@ -59,7 +59,7 @@ struct OnboardingView: View {
             Button("Pick another folder") { suspect = nil; picking = true }
             Button("Use it anyway", role: .destructive) { if let url = suspect { workspace.choose(url) }; suspect = nil }
         } message: {
-            Text("\u{201C}\(suspect?.lastPathComponent ?? "")\u{201D} doesn\u{2019}t look like a dev folder. A build like this one can rewrite notes while a feature is half done. Point it at a folder with \u{201C}Dev\u{201D} in its name, like the one Parker Dev uses on the Mac.")
+            Text("\u{201C}\(suspect.map(Workspace.displayName(of:)) ?? "")\u{201D} doesn\u{2019}t look like a dev folder. A build like this one can rewrite notes while a feature is half done. Point it at a folder with \u{201C}Dev\u{201D} in its name, like the one Parker Dev uses on the Mac.")
         }
         .sheet(isPresented: $help) { WhereIsMyFolderSheet(theme: theme) { help = false; picking = true } }
     }
