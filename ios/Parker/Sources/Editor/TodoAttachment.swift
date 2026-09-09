@@ -50,8 +50,11 @@ final class TodoAttachment: NSTextAttachment {
             let filled = state != .todo
             let fill = filled ? (state == .cancel ? theme.muted : theme.stateColor(state)) : nil
             let border = filled ? fill! : theme.priorityColor(priority)
-            // 1.5px border, 4px radius, on the Mac's 14px
-            let path = UIBezierPath(roundedRect: rect.insetBy(dx: 0.75 * unit, dy: 0.75 * unit), cornerRadius: 4 * unit)
+            // 1.5px border, 4px OUTER radius, on the Mac's 14px: the stroke is
+            // centred on the path, so the path sits half a stroke in and its
+            // radius is half a stroke less.
+            let inset = 0.75 * unit
+            let path = UIBezierPath(roundedRect: rect.insetBy(dx: inset, dy: inset), cornerRadius: 4 * unit - inset)
             if let fill { c.setFillColor(UIColor(fill).cgColor); c.addPath(path.cgPath); c.fillPath() }
             c.setStrokeColor(UIColor(border).cgColor); c.setLineWidth(1.5 * unit); c.addPath(path.cgPath); c.strokePath()
             // the glyph: 0.85em of a 0.7em font, centred — knocked out in the editor's background
