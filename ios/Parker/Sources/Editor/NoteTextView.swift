@@ -92,6 +92,9 @@ struct NoteTextView: UIViewRepresentable {
         private var pressMoved = false
         private var sheetTimer: Timer?
         private var sheetOpened = false
+        /// While a touch that began on a box is recent, the text view's own
+        /// edit menu (Select, Select All, AutoFill) stays away.
+        private var boxTouchUntil = Date.distantPast
         static let holdToOpen: TimeInterval = 0.3
 
         init(_ parent: NoteTextView) { self.parent = parent }
@@ -205,6 +208,16 @@ struct NoteTextView: UIViewRepresentable {
             return .init(menu: defaultMenu)
         }
 
+        /// No edit menu for a touch that began on a box: that touch is a tap or the sheet.
+        func textView(_ textView: UITextView, editMenuForTextIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu? {
+            if Date() < boxTouchUntil { return nil }
+            let s = textView.textStorage
+            for i in [range.location - 1, range.location] where i >= 0 && i < s.length {
+                if s.attribute(.attachment, at: i, effectiveRange: nil) is TodoAttachment { return nil }
+            }
+            return UIMenu(children: suggestedActions)
+        }
+
 
         /// The box under a point, if the point is on the box itself.
         private func box(at point: CGPoint, in tv: UITextView) -> (Int, TodoAttachment)? {
@@ -229,6 +242,7 @@ struct NoteTextView: UIViewRepresentable {
             case .began:
                 guard let hit = box(at: g.location(in: tv), in: tv) else { return }
                 pressBox = hit
+                boxTouchUntil = Date().addingTimeInterval(1.5)
                 pressOrigin = g.location(in: tv)
                 pressMoved = false
                 sheetOpened = false
