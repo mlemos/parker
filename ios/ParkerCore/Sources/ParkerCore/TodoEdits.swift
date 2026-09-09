@@ -88,7 +88,7 @@ extension Todo {
     }
 
     // `\s*` at the start of the line — every whitespace, like the TS regex.
-    static func leadingWhitespaceUTF16(_ text: String) -> Int {
+    public static func leadingWhitespaceUTF16(_ text: String) -> Int {
         var n = 0
         for scalar in text.unicodeScalars {
             if CharacterSet.whitespacesAndNewlines.contains(scalar) { n += String(scalar).utf16.count } else { break }
