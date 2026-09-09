@@ -200,8 +200,10 @@ struct NoteTextView: UIViewRepresentable {
 
         func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 
-        /// Ours act on boxes only; a touch on text is the text view's.
+        /// The box's tap and press act on boxes only; a touch on text is the
+        /// text view's. The pinch takes every touch: it is the whole note's zoom.
         func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            if g is UIPinchGestureRecognizer { return true }
             guard let tv = textView else { return false }
             return box(at: touch.location(in: tv), in: tv) != nil
         }
