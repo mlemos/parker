@@ -247,12 +247,16 @@ struct NoteTextView: UIViewRepresentable {
                 pressMoved = false
                 sheetOpened = false
                 sheetTimer?.invalidate()
-                sheetTimer = Timer.scheduledTimer(withTimeInterval: Self.holdToOpen, repeats: false) { [weak self] _ in
+                let timer = Timer(timeInterval: Self.holdToOpen, repeats: false) { [weak self] _ in
                     guard let self, let (index, a) = self.pressBox, !self.pressMoved else { return }
                     self.sheetOpened = true
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     self.parent.onBoxLongPress(index, a)
                 }
+                // .common, not .default: while a finger is down the run loop is
+                // tracking, and a default-mode timer would wait for the lift.
+                RunLoop.main.add(timer, forMode: .common)
+                sheetTimer = timer
             case .changed:
                 let p = g.location(in: tv)
                 if hypot(p.x - pressOrigin.x, p.y - pressOrigin.y) > 10 { pressMoved = true; sheetTimer?.invalidate() }
