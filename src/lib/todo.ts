@@ -60,6 +60,7 @@ import {
   LINE_TAG,
   ownersForRange,
   cursorAfterRotate,
+  planEnter,
   nextOnClick,
   norm,
   planRotate,
@@ -243,9 +244,49 @@ const deleteMarker = (backward: boolean) => (view: EditorView): boolean => {
   return true;
 };
 
+/**
+ * Enter continues a task or a list item, and ends an empty one — see planEnter.
+ * Shift-Enter is the plain newline for whoever wants a paragraph under a task.
+ */
+function continueLine(view: EditorView): boolean {
+  const sel = view.state.selection.main;
+  if (!sel.empty) return false;
+  const line = view.state.doc.lineAt(sel.head);
+  const plan = planEnter(line.text, sel.head - line.from);
+  if (plan.kind === "newline") return false;
+  if (plan.kind === "exit") {
+    view.dispatch({
+      changes: { from: line.from + plan.from, to: line.from + plan.to },
+      selection: { anchor: line.from + plan.from },
+      userEvent: "delete",
+    });
+    return true;
+  }
+  const insert = "\n" + plan.prefix;
+  view.dispatch({
+    changes: { from: sel.head, insert },
+    selection: { anchor: sel.head + insert.length },
+    userEvent: "input",
+  });
+  return true;
+}
+
+/** Shift-Enter: a newline and nothing else, under any line. */
+function plainNewline(view: EditorView): boolean {
+  const sel = view.state.selection.main;
+  view.dispatch({
+    changes: { from: sel.from, to: sel.to, insert: "\n" },
+    selection: { anchor: sel.from + 1 },
+    userEvent: "input",
+  });
+  return true;
+}
+
 export const todoKeymap = Prec.highest(
   keymap.of([
     { key: "Mod-Enter", run: rotateLine },
+    { key: "Enter", run: continueLine },
+    { key: "Shift-Enter", run: plainNewline },
     { key: "Backspace", run: deleteMarker(true) },
     { key: "Delete", run: deleteMarker(false) },
   ])

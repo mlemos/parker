@@ -41,6 +41,12 @@ struct Fixtures: Decodable {
     let sweepDocs: [String: String]
     let ownerCases: [OwnerCase]
     let priority: Priority
+    let enter: Enter
+
+    struct Enter: Decodable {
+        struct Case: Decodable { let line: String; let col: Int; let kind: String; let prefix: String?; let from: Int?; let to: Int? }
+        let cases: [Case]
+    }
 
     /// shared/fixtures/todo-model.json, found relative to this source file —
     /// SwiftPM resources cannot reach outside the target, and the fixtures are
@@ -296,5 +302,21 @@ private func applied(_ text: String, _ changes: [Change]) -> String {
     func length() {
         #expect(Todo.tag(of: "  /TODO!! x")?.length == 9)
         #expect(Todo.tag(of: "/WIP x")?.length == 4)
+    }
+}
+
+@Suite("Enter continues a task or a list, and an empty one ends it") struct EnterTests {
+    @Test("matches the shared cases")
+    func cases() {
+        for c in Fixtures.shared.enter.cases {
+            let plan = Todo.planEnter(line: c.line, col: c.col)
+            let label = Comment(rawValue: "\(c.line.debugDescription) @\(c.col)")
+            switch c.kind {
+            case "newline": #expect(plan == .newline, label)
+            case "continue": #expect(plan == .continue(prefix: c.prefix!), label)
+            case "exit": #expect(plan == .exit(from: c.from!, to: c.to!), label)
+            default: Issue.record("unknown kind \(c.kind)")
+            }
+        }
     }
 }

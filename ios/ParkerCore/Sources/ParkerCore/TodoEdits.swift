@@ -100,3 +100,54 @@ extension Todo {
         text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
+
+// ---- Enter: a task or a list continues, an empty one ends ----------------------
+
+extension Todo {
+    /// What Enter should do on a line with the cursor at UTF-16 column `col`.
+    public enum EnterPlan: Equatable, Sendable {
+        /// the editor's plain newline
+        case newline
+        /// insert "\n" + prefix at the cursor
+        case `continue`(prefix: String)
+        /// delete [from, to) of the line and stay on it
+        case exit(from: Int, to: Int)
+    }
+
+    nonisolated(unsafe) private static let listMark = try! NSRegularExpression(pattern: "^(\\s*)([-*+]|(\\d+)\\.)(\\s+)")
+
+    /// Enter on a task line starts the next task (same indentation, always
+    /// /TODO — nobody wants a second DONE); on a list item, the next item. An
+    /// empty task or item ends the run: the marker goes and the line stays. The
+    /// cursor inside or before the marker gets a plain newline, as does any
+    /// other line.
+    public static func planEnter(line: String, col: Int) -> EnterPlan {
+        let u = Array(line.utf16)
+        func rest(after n: Int) -> String { String(utf16CodeUnits: Array(u.dropFirst(n)), count: max(0, u.count - n)) }
+        if let tag = tag(of: line) {
+            let hasSpace = tag.length < u.count && u[tag.length] == 0x20
+            let markerEnd = tag.length + (hasSpace ? 1 : 0)
+            let empty = rest(after: tag.length).trimmingCharacters(in: .whitespaces).isEmpty
+            if col < markerEnd && !(col == tag.length && empty) { return .newline }
+            if empty { return .exit(from: tag.indent.utf16.count, to: u.count) }
+            return .continue(prefix: tag.indent + "/TODO ")
+        }
+        let ns = line as NSString
+        if let m = listMark.firstMatch(in: line, range: NSRange(location: 0, length: ns.length)) {
+            let markerEnd = m.range.length
+            if col < markerEnd { return .newline }
+            let indent = ns.substring(with: m.range(at: 1))
+            if rest(after: markerEnd).trimmingCharacters(in: .whitespaces).isEmpty {
+                return .exit(from: indent.utf16.count, to: u.count)
+            }
+            let marker: String
+            if m.range(at: 3).location != NSNotFound, let n = Int(ns.substring(with: m.range(at: 3))) {
+                marker = "\(n + 1)."
+            } else {
+                marker = ns.substring(with: m.range(at: 2))
+            }
+            return .continue(prefix: indent + marker + " ")
+        }
+        return .newline
+    }
+}

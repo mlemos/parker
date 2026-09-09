@@ -237,3 +237,44 @@ export function ownersForRange(
   }
   return owners;
 }
+
+// ---- Enter: a task or a list continues, an empty one ends ----------------------
+
+/** What Enter should do on `line` with the cursor at UTF-16 column `col`. */
+export type EnterPlan =
+  | { kind: "newline" }
+  | { kind: "continue"; prefix: string }
+  | { kind: "exit"; from: number; to: number };
+
+const LIST_MARK = /^(\s*)([-*+]|(\d+)\.)(\s+)/;
+
+/**
+ * Enter on a task line starts the next task (same indentation, always
+ * /TODO — nobody wants a second DONE); on a list item, the next item. An
+ * empty task or item ends the run: the marker goes and the line stays. The
+ * cursor inside or before the marker gets a plain newline, as does any other
+ * line.
+ */
+export function planEnter(line: string, col: number): EnterPlan {
+  const tag = LINE_TAG.exec(line);
+  if (tag) {
+    // the marker and the one space after it, when there is one
+    const markerEnd = tag[0].length + (line[tag[0].length] === " " ? 1 : 0);
+    if (col < markerEnd && !(col === tag[0].length && line.slice(tag[0].length).trim() === "")) {
+      return { kind: "newline" };
+    }
+    if (line.slice(tag[0].length).trim() === "") {
+      return { kind: "exit", from: tag[1].length, to: line.length };
+    }
+    return { kind: "continue", prefix: tag[1] + "/TODO " };
+  }
+  const list = LIST_MARK.exec(line);
+  if (list) {
+    const markerEnd = list[0].length;
+    if (col < markerEnd) return { kind: "newline" };
+    if (line.slice(markerEnd).trim() === "") return { kind: "exit", from: list[1].length, to: line.length };
+    const marker = list[3] !== undefined ? `${Number(list[3]) + 1}.` : list[2];
+    return { kind: "continue", prefix: list[1] + marker + " " };
+  }
+  return { kind: "newline" };
+}

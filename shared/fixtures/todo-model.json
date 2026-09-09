@@ -297,5 +297,122 @@
         "after": "/WAIT!! a"
       }
     ]
+  },
+  "enter": {
+    "_comment": "Enter on a line: col is the UTF-16 cursor column. continue → insert \"\\n\"+prefix at the cursor; exit → delete [from,to) of the line and stay; newline → the editor's plain newline.",
+    "cases": [
+      {
+        "line": "/TODO buy milk",
+        "col": 14,
+        "kind": "continue",
+        "prefix": "/TODO "
+      },
+      {
+        "line": "/DONE! shipped",
+        "col": 14,
+        "kind": "continue",
+        "prefix": "/TODO "
+      },
+      {
+        "line": "  /DOING nested task",
+        "col": 20,
+        "kind": "continue",
+        "prefix": "  /TODO "
+      },
+      {
+        "line": "/TODO split here",
+        "col": 11,
+        "kind": "continue",
+        "prefix": "/TODO "
+      },
+      {
+        "line": "/TODO ",
+        "col": 6,
+        "kind": "exit",
+        "from": 0,
+        "to": 6
+      },
+      {
+        "line": "  /WAIT!! ",
+        "col": 10,
+        "kind": "exit",
+        "from": 2,
+        "to": 10
+      },
+      {
+        "line": "/TODO",
+        "col": 5,
+        "kind": "exit",
+        "from": 0,
+        "to": 5
+      },
+      {
+        "line": "/TODO buy milk",
+        "col": 3,
+        "kind": "newline"
+      },
+      {
+        "line": "/TODO buy milk",
+        "col": 0,
+        "kind": "newline"
+      },
+      {
+        "line": "- dash item",
+        "col": 11,
+        "kind": "continue",
+        "prefix": "- "
+      },
+      {
+        "line": "  * nested star",
+        "col": 15,
+        "kind": "continue",
+        "prefix": "  * "
+      },
+      {
+        "line": "3. third",
+        "col": 8,
+        "kind": "continue",
+        "prefix": "4. "
+      },
+      {
+        "line": "- ",
+        "col": 2,
+        "kind": "exit",
+        "from": 0,
+        "to": 2
+      },
+      {
+        "line": "  1. ",
+        "col": 5,
+        "kind": "exit",
+        "from": 2,
+        "to": 5
+      },
+      {
+        "line": "- dash item",
+        "col": 1,
+        "kind": "newline"
+      },
+      {
+        "line": "plain text",
+        "col": 10,
+        "kind": "newline"
+      },
+      {
+        "line": "# heading",
+        "col": 9,
+        "kind": "newline"
+      },
+      {
+        "line": "",
+        "col": 0,
+        "kind": "newline"
+      },
+      {
+        "line": "/TODOS not a tag",
+        "col": 16,
+        "kind": "newline"
+      }
+    ]
   }
 }
