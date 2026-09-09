@@ -27,9 +27,9 @@ struct OnboardingView: View {
             .padding(.horizontal, 28)
             Spacer()
             VStack(spacing: 10) {
-                OptionCard(icon: "icloud", title: "Start fresh",
-                           detail: "We create a Parker folder for you. Your notes appear in Files, and a Mac with Parker can open the same files.",
-                           theme: theme) { workspace.startFresh() }
+                OptionCard(icon: "icloud", title: workspace.busy ? "Setting up your folder…" : "Start fresh",
+                           detail: "We create a Parker folder in your iCloud Drive. A Mac with Parker finds it by itself. No iCloud? It lives on this phone instead.",
+                           theme: theme) { if !workspace.busy { workspace.startFresh() } }
                 OptionCard(icon: "folder", title: "I already have notes",
                            detail: "Pick the folder in Files. iCloud Drive, Google Drive and Dropbox all work.",
                            theme: theme) { picking = true }

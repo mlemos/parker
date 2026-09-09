@@ -38,6 +38,25 @@ targets:
         LSSupportsOpeningDocumentsInPlace: true
         UIFileSharingEnabled: true
         ITSAppUsesNonExemptEncryption: false
+        # The app's iCloud Drive folder, visible in Files and on every Mac with
+        # the same account as iCloud Drive › Parker. One container per build
+        # flavour (the entitlement uses the bundle id); both are listed here
+        # because plist keys cannot be substituted.
+        NSUbiquitousContainers:
+          iCloud.dev.getparker.parker:
+            NSUbiquitousContainerIsDocumentScopePublic: true
+            NSUbiquitousContainerName: Parker
+            NSUbiquitousContainerSupportedFolderLevels: Any
+          iCloud.dev.getparker.parker.dev:
+            NSUbiquitousContainerIsDocumentScopePublic: true
+            NSUbiquitousContainerName: Parker Dev
+            NSUbiquitousContainerSupportedFolderLevels: Any
+    entitlements:
+      path: Sources/Parker.entitlements
+      properties:
+        com.apple.developer.icloud-services: [CloudDocuments]
+        com.apple.developer.icloud-container-identifiers: ["iCloud.$(PRODUCT_BUNDLE_IDENTIFIER)"]
+        com.apple.developer.ubiquity-container-identifiers: ["iCloud.$(PRODUCT_BUNDLE_IDENTIFIER)"]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.getparker.parker
