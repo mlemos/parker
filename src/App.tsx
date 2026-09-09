@@ -348,6 +348,11 @@ export default function App() {
       "--todo-attn": theme.todo.attn,
       "--todo-done": theme.todo.done,
       "--todo-fail": theme.todo.fail,
+      // Priority of an open to-do: the empty box's border, green → red.
+      "--priority-base": theme.priority.base,
+      "--priority-low": theme.priority.low,
+      "--priority-mid": theme.priority.mid,
+      "--priority-high": theme.priority.high,
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;

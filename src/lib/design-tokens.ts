@@ -20,6 +20,7 @@ export function designTokens() {
       ui: t.ui,
       syntax: t.syntax,
       todo: t.todo,
+      priority: t.priority,
     })),
     defaultThemeId: DEFAULT_THEME_ID,
     todo: {

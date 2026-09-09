@@ -55,7 +55,7 @@ import {
   keymap,
 } from "@uiw/react-codemirror";
 import type { DecorationSet, ViewUpdate } from "@uiw/react-codemirror";
-import { kindOf, todoGlyphSvg } from "./todo-glyph";
+import { kindOf, todoBoxClass, todoGlyphSvg } from "./todo-glyph";
 import {
   LINE_TAG,
   ownersForRange,
@@ -64,6 +64,7 @@ import {
   norm,
   planRotate,
   tagChange,
+  priorityOf,
 } from "./todo-model";
 
 // A to-do's nested lines wear its colour, dimmed — so an entry and its detail
@@ -103,16 +104,19 @@ export const LINE_DECOS: Record<string, Decoration> = {
 };
 
 class TodoBox extends WidgetType {
-  constructor(readonly state: string) {
+  constructor(
+    readonly state: string,
+    readonly priority: number
+  ) {
     super();
   }
   eq(other: TodoBox) {
-    return other.state === this.state;
+    return other.state === this.state && other.priority === this.priority;
   }
   toDOM() {
     const box = document.createElement("span");
     const kind = kindOf(norm(this.state));
-    box.className = `cm-todo-box cm-todo-box-${kind}`;
+    box.className = todoBoxClass(kind, this.priority);
     // The visible square. Inner element so it can be drawn from the zero-height
     // anchor (see App.css) without nudging the line's baseline.
     const glyph = document.createElement("span");
@@ -165,7 +169,7 @@ function build(view: EditorView): Built {
         const tagTo = line.from + tag[0].length;
         const lineDeco = LINE_DECOS[state];
         if (lineDeco) builder.add(line.from, line.from, lineDeco);
-        const widget = Decoration.replace({ widget: new TodoBox(state) });
+        const widget = Decoration.replace({ widget: new TodoBox(state, priorityOf(tag)) });
         builder.add(tagFrom, tagTo, widget);
         atomic.add(tagFrom, tagTo, widget);
       } else {

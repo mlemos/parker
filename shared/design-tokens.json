@@ -47,6 +47,12 @@
         "attn": "#fbbf24",
         "done": "#4ade80",
         "fail": "#ef4444"
+      },
+      "priority": {
+        "base": "#4ade80",
+        "low": "#facc15",
+        "mid": "#fb923c",
+        "high": "#ef4444"
       }
     },
     {
@@ -95,6 +101,12 @@
         "attn": "#d97706",
         "done": "#16a34a",
         "fail": "#dc2626"
+      },
+      "priority": {
+        "base": "#16a34a",
+        "low": "#eab308",
+        "mid": "#ea580c",
+        "high": "#dc2626"
       }
     },
     {
@@ -143,6 +155,12 @@
         "attn": "#d97706",
         "done": "#16a34a",
         "fail": "#dc2626"
+      },
+      "priority": {
+        "base": "#16a34a",
+        "low": "#eab308",
+        "mid": "#ea580c",
+        "high": "#dc2626"
       }
     },
     {
@@ -191,6 +209,12 @@
         "attn": "#fbbf24",
         "done": "#4ade80",
         "fail": "#ef4444"
+      },
+      "priority": {
+        "base": "#4ade80",
+        "low": "#facc15",
+        "mid": "#fb923c",
+        "high": "#ef4444"
       }
     },
     {
@@ -239,6 +263,12 @@
         "attn": "#bf641e",
         "done": "#5b7a34",
         "fail": "#b3301c"
+      },
+      "priority": {
+        "base": "#16a34a",
+        "low": "#eab308",
+        "mid": "#ea580c",
+        "high": "#dc2626"
       }
     },
     {
@@ -287,6 +317,12 @@
         "attn": "#ffb26b",
         "done": "#6ee7a8",
         "fail": "#ff5a7a"
+      },
+      "priority": {
+        "base": "#4ade80",
+        "low": "#facc15",
+        "mid": "#fb923c",
+        "high": "#ef4444"
       }
     },
     {
@@ -335,6 +371,12 @@
         "attn": "#ffb000",
         "done": "#00ff66",
         "fail": "#ff4f4f"
+      },
+      "priority": {
+        "base": "#4ade80",
+        "low": "#facc15",
+        "mid": "#fb923c",
+        "high": "#ef4444"
       }
     },
     {
@@ -383,6 +425,12 @@
         "attn": "#ffd28a",
         "done": "#8fd6a8",
         "fail": "#ff9d8a"
+      },
+      "priority": {
+        "base": "#4ade80",
+        "low": "#facc15",
+        "mid": "#fb923c",
+        "high": "#ef4444"
       }
     }
   ],

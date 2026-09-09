@@ -18,7 +18,7 @@ describe("to-do entries in the preview", () => {
   });
 
   it("draws the state's box, with the editor's glyph", () => {
-    expect(html("/DONE Shipped")).toContain('class="cm-todo-box cm-todo-box-done"');
+    expect(html("/DONE Shipped")).toContain('class="cm-todo-box cm-todo-box-done cm-todo-box-p0"');
     // The check, verbatim from the editor's path data.
     expect(html("/DONE Shipped")).toContain('d="M20 6 9 17l-5-5"');
   });
@@ -26,8 +26,16 @@ describe("to-do entries in the preview", () => {
   // The open state is an empty box; drawing nothing in it is the point.
   it("leaves the open state's box empty", () => {
     const out = html("/TODO Next");
-    expect(out).toContain('class="cm-todo-box cm-todo-box-todo"');
+    expect(out).toContain('class="cm-todo-box cm-todo-box-todo cm-todo-box-p0"');
     expect(out).not.toContain("<svg");
+  });
+
+  // The priority travels to the box as a level class; the CSS colours the
+  // empty box's border with it and leaves filled boxes alone.
+  it("carries the priority bangs to the box", () => {
+    expect(html("/TODO!! Next")).toContain('class="cm-todo-box cm-todo-box-todo cm-todo-box-p2"');
+    expect(html("/DOING!!! Now")).toContain('class="cm-todo-box cm-todo-box-doing cm-todo-box-p3"');
+    expect(html("/TODO !! Next")).toContain('class="cm-todo-box cm-todo-box-todo cm-todo-box-p0"');
   });
 
   it("knows every state, and normalises the aliases", () => {

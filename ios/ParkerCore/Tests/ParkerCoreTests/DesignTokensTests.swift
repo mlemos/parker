@@ -44,4 +44,16 @@ import Testing
         }
         #expect(t.todo.box.size == "0.95em")
     }
+
+    @Test("carries the priority ramp for every theme, four distinct colours")
+    func priority() throws {
+        let t = try DesignTokens.load(from: Self.url)
+        for theme in t.themes {
+            let p = theme.priority
+            let all = [p.base, p.low, p.mid, p.high]
+            #expect(Set(all).count == 4, Comment(rawValue: theme.id))
+            #expect(all.allSatisfy { $0.hasPrefix("#") }, Comment(rawValue: theme.id))
+            #expect(p.color(forLevel: 0) == p.base && p.color(forLevel: 3) == p.high)
+        }
+    }
 }
