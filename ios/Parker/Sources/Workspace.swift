@@ -140,12 +140,26 @@ final class Workspace {
     func refresh() {
         guard let folder else { return }
         do { notes = try folder.list() } catch { lastError = error.localizedDescription }
+        // A synced folder lists notes before their bytes arrive: ask for all
+        // of them now, off the main thread, so opening one never waits.
+        Task.detached(priority: .utility) { folder.fetchAll() }
     }
 
     func read(_ name: String) -> String {
         guard let folder else { return "" }
-        return (try? folder.read(name)) ?? ""
+        return Perf.timed("read \(name)") { (try? folder.read(name)) ?? "" }
     }
+
+    /// The note's text, read off the main thread: a note that is still in the
+    /// cloud blocks its reader until it arrives, and the screen must not wait.
+    func load(_ name: String) async -> String {
+        guard let folder else { return "" }
+        return await Task.detached(priority: .userInitiated) {
+            Perf.timed("read \(name)") { (try? folder.read(name)) ?? "" }
+        }.value
+    }
+
+    func isLocal(_ name: String) -> Bool { folder?.isLocal(name) ?? true }
 
     func write(_ name: String, _ text: String) {
         guard let folder else { return }

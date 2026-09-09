@@ -147,3 +147,15 @@ private func touch(_ folder: NotesFolder, _ name: String, _ text: String = "", m
         #expect(try f.search("needle").first?.snippet?.count == 140)
     }
 }
+
+@Suite struct NotesFolderCloudTests {
+    @Test func aLocalFolderIsAlreadyHere() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let folder = NotesFolder(url: dir)
+        try folder.write("a.md", "hello")
+        #expect(folder.isLocal("a.md"))
+        #expect(folder.fetchAll() == 0)
+    }
+}
