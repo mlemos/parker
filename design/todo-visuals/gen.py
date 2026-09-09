@@ -346,7 +346,6 @@ tbody tr.bad td:nth-child(6){{color:var(--danger);font-weight:600}} tbody tr.fix
   <div class="group"><span>Tamanho</span><button type="button" data-len="vary" class="on">Varia</button><button type="button" data-len="fixed">Fixo</button></div>
   <label class="toggle"><input type="checkbox" id="nogrey" checked><span>Sem cinza: a base já tem cor</span></label>
   <div class="group"><span>Rampa</span><button type="button" data-ramp="heat3">Calor·3</button><button type="button" data-ramp="red3">Um matiz·3</button><button type="button" data-ramp="traffic4" class="on">Semáforo·4</button><button type="button" data-ramp="traffic3">Semáforo·3</button></div>
-  <label class="toggle"><input type="checkbox" id="dimclosed"><span>Apagar em concluídos</span></label>
 </div>
 
 <header>
@@ -413,13 +412,13 @@ tbody tr.bad td:nth-child(6){{color:var(--danger);font-weight:600}} tbody tr.fix
   <div class="decisions">
     <div><b>Glifos<span class="tag">decidido</span></b><span>Lucide literal, normalizado para 16/24 e centrado. Fonte única: <code>todo-glyph.ts</code>, exportado para o iPhone via <code>shared/design-tokens.json</code>.</span></div>
     <div><b>Pena<span class="tag">decidido</span></b><span>Preenchido: play, pausa e bojos da ampulheta sólidos com traço 1.2, no tamanho do path (sem escala); check, X, asterisco e menos com traço 4; tampas da ampulheta em 2.5. No Mac: <code>STROKE</code> e <code>fill</code> por glifo em <code>todo-glyph.ts</code>; no JSON, os mesmos por estado.</span></div>
-    <div><b>Play<span class="tag open">inclinação · confirmar</span></b><span><code>INK.doing = [3, 3, 21, 21]</code>: lado 16 exato e o deslocamento óptico do Lucide preservado. Uma linha no Mac; o iPhone herda pelo JSON.</span></div>
-    <div><b>Prioridade · onde aparece<span class="tag open">inclinação · confirmar</span></b><span>Na <b>borda da caixa vazia</b> (TODO), na cor do nível. Caixas preenchidas <b>sem sinal</b>: em DOING, PAUSE, WAIT, ATTN e nos concluídos a prioridade não aparece. Nada na linha se move. A barra na margem e a borda interna ficam como alternativas na barra de controles.</span></div>
-    <div><b>Prioridade · cores<span class="tag open">inclinação · confirmar</span></b><span><b>Semáforo de quatro, sem cinza</b>: a base (sem bang) é verde; <code>!</code> amarelo, <code>!!</code> laranja, <code>!!!</code> vermelho. Roles <code>priority0…3</code> por tema, claro e escuro. Repare que verde é DONE e âmbar é ATTN.</span></div>
-    <div><b>Prioridade · gramática<span class="tag open">a aprovar</span></b><span>Bangs colados na tag, <code>!{{1,3}}</code>: três níveis acima da base. <code>/TODO !!</code> com espaço é texto. Alias normaliza (<code>/WIP!!</code> → <code>/DOING!!</code>); concluídos guardam a marca no arquivo.</span></div>
-    <div><b>Prioridade · ordem<span class="tag open">a aprovar</span></b><span>Por prioridade só na visão por estado do iPhone. Editor e visão por nota: ordem do documento.</span></div>
-    <div><b>Prioridade · gestos<span class="tag open">a aprovar</span></b><span>Mac ⌥⌘↑ / ⌥⌘↓ na linha ou seleção; ⌘⏎ preserva a marca. iPhone: fileira na folha do toque longo; chips "!!! only" e "!! and up".</span></div>
-    <div><b>Concluídos<span class="tag open">a aprovar</span></b><span>Com "sem sinal nas preenchidas", os concluídos já não mostram prioridade; "Apagar em concluídos" fica sem efeito e sai da implementação.</span></div>
+    <div><b>Play<span class="tag">decidido</span></b><span><code>INK.doing = [3, 3, 21, 21]</code>: lado 16 exato e o deslocamento óptico do Lucide preservado. Uma linha no Mac; o iPhone herda pelo JSON.</span></div>
+    <div><b>Prioridade · gramática<span class="tag">decidido</span></b><span>Bangs colados na tag, <code>!{{1,3}}</code>: três níveis acima da base. <code>/TODO !!</code> com espaço é texto. Alias normaliza (<code>/WIP!!</code> → <code>/DOING!!</code>); concluídos guardam a marca no arquivo. O Mac reconhece a gramática para <code>/TODO!!</code> continuar sendo um to-do com caixa.</span></div>
+    <div><b>Prioridade · onde aparece<span class="tag">decidido · só no iPhone, por enquanto</span></b><span>Na <b>borda da caixa vazia</b> (TODO), na cor do nível. Caixas preenchidas <b>sem sinal</b>. Nada na linha se move. No Mac, por enquanto, nenhum visual de prioridade: o dado fica no arquivo e a caixa é a de sempre.</span></div>
+    <div><b>Prioridade · cores<span class="tag">decidido</span></b><span><b>Semáforo de quatro, sem cinza</b>: a base (sem bang) é verde; <code>!</code> amarelo, <code>!!</code> laranja, <code>!!!</code> vermelho. Roles <code>priority0…3</code> por tema, claro e escuro, no JSON.</span></div>
+    <div><b>Prioridade · ordem<span class="tag">decidido</span></b><span>Por prioridade só na visão por estado do iPhone. Editor e visão por nota: ordem do documento.</span></div>
+    <div><b>Prioridade · gestos<span class="tag open">testar no uso</span></b><span>Proposta provisória: iPhone, fileira na folha do toque longo e chips "!!! only" / "!! and up". Mac, sem gesto por enquanto (sem visual, sem gesto). Decide-se com o app na mão.</span></div>
+    <div><b>Concluídos<span class="tag">decidido</span></b><span>Sem sinal nas preenchidas, os concluídos não mostram prioridade; "Apagar em concluídos" sai da implementação.</span></div>
   </div>
 </section>
 </main>
@@ -495,7 +494,7 @@ tbody tr.bad td:nth-child(6){{color:var(--danger);font-weight:600}} tbody tr.fix
   mq.addEventListener('change', function(){{ if (current === 'system') apply(resolve()); }});
   var saved = 'system'; try {{ saved = localStorage.getItem('parker-visuals-theme') || 'system'; }} catch (e) {{}}
   setTheme(pick(saved) || saved === 'system' ? saved : 'system');
-  var g = document.getElementById('guides'), f = document.getElementById('fixplay'), dc = document.getElementById('dimclosed'), fs = document.getElementById('fillshapes');
+  var g = document.getElementById('guides'), f = document.getElementById('fixplay'), fs = document.getElementById('fillshapes');
   var heavy = '4', solids = 'path';
   function fillTuning(){{
     root.style.setProperty('--heavy', heavy);
@@ -506,8 +505,8 @@ tbody tr.bad td:nth-child(6){{color:var(--danger);font-weight:600}} tbody tr.fix
   document.querySelectorAll('.controls button[data-heavy]').forEach(function(b){{ b.addEventListener('click', function(){{ heavy = b.getAttribute('data-heavy'); fillTuning(); }}); }});
   document.querySelectorAll('.controls button[data-solids]').forEach(function(b){{ b.addEventListener('click', function(){{ solids = b.getAttribute('data-solids'); fillTuning(); }}); }});
   fillTuning();
-  function flags(){{ body.classList.toggle('show-guides', g.checked); body.classList.toggle('fix-play', f.checked); body.classList.toggle('dim-closed', dc.checked); body.classList.toggle('fill-shapes', fs.checked); }}
-  g.addEventListener('change', flags); f.addEventListener('change', flags); dc.addEventListener('change', flags); fs.addEventListener('change', flags); flags();
+  function flags(){{ body.classList.toggle('show-guides', g.checked); body.classList.toggle('fix-play', f.checked); body.classList.toggle('fill-shapes', fs.checked); }}
+  g.addEventListener('change', flags); f.addEventListener('change', flags); fs.addEventListener('change', flags); flags();
   document.getElementById('nogrey').addEventListener('change', applyRamp);
   applyMark();
 }})();
