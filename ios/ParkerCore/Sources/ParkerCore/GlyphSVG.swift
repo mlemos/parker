@@ -16,11 +16,24 @@ import Foundation
 // CGPath is immutable once built, so sharing it across isolation domains is
 // safe even though CoreGraphics does not say so.
 public struct Glyph: @unchecked Sendable {
-    /// The ink, in the 24-unit grid, with the group transform applied.
+    /// Every shape of the glyph, in the 24-unit grid, with the group transform applied.
+    public let shapes: [GlyphShape]
+    /// All the shapes as one path — for bounds; draw `shapes`, they differ in pen.
     public let path: CGPath
-    /// Stroke width in the same grid (already divided by the group scale).
+    /// The group's stroke width in the same grid (already divided by the group scale).
     public let strokeWidth: CGFloat
     public static let gridSize: CGFloat = 24
+}
+
+/// One `<path>` or `<rect>` of a glyph: filled or not, and its own stroke
+/// width — the pen decided on the spec gives the solids a thin stroke and the
+/// line glyphs a heavy one, and the hourglass mixes both in one glyph.
+public struct GlyphShape: @unchecked Sendable {
+    public let path: CGPath
+    /// Painted solid in the knockout colour (`fill="currentColor"`).
+    public let filled: Bool
+    /// In grid units, after the group scale; the group's when the shape sets none.
+    public let strokeWidth: CGFloat
 }
 
 public enum GlyphSVGError: Error, Equatable, Sendable {
@@ -41,23 +54,31 @@ public enum GlyphSVG {
         let transform = try parseTransform(attr("transform", of: g) ?? "")
         let strokeWidth = try number(attr("stroke-width", of: g) ?? "2")
 
+        let scale = transform.a   // the group is translate+uniform scale, so a == d == the scale
         let path = CGMutablePath()
+        var shapes: [GlyphShape] = []
         for tag in tags(in: s) where tag.name != "svg" && tag.name != "g" {
+            let shape = CGMutablePath()
             switch tag.name {
             case "path":
-                try appendPathData(attr("d", of: tag.text) ?? "", to: path, transform: transform)
+                try appendPathData(attr("d", of: tag.text) ?? "", to: shape, transform: transform)
             case "rect":
                 let x = try number(attr("x", of: tag.text) ?? "0")
                 let y = try number(attr("y", of: tag.text) ?? "0")
                 let w = try number(attr("width", of: tag.text) ?? "0")
                 let h = try number(attr("height", of: tag.text) ?? "0")
                 let rx = try number(attr("rx", of: tag.text) ?? "0")
-                path.addRoundedRect(in: CGRect(x: x, y: y, width: w, height: h), cornerWidth: rx, cornerHeight: rx, transform: transform)
+                shape.addRoundedRect(in: CGRect(x: x, y: y, width: w, height: h), cornerWidth: rx, cornerHeight: rx, transform: transform)
             default:
                 throw GlyphSVGError.unsupportedElement(tag.name)
             }
+            let filled = attr("fill", of: tag.text) == "currentColor"
+            // a shape's own stroke-width is in the group's (pre-scale) units, like the group's
+            let own = try attr("stroke-width", of: tag.text).map(number)
+            shapes.append(GlyphShape(path: shape, filled: filled, strokeWidth: (own ?? strokeWidth) * scale))
+            path.addPath(shape)
         }
-        return Glyph(path: path, strokeWidth: strokeWidth)
+        return Glyph(shapes: shapes, path: path, strokeWidth: strokeWidth * scale)
     }
 
     // ---- Markup (just enough) ----------------------------------------------------

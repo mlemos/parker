@@ -8,16 +8,16 @@ import Testing
 
     Ship v0.1 by **Friday**. Remaining:
 
-    /DOING Write the release notes
+    /DOING!! Write the release notes
       /DONE Draft the highlights
-      /TODO Link the changelog
+      /TODO! Link the changelog
       - keep it under ten lines
     /ATTN Ask Ana about the icon
       - she sent two options, pick one
 
       - and a note after a blank
     /WAIT App review
-    /TODO Record the demo video
+    /TODO!!! Record the demo video
     /DONE Set up TestFlight
     """)
 
@@ -29,6 +29,7 @@ import Testing
             "Ask Ana about the icon", "App review", "Record the demo video", "Set up TestFlight",
         ])
         #expect(items.map(\.state) == [.doing, .done, .todo, .attn, .wait, .todo, .done])
+        #expect(items.map(\.priority) == [2, 0, 1, 0, 0, 3, 0])
         #expect(items.map(\.line) == [5, 6, 7, 9, 13, 14, 15])
         #expect(items[0].details == ["- keep it under ten lines"])
         #expect(items[1].parentLine == 5 && items[2].parentLine == 5)
@@ -36,11 +37,21 @@ import Testing
         #expect(items[4].parentLine == nil && items[4].details.isEmpty)
     }
 
-    @Test("groups by state in the rotation order, skipping empty states")
+    @Test("groups by state in the rotation order, skipping empty states, priority first within a state")
     func byState() {
         let groups = Todo.groupByState(Todo.scan(note: "n", Self.launch))
         #expect(groups.map(\.state) == [.todo, .doing, .wait, .attn, .done])
-        #expect(groups[0].items.map(\.text) == ["Link the changelog", "Record the demo video"])
+        // !!! before !, even though the document has them the other way round
+        #expect(groups[0].items.map(\.text) == ["Record the demo video", "Link the changelog"])
+    }
+
+    @Test("within one priority the document order holds, and priority never reorders the by-note scan")
+    func stableOrder() {
+        let doc = TextDocument("/TODO! a\n/TODO b\n/TODO! c\n/TODO!!! d\n/TODO e")
+        let items = Todo.scan(note: "n", doc)
+        #expect(items.map(\.text) == ["a", "b", "c", "d", "e"])          // by note: as written
+        let todo = Todo.groupByState(items)[0].items.map(\.text)
+        #expect(todo == ["d", "a", "c", "b", "e"])                        // by state: !!!, then the !s in order, then the rest
     }
 
     @Test("a nested task's path is note › parent")

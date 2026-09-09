@@ -33,9 +33,29 @@ import Testing
             let midX: CGFloat = st == .doing ? 12.889 : 12
             #expect(abs(longest - 16) < 0.05, Comment(rawValue: "\(st): longest side \(longest)"))
             #expect(abs(box.midX - midX) < 0.05 && abs(box.midY - 12) < 0.05, Comment(rawValue: "\(st): centre \(box.midX),\(box.midY)"))
-            // the group's pen: 4 for line glyphs, 1.2 for solids, 2.5 for the hourglass's caps — all divided by the glyph's scale
-            #expect(g.strokeWidth > 1 && g.strokeWidth < 4.5, Comment(rawValue: "\(st): stroke \(g.strokeWidth)"))
         }
+    }
+
+    // The pen decided on the spec: play, pause and the hourglass's bulbs are
+    // solid with a 1.2 stroke; check, x, asterisk and minus are lines at 4;
+    // the hourglass's caps are lines at 2.5. Widths come back in grid units,
+    // after the group's scale, so they read like the spec.
+    @Test("reads the pen per shape: solids thin and filled, lines heavy, the hourglass mixed")
+    func pen() throws {
+        func glyph(_ st: TodoState) throws -> Glyph { try #require(try GlyphSVG.parse(Self.tokens.todo.glyphs[st.rawValue]!)) }
+        for st in [TodoState.done, .fail, .attn, .cancel] {
+            let g = try glyph(st)
+            #expect(g.shapes.allSatisfy { !$0.filled && abs($0.strokeWidth - 4) < 0.02 }, Comment(rawValue: "\(st)"))
+        }
+        for st in [TodoState.doing, .pause] {
+            let g = try glyph(st)
+            #expect(g.shapes.allSatisfy { $0.filled && abs($0.strokeWidth - 1.2) < 0.02 }, Comment(rawValue: "\(st)"))
+        }
+        let wait = try glyph(.wait)
+        #expect(wait.shapes.count == 4)
+        #expect(wait.shapes[0...1].allSatisfy { !$0.filled && abs($0.strokeWidth - 2.5) < 0.02 })
+        #expect(wait.shapes[2...3].allSatisfy { $0.filled && abs($0.strokeWidth - 1.2) < 0.02 })
+        #expect(abs(wait.strokeWidth - 2.5) < 0.02)
     }
 
     @Test("the minus is a horizontal line, the check has the right corner")

@@ -14,6 +14,8 @@ public struct TaskItem: Equatable, Sendable {
     /// Leading whitespace count — depth, as the text has it.
     public let indent: Int
     public let state: TodoState
+    /// Priority, 0 (none) to 3 — the bangs on the tag.
+    public let priority: Int
     /// The text after the tag and its separating space.
     public let text: String
     /// Line number of the enclosing to-do, when this one is nested.
@@ -40,7 +42,7 @@ extension Todo {
                 var body = String(text.utf16.dropFirst(t.length))!
                 if body.hasPrefix(" ") { body.removeFirst() }
                 items.append(TaskItem(
-                    note: note, line: n, indent: indent, state: t.state, text: body,
+                    note: note, line: n, indent: indent, state: t.state, priority: t.priority, text: body,
                     parentLine: stack.last.map { items[$0.index].line }, details: []
                 ))
                 details.append([])
@@ -50,17 +52,24 @@ extension Todo {
             }
         }
         return zip(items, details).map { item, d in
-            TaskItem(note: item.note, line: item.line, indent: item.indent, state: item.state,
+            TaskItem(note: item.note, line: item.line, indent: item.indent, state: item.state, priority: item.priority,
                      text: item.text, parentLine: item.parentLine, details: d)
         }
     }
 
-    /// The by-state view: open states first in the ⌘⏎ order, each with its
-    /// items in the order the notes were given; states with no items are
-    /// omitted.
+    /// The by-state view: states in the ⌘⏎ order, each with its items by
+    /// priority (!!! first) and, within a priority, in the order the notes
+    /// were given — the only place priority reorders anything; the by-note
+    /// view and the editor keep the document's order. States with no items
+    /// are omitted.
     public static func groupByState(_ items: [TaskItem]) -> [(state: TodoState, items: [TaskItem])] {
         TodoState.order.compactMap { st in
-            let group = items.filter { $0.state == st }
+            let group = items.enumerated()
+                .filter { $0.element.state == st }
+                .sorted { a, b in
+                    a.element.priority != b.element.priority ? a.element.priority > b.element.priority : a.offset < b.offset
+                }
+                .map(\.element)
             return group.isEmpty ? nil : (st, group)
         }
     }
