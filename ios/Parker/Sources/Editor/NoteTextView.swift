@@ -7,10 +7,19 @@ import ParkerCore
 import SwiftUI
 import UIKit
 
+/// What a box's long-press sheet asks the editor to do.
+enum EditorCommand: Equatable {
+    /// Rewrite the box at storage index `at` (nil state removes the tag).
+    case setTag(at: Int, state: TodoState?, bangs: String)
+}
+
 struct NoteTextView: UIViewRepresentable {
     @Binding var text: String
     let theme: Theme
     var onChange: (String) -> Void
+    /// A long press on a box: its storage index and what it is now.
+    var onBoxLongPress: (Int, TodoAttachment) -> Void = { _, _ in }
+    @Binding var command: EditorCommand?
 
     func makeUIView(context: Context) -> UITextView {
         let tv = UITextView(usingTextLayoutManager: false) // TextKit 1: attachments and hit-testing behave
@@ -28,7 +37,18 @@ struct NoteTextView: UIViewRepresentable {
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped(_:)))
         tap.delegate = context.coordinator
         tv.addGestureRecognizer(tap)
+        let press = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.pressed(_:)))
+        press.minimumPressDuration = 0.3
+        press.delegate = context.coordinator
+        tv.addGestureRecognizer(press)
+        // The text view's own presses (selection, loupe, edit menu) wait for
+        // ours: on a box ours wins outright; elsewhere ours never receives the
+        // touch, counts as failed, and theirs go on as usual.
+        for other in tv.gestureRecognizers ?? [] where other is UILongPressGestureRecognizer && other !== press {
+            other.require(toFail: press)
+        }
         context.coordinator.textView = tv
+        tv.inputAccessoryView = context.coordinator.makeBar(theme)
         context.coordinator.load(text)
         return tv
     }
@@ -42,7 +62,13 @@ struct NoteTextView: UIViewRepresentable {
         if context.coordinator.lastEmitted != text, NoteStorage.plainText(tv.attributedText) != text {
             context.coordinator.load(text)
         } else if context.coordinator.styledWith != theme.def.id {
+            tv.inputAccessoryView = context.coordinator.makeBar(theme)
+            tv.reloadInputViews()
             context.coordinator.load(NoteStorage.plainText(tv.attributedText))
+        }
+        if let cmd = command {
+            context.coordinator.perform(cmd)
+            DispatchQueue.main.async { command = nil }
         }
     }
 
@@ -55,6 +81,8 @@ struct NoteTextView: UIViewRepresentable {
         var lastEmitted: String?
         var styledWith: String?
         private var normalizing = false
+        /// A held finger opened the sheet; the tap that fires when it lifts is not a tap.
+        private var pressOpenedSheet = false
 
         init(_ parent: NoteTextView) { self.parent = parent }
 
@@ -127,7 +155,26 @@ struct NoteTextView: UIViewRepresentable {
 
         func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 
+        /// A press on a box is ours; the system's press on text is still the system's.
+        func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            guard g is UILongPressGestureRecognizer, let tv = textView else { return true }
+            return box(at: touch.location(in: tv), in: tv) != nil
+        }
+
+        // The system treats an attachment as an image: a tap would open it and a
+        // long press would offer "Copy Image". A box is neither; ours take over.
+        func textView(_ textView: UITextView, primaryActionFor textItem: UITextItem, defaultAction: UIAction) -> UIAction? {
+            if case .textAttachment = textItem.content { return nil }
+            return defaultAction
+        }
+
+        func textView(_ textView: UITextView, menuConfigurationFor textItem: UITextItem, defaultMenu: UIMenu) -> UITextItem.MenuConfiguration? {
+            if case .textAttachment = textItem.content { return nil }
+            return .init(menu: defaultMenu)
+        }
+
         @objc func tapped(_ g: UITapGestureRecognizer) {
+            if pressOpenedSheet { pressOpenedSheet = false; return }
             guard let tv = textView else { return }
             let point = g.location(in: tv)
             let inContainer = CGPoint(x: point.x - tv.textContainerInset.left, y: point.y - tv.textContainerInset.top)
@@ -137,12 +184,193 @@ struct NoteTextView: UIViewRepresentable {
             // only when the tap really lands on the box, not on the line's text
             let glyphRect = tv.layoutManager.boundingRect(forGlyphRange: NSRange(location: index, length: 1), in: tv.textContainer)
             guard glyphRect.insetBy(dx: -6, dy: -4).contains(inContainer) else { return }
-            let next = Todo.nextOnClick(a.state, alt: false)
-            let replacement = TodoAttachment(state: next, bangs: a.bangs, em: NoteStorage.fontSize, theme: parent.theme)
-            tv.textStorage.replaceCharacters(in: NSRange(location: index, length: 1), with: NSAttributedString(attachment: replacement))
+            setTag(at: index, state: Todo.nextOnClick(a.state, alt: false), bangs: a.bangs)
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+
+        /// The box under a point, if the point is on the box itself.
+        private func box(at point: CGPoint, in tv: UITextView) -> (Int, TodoAttachment)? {
+            let inContainer = CGPoint(x: point.x - tv.textContainerInset.left, y: point.y - tv.textContainerInset.top)
+            let index = tv.layoutManager.characterIndex(for: inContainer, in: tv.textContainer, fractionOfDistanceBetweenInsertionPoints: nil)
+            guard index < tv.textStorage.length,
+                  let a = tv.textStorage.attribute(.attachment, at: index, effectiveRange: nil) as? TodoAttachment else { return nil }
+            let glyphRect = tv.layoutManager.boundingRect(forGlyphRange: NSRange(location: index, length: 1), in: tv.textContainer)
+            guard glyphRect.insetBy(dx: -6, dy: -4).contains(inContainer) else { return nil }
+            return (index, a)
+        }
+
+        @objc func pressed(_ g: UILongPressGestureRecognizer) {
+            if g.state == .ended || g.state == .cancelled {
+                // the lift's tap, if any, has been delivered by now
+                DispatchQueue.main.async { self.pressOpenedSheet = false }
+                return
+            }
+            guard g.state == .began, let tv = textView, let (index, a) = box(at: g.location(in: tv), in: tv) else { return }
+            pressOpenedSheet = true
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            parent.onBoxLongPress(index, a)
+        }
+
+        /// Rewrite the box at `index`: a new state and priority, or no tag at all.
+        func setTag(at index: Int, state: TodoState?, bangs: String) {
+            guard let tv = textView, index < tv.textStorage.length,
+                  tv.textStorage.attribute(.attachment, at: index, effectiveRange: nil) is TodoAttachment else { return }
+            if let state {
+                let replacement = TodoAttachment(state: state, bangs: bangs, em: NoteStorage.fontSize, theme: parent.theme)
+                tv.textStorage.replaceCharacters(in: NSRange(location: index, length: 1), with: NSAttributedString(attachment: replacement))
+            } else {
+                // the tag and the one space after it, as the Mac's delete-into-box does
+                let ns = tv.textStorage.string as NSString
+                let hasSpace = index + 1 < ns.length && ns.character(at: index + 1) == 0x20
+                tv.textStorage.replaceCharacters(in: NSRange(location: index, length: hasSpace ? 2 : 1), with: "")
+            }
             restyle(tv)
             emit(tv)
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+
+        func perform(_ cmd: EditorCommand) {
+            switch cmd {
+            case .setTag(let at, let state, let bangs): setTag(at: at, state: state, bangs: bangs)
+            }
+        }
+
+        // ---- The bar above the keyboard -----------------------------------------------------
+        //
+        // Every button works on the note's plain text, with the Mac's rules,
+        // then the storage is rebuilt from it: one path for all of them.
+
+        func makeBar(_ theme: Theme) -> UIView {
+            let bar = UIInputView(frame: CGRect(x: 0, y: 0, width: 0, height: 44), inputViewStyle: .keyboard)
+            bar.backgroundColor = UIColor(theme.editorBg)
+            let hairline = UIView(); hairline.backgroundColor = UIColor(theme.border)
+            let scroll = UIScrollView(); scroll.showsHorizontalScrollIndicator = false
+            let stack = UIStackView(); stack.axis = .horizontal; stack.spacing = 4; stack.alignment = .center
+            let mono = UIFont(name: "GeistMono-Medium", size: 17) ?? .monospacedSystemFont(ofSize: 17, weight: .medium)
+            func button(_ title: String?, _ symbol: String?, _ action: Selector, wide: Bool = false) -> UIButton {
+                var cfg = UIButton.Configuration.plain()
+                if let title { cfg.attributedTitle = AttributedString(title, attributes: AttributeContainer([.font: mono])) }
+                if let symbol { cfg.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)) }
+                cfg.baseForegroundColor = UIColor(theme.text)
+                cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: wide ? 12 : 10, bottom: 6, trailing: wide ? 12 : 10)
+                let b = UIButton(configuration: cfg)
+                b.addTarget(self, action: action, for: .touchUpInside)
+                return b
+            }
+            let rotate = button(nil, "arrow.triangle.2.circlepath", #selector(barRotate))
+            rotate.accessibilityLabel = "Rotate to-do"
+            [rotate,
+             button("!", nil, #selector(barPriority)),
+             button("#", nil, #selector(barHeading)),
+             button("-", nil, #selector(barList)),
+             button(nil, "increase.indent", #selector(barIndent)),
+             button(nil, "decrease.indent", #selector(barOutdent))].forEach(stack.addArrangedSubview)
+            let dismiss = button(nil, "keyboard.chevron.compact.down", #selector(barDismiss))
+            for v in [hairline, scroll, dismiss] { v.translatesAutoresizingMaskIntoConstraints = false; bar.addSubview(v) }
+            stack.translatesAutoresizingMaskIntoConstraints = false
+            scroll.addSubview(stack)
+            NSLayoutConstraint.activate([
+                hairline.topAnchor.constraint(equalTo: bar.topAnchor), hairline.leadingAnchor.constraint(equalTo: bar.leadingAnchor),
+                hairline.trailingAnchor.constraint(equalTo: bar.trailingAnchor), hairline.heightAnchor.constraint(equalToConstant: 0.5),
+                dismiss.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -4), dismiss.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+                scroll.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 4), scroll.trailingAnchor.constraint(equalTo: dismiss.leadingAnchor),
+                scroll.topAnchor.constraint(equalTo: bar.topAnchor), scroll.bottomAnchor.constraint(equalTo: bar.bottomAnchor),
+                stack.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor), stack.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor),
+                stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor), stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
+                stack.heightAnchor.constraint(equalTo: scroll.frameLayoutGuide.heightAnchor),
+            ])
+            return bar
+        }
+
+        /// The note as plain text and the selection in file offsets.
+        private func plainSelection(_ tv: UITextView) -> (text: String, from: Int, to: Int) {
+            let s = tv.attributedText!
+            let sel = tv.selectedRange
+            return (NoteStorage.plainText(s), NoteStorage.fileOffset(in: s, storage: sel.location), NoteStorage.fileOffset(in: s, storage: sel.location + sel.length))
+        }
+
+        /// Rebuild the storage from new plain text and put the caret at file offset `caret`.
+        private func applyPlain(_ text: String, caret: Int, in tv: UITextView) {
+            let s = NoteStorage.attributed(from: text, theme: parent.theme)
+            let offset = tv.contentOffset
+            tv.attributedText = s
+            tv.selectedRange = NSRange(location: NoteStorage.storageOffset(in: s, file: caret), length: 0)
+            tv.setContentOffset(offset, animated: false) // the edit is on the caret's line: stay put
+            styledWith = parent.theme.def.id
+            emit(tv)
+        }
+
+        private func replace(_ text: String, _ change: Change) -> String {
+            (text as NSString).replacingCharacters(in: NSRange(location: change.from, length: (change.to ?? change.from) - change.from), with: change.insert ?? "")
+        }
+
+        @objc private func barRotate() {
+            guard let tv = textView else { return }
+            let (text, from, to) = plainSelection(tv)
+            let changes = Todo.planRotate(TextDocument(text), from: from, to: to)
+            guard !changes.isEmpty else { return }
+            var out = text
+            for c in changes.sorted(by: { $0.from > $1.from }) { out = replace(out, c) }
+            let caret = Todo.cursorAfterRotate(changes, head: to) ?? mapped(to, through: changes)
+            applyPlain(out, caret: caret, in: tv)
+        }
+
+        /// Where a position lands after `changes`.
+        private func mapped(_ pos: Int, through changes: [Change]) -> Int {
+            var p = pos
+            for c in changes where c.from <= pos {
+                let removed = (c.to ?? c.from) - c.from, inserted = c.insert?.utf16.count ?? 0
+                p += inserted - min(removed, pos - c.from)
+            }
+            return max(0, p)
+        }
+
+        /// none → ! → !! → !!! → none, on the line's tag; a line without one is left alone.
+        @objc private func barPriority() {
+            editLine { line, tag in
+                guard let tag else { return nil }
+                let next = tag.bangs.count >= 3 ? "" : tag.bangs + "!"
+                return Change(from: line.from + tag.indent.utf16.count, to: line.from + tag.length, insert: "/" + tag.state.rawValue + next)
+            }
+        }
+
+        /// none → # → ## → ### → none, at the start of the line.
+        @objc private func barHeading() {
+            editLine { line, _ in
+                let hashes = line.text.prefix { $0 == "#" }.count
+                let hasMark = hashes > 0 && line.text.dropFirst(hashes).first == " "
+                let width = hasMark ? hashes + 1 : 0
+                let next = hasMark ? (hashes >= 3 ? "" : String(repeating: "#", count: hashes + 1) + " ") : "# "
+                return Change(from: line.from, to: line.from + width, insert: next)
+            }
+        }
+
+        /// A list marker after the indentation, or its removal.
+        @objc private func barList() {
+            editLine { line, _ in
+                let indent = Todo.leadingWhitespaceUTF16(line.text)
+                let rest = String(line.text.utf16.dropFirst(indent)) ?? ""
+                if rest.hasPrefix("- ") { return Change(from: line.from + indent, to: line.from + indent + 2) }
+                return Change(from: line.from + indent, insert: "- ")
+            }
+        }
+
+        @objc private func barIndent() { editLine { line, _ in Change(from: line.from, insert: "  ") } }
+        @objc private func barOutdent() {
+            editLine { line, _ in
+                let n = min(2, Todo.leadingWhitespaceUTF16(line.text))
+                return n > 0 ? Change(from: line.from, to: line.from + n) : nil
+            }
+        }
+        @objc private func barDismiss() { textView?.resignFirstResponder() }
+
+        /// One change on the caret's line, caret kept on the same text.
+        private func editLine(_ make: (DocLine, Todo.Tag?) -> Change?) {
+            guard let tv = textView else { return }
+            let (text, from, _) = plainSelection(tv)
+            let doc = TextDocument(text)
+            let line = doc.lineAt(from)
+            guard let c = make(line, Todo.tag(of: line.text)) else { return }
+            applyPlain(replace(text, c), caret: mapped(from, through: [c]), in: tv)
         }
     }
 }

@@ -61,6 +61,36 @@ enum NoteStorage {
         return out
     }
 
+    // ---- Offsets: storage (one char per box) <-> file (the whole tag) --------------------
+
+    /// The file offset that storage offset `storage` stands for.
+    static func fileOffset(in s: NSAttributedString, storage: Int) -> Int {
+        var out = 0
+        s.enumerateAttribute(.attachment, in: NSRange(location: 0, length: s.length)) { value, r, stop in
+            if r.location >= storage { stop.pointee = true; return }
+            if let a = value as? TodoAttachment { out += a.tagText.utf16.count }
+            else { out += min(r.length, storage - r.location) }
+        }
+        return out
+    }
+
+    /// The storage offset for file offset `file`; a position inside a tag
+    /// lands just before its box.
+    static func storageOffset(in s: NSAttributedString, file: Int) -> Int {
+        var acc = 0, result = s.length
+        s.enumerateAttribute(.attachment, in: NSRange(location: 0, length: s.length)) { value, r, stop in
+            if let a = value as? TodoAttachment {
+                let n = a.tagText.utf16.count
+                if file < acc + n { result = r.location; stop.pointee = true; return }
+                acc += n
+            } else {
+                if file <= acc + r.length { result = r.location + (file - acc); stop.pointee = true; return }
+                acc += r.length
+            }
+        }
+        return result
+    }
+
     // ---- Styling: the Mac's colours, line by line ----------------------------------------
 
     static func style(_ s: NSMutableAttributedString, theme: Theme) {
@@ -108,12 +138,16 @@ enum NoteStorage {
                 let color = tag.state == .todo ? theme.editorFg : (tag.state == .cancel ? theme.muted : theme.stateColor(tag.state))
                 s.addAttribute(.foregroundColor, value: UIColor(color), range: range)
             } else if let owner = owners[i] {
-                // a nested line wears its to-do's colour, 55% into the background — App.css .cm-todo-child-*
+                // a nested line wears its to-do's colour, 55% into the background — App.css
+                // .cm-todo-child-*, whose colour wins over the marks inside the line
                 let base = owner == .cancel ? theme.muted : theme.stateColor(owner)
                 s.addAttribute(.foregroundColor, value: UIColor(base).blended(with: UIColor(theme.editorBg), t: 0.45), range: range)
-            } else {
-                markdown(fileLine, in: range, of: s, theme: theme)
+                continue
             }
+            // marks keep their own colours inside a to-do line, as the Mac's syntax spans
+            // do — matched on the STORAGE line, whose offsets are the range's (a box is
+            // one character where the file has the whole tag)
+            markdown(storageLine, in: range, of: s, theme: theme)
         }
         _ = ns
     }

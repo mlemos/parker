@@ -13,16 +13,26 @@ struct NoteView: View {
     @State private var loaded = false
     @State private var onDisk = ""
     @State private var saveTask: Task<Void, Never>?
+    @State private var command: EditorCommand?
+    @State private var pressed: PressedBox?
 
     var body: some View {
         let theme = Theme.current(scheme)
         Group {
             if loaded {
-                NoteTextView(text: $text, theme: theme) { new in
+                NoteTextView(text: $text, theme: theme, onChange: { new in
                     saveTask?.cancel()
                     saveTask = Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(500))
                         if !Task.isCancelled { workspace.write(name, new); onDisk = new }
+                    }
+                }, onBoxLongPress: { index, box in
+                    pressed = PressedBox(index: index, state: box.state, bangs: box.bangs)
+                }, command: $command)
+                .sheet(item: $pressed) { box in
+                    BoxSheet(current: box.state, bangs: box.bangs, theme: theme) { state, bangs in
+                        command = .setTag(at: box.index, state: state, bangs: bangs)
+                        pressed = nil
                     }
                 }
             } else {
@@ -51,4 +61,11 @@ struct NoteView: View {
         // bump its date and make every synced device fetch it again.
         .onDisappear { saveTask?.cancel(); if loaded, text != onDisk { workspace.write(name, text); onDisk = text } }
     }
+}
+
+struct PressedBox: Identifiable, Equatable {
+    let index: Int
+    let state: TodoState
+    let bangs: String
+    var id: Int { index }
 }
