@@ -1,0 +1,204 @@
+{
+  "artboards": [
+    {
+      "file": "FlowMap.dc.html",
+      "title": "0 \u00b7 Flow map",
+      "x": 0,
+      "y": 0,
+      "w": 1560,
+      "h": 600
+    },
+    {
+      "file": "Onboarding.dc.html",
+      "title": "1 \u00b7 Onboarding",
+      "x": 0,
+      "y": 800,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "FreshStart.dc.html",
+      "title": "1c \u00b7 After Start fresh",
+      "x": 610,
+      "y": 800,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "WelcomeNote.dc.html",
+      "title": "1d \u00b7 Welcome note",
+      "x": 1220,
+      "y": 800,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "OnboardingHelp.dc.html",
+      "title": "1b \u00b7 Where is my folder?",
+      "x": 0,
+      "y": 1794,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Main.dc.html",
+      "title": "2 \u00b7 Search (home)",
+      "x": 610,
+      "y": 1794,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Notes.dc.html",
+      "title": "3 \u00b7 Notes",
+      "x": 1220,
+      "y": 1794,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Editor.dc.html",
+      "title": "5 \u00b7 Note \u00b7 Vercel Day",
+      "x": 0,
+      "y": 2788,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "EditorNight.dc.html",
+      "title": "5b \u00b7 Note \u00b7 Vercel Night",
+      "x": 610,
+      "y": 2788,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Settings.dc.html",
+      "title": "6 \u00b7 Settings",
+      "x": 1220,
+      "y": 2788,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Tasks.dc.html",
+      "title": "4 \u00b7 Tasks \u00b7 by note",
+      "x": 0,
+      "y": 3782,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "TasksByState.dc.html",
+      "title": "4b \u00b7 Tasks \u00b7 by state",
+      "x": 610,
+      "y": 3782,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "TasksAdd.dc.html",
+      "title": "4c \u00b7 New task",
+      "x": 1220,
+      "y": 3782,
+      "w": 390,
+      "h": 844
+    }
+  ],
+  "annotations": [
+    {
+      "id": "principle",
+      "x": 1620,
+      "y": 0,
+      "w": 420,
+      "text": "Inside the note is Parker; around the note is iOS.\n\nContent uses Parker's real tokens: Geist Mono, Vercel Day/Night, the to-do state colors and the Lucide glyphs from todo-glyph.ts. The shell is stock iOS: large titles, a native search field, tab bar, grouped lists, swipe actions, sheets.\n\nThe status bar and keyboard are not drawn: the real ones render on top."
+    },
+    {
+      "id": "row-fresh",
+      "x": -330,
+      "y": 800,
+      "w": 280,
+      "text": "FIRST RUN \u00b7 Start fresh\n\nNo Mac, no notes yet. The app owns a folder in the user's iCloud Drive (like Pages does). It shows up in Files and on every Mac with the same account, born with one note that teaches by tapping.\n\nThis is the App Store \u2192 iPhone \u2192 Mac funnel."
+    },
+    {
+      "id": "go-fresh",
+      "x": 420,
+      "y": 1100,
+      "w": 160,
+      "text": "Tap Start fresh\n\nFolder created: iCloud Drive \u203a Parker. No picker, no account."
+    },
+    {
+      "id": "go-welcome",
+      "x": 1030,
+      "y": 1100,
+      "w": 160,
+      "text": "Tap Welcome to Parker\n\nThree boxes to tap, one nested task, the Mac link at the end."
+    },
+    {
+      "id": "row-existing",
+      "x": -330,
+      "y": 1794,
+      "w": 280,
+      "text": "FIRST RUN \u00b7 I already have notes\n\nTap the second card and the Files picker opens. Where is my folder? (the link under the cards) opens this sheet for the Mac cases, then Open Files.\n\nAfter picking, the app lands on Search with a one-time line: 42 notes found."
+    },
+    {
+      "id": "go-picker",
+      "x": 420,
+      "y": 2094,
+      "w": 160,
+      "text": "Open Files \u2192 system picker \u2192 pick the folder\n\nLands on Search, with the confirmation line."
+    },
+    {
+      "id": "go-notes",
+      "x": 1030,
+      "y": 2094,
+      "w": 160,
+      "text": "Tab bar \u00b7 Notes\n\nSearch, Notes and Tasks are the three tabs. Any of them opens a note."
+    },
+    {
+      "id": "row-note",
+      "x": -330,
+      "y": 2788,
+      "w": 280,
+      "text": "THE NOTE\n\nReached from a search result, a Notes row, or a task's text. Same content as the Mac in every theme; the frame is iOS. Gear (top left of Notes) opens Settings."
+    },
+    {
+      "id": "go-night",
+      "x": 420,
+      "y": 3088,
+      "w": 160,
+      "text": "Same note in Vercel Night\n\nThemes are data: the eight from the Mac, via shared JSON."
+    },
+    {
+      "id": "go-settings",
+      "x": 1030,
+      "y": 3088,
+      "w": 160,
+      "text": "Gear \u2192 Settings\n\nFolder, appearance, the eight themes."
+    },
+    {
+      "id": "row-tasks",
+      "x": -330,
+      "y": 3782,
+      "w": 280,
+      "text": "TASKS\n\nTwo views on the same lines. By note: sections per note, document order, nested lines and nested to-dos under their task. By state: sections in the \u2318\u23ce order, note name (or path) above each task, chips filter by note.\n\nTap the box to cycle; long-press to pick; tap the text to open the note at that line."
+    },
+    {
+      "id": "go-state",
+      "x": 420,
+      "y": 4082,
+      "w": 160,
+      "text": "Segmented control \u2192 By state\n\nA nested to-do is listed under its OWN state, with its path above it."
+    },
+    {
+      "id": "go-add",
+      "x": 1030,
+      "y": 4082,
+      "w": 160,
+      "text": "Tap + in the bar\n\nText plus target note (remembers the last). Saved as a /TODO line after the note's last to-do. No inbox."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
