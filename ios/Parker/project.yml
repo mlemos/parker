@@ -23,6 +23,8 @@ targets:
       - path: Sources
       - path: ../../shared/design-tokens.json
         buildPhase: resources
+      - path: Resources/Fonts
+        buildPhase: resources
     dependencies:
       - package: ParkerCore
     info:
@@ -38,6 +40,8 @@ targets:
         LSSupportsOpeningDocumentsInPlace: true
         UIFileSharingEnabled: true
         ITSAppUsesNonExemptEncryption: false
+        # Geist Mono, the Mac editor's face (SIL OFL 1.1; license beside the files).
+        UIAppFonts: [GeistMono-Variable.ttf, GeistMono-Italic-Variable.ttf]
         # The app's iCloud Drive folder, visible in Files and on every Mac with
         # the same account as iCloud Drive › Parker. One container per build
         # flavour (the entitlement uses the bundle id); both are listed here

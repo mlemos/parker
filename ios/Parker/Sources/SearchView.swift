@@ -8,6 +8,9 @@ struct SearchView: View {
 
     var body: some View {
         let theme = Theme.current(scheme)
+        // Reading `notes` here is what makes the list follow the folder: the
+        // search itself lists files, which Observation cannot see.
+        let _ = workspace.notes
         let hits = workspace.search(query)
         NavigationStack {
             List {

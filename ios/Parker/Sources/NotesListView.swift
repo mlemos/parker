@@ -33,9 +33,9 @@ struct NotesListView: View {
             }
             .navigationDestination(item: $opened) { name in NoteView(name: name) }
             .refreshable { workspace.refresh() }
-            .overlay(alignment: .bottom) {
+            .safeAreaInset(edge: .bottom) {
                 Text("\(workspace.notes.count) notes · \(workspace.folderLabel)")
-                    .font(.footnote).foregroundStyle(theme.muted).padding(8)
+                    .font(.footnote).foregroundStyle(theme.muted).padding(.vertical, 6).frame(maxWidth: .infinity)
             }
         }
     }
