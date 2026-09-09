@@ -65,6 +65,17 @@ export interface TodoColors {
   fail: string;
 }
 
+/** Priority of an open to-do, shown as the empty box's border. A traffic
+    ramp with no grey: a to-do with no bang already wears `base`, and the
+    bangs climb from there — `!` low, `!!` mid, `!!!` high. Decided on the
+    visual spec (design/todo-visuals). Named by the level, not the hue. */
+export interface PriorityColors {
+  base: string;
+  low: string;
+  mid: string;
+  high: string;
+}
+
 export interface ThemeDef {
   id: string;
   label: string;
@@ -73,6 +84,7 @@ export interface ThemeDef {
   ui: ThemeUI; // chrome roles
   syntax: SyntaxColors; // editor content roles
   todo: TodoColors; // to-do state roles
+  priority: PriorityColors; // priority roles, base = no bang
 }
 
 const MONO =
@@ -218,6 +230,22 @@ const darkTodo: TodoColors = {
   // in the reds that lands on salmon.
   fail: tw.red[500],
 };
+// The priority ramp: green → yellow → orange → red, the traffic light everyone
+// already reads. Same two rungs as the to-do ramp: 400s on a dark ground,
+// 500/600s on a light one (yellow needs the 500 — the 600 goes olive).
+const darkPriority: PriorityColors = {
+  base: tw.green[400],
+  low: tw.yellow[400],
+  mid: tw.orange[400],
+  high: tw.red[500],
+};
+const lightPriority: PriorityColors = {
+  base: tw.green[600],
+  low: tw.yellow[500],
+  mid: tw.orange[600],
+  high: tw.red[600],
+};
+
 const lightTodo: TodoColors = {
   doing: tw.cyan[600],
   pause: tw.blue[600],
@@ -619,6 +647,7 @@ export const THEMES: ThemeDef[] = [
     ui: vercelNightUI,
     syntax: nightSyntax,
     todo: darkTodo,
+    priority: darkPriority,
   },
   {
     id: "vercel-day",
@@ -628,6 +657,7 @@ export const THEMES: ThemeDef[] = [
     ui: vercelDayUI,
     syntax: daySyntax,
     todo: lightTodo,
+    priority: lightPriority,
   },
   {
     id: "light",
@@ -637,6 +667,7 @@ export const THEMES: ThemeDef[] = [
     ui: githubLightUI,
     syntax: githubLightSyntax,
     todo: lightTodo,
+    priority: lightPriority,
   },
   {
     id: "dark",
@@ -646,6 +677,7 @@ export const THEMES: ThemeDef[] = [
     ui: githubDarkUI,
     syntax: githubDarkSyntax,
     todo: darkTodo,
+    priority: darkPriority,
   },
   {
     id: "playa",
@@ -655,6 +687,7 @@ export const THEMES: ThemeDef[] = [
     ui: playaUI,
     syntax: playaSyntax,
     todo: playaTodo,
+    priority: lightPriority,
   },
   {
     id: "playa-night",
@@ -664,6 +697,7 @@ export const THEMES: ThemeDef[] = [
     ui: playaNightUI,
     syntax: playaNightSyntax,
     todo: playaNightTodo,
+    priority: darkPriority,
   },
   {
     id: "matrix",
@@ -673,6 +707,7 @@ export const THEMES: ThemeDef[] = [
     ui: matrixUI,
     syntax: matrixSyntax,
     todo: matrixTodo,
+    priority: darkPriority,
   },
   {
     id: "blueprint",
@@ -682,6 +717,7 @@ export const THEMES: ThemeDef[] = [
     ui: blueprintUI,
     syntax: blueprintSyntax,
     todo: blueprintTodo,
+    priority: darkPriority,
   },
 ];
 

@@ -13,7 +13,7 @@
 // simply cascades to them the way colour does.
 
 import type { MarkdownIt, StateBlock, Token } from "markdown-it";
-import { LINE_TAG, norm } from "./todo-model";
+import { LINE_TAG, norm, priorityOf } from "./todo-model";
 import { todoBoxHtml } from "./todo-glyph";
 
 /** Indentation of a line, in the units markdown-it counts. */
@@ -29,9 +29,10 @@ export function todoPlugin(md: MarkdownIt): void {
   });
   md.renderer.rules.parker_todo_open = (tokens: Token[], i: number) => {
     const state = tokens[i].info;
+    const priority = (tokens[i].meta as { priority?: number } | null)?.priority ?? 0;
     return (
       `<div class="todo todo-${state.toLowerCase()}">` +
-      `<div class="todo-head">${todoBoxHtml(state)}`
+      `<div class="todo-head">${todoBoxHtml(state, priority)}`
     );
   };
   md.renderer.rules.parker_todo_text_close = () => `</div>`;
@@ -70,6 +71,7 @@ function todoRule(
 
   const open = state.push("parker_todo_open", "div", 1);
   open.info = norm(tag[2]);
+  open.meta = { priority: priorityOf(tag) };
   open.map = [startLine, last + 1];
   open.block = true;
 

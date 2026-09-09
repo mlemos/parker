@@ -13,8 +13,24 @@ public struct DesignTokens: Decodable, Sendable {
         public let ui: UI
         public let syntax: Syntax
         public let todo: TodoColors
+        /// Priority of an open to-do: the empty box's border. base = no bang,
+        /// then `!` low, `!!` mid, `!!!` high — a traffic ramp with no grey.
+        public let priority: PriorityColors
 
         public enum Mode: String, Decodable, Sendable { case light, dark }
+    }
+
+    public struct PriorityColors: Decodable, Sendable {
+        public let base, low, mid, high: String
+
+        public func color(forLevel level: Int) -> String {
+            switch level {
+            case 1: return low
+            case 2: return mid
+            case 3: return high
+            default: return base
+            }
+        }
     }
 
     /// Chrome roles. Colors are CSS strings: `#rrggbb` or `rgba(r, g, b, a)`.

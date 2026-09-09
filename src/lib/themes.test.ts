@@ -87,6 +87,13 @@ describe("the theme registry", () => {
         }
       });
 
+      it("defines every priority level as a color that is not the surface", () => {
+        for (const level of ["base", "low", "mid", "high"] as const) {
+          expect(isColor(th.priority[level]), `${th.id}.priority.${level}`).toBe(true);
+          expect(th.priority[level], `${th.id}.priority.${level}`).not.toBe(th.ui.editorBg);
+        }
+      });
+
       it("keeps every mark on a line apart from every other", () => {
         // Identity was too weak a test: it passed Matrix, where PAUSE and
         // CANCEL were the same colour, because CANCEL isn't in TodoColors — it

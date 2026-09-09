@@ -169,10 +169,18 @@ export function todoGlyphSvg(kind: string): string {
  * of rules in App.css dresses both. Two sets that have to be kept in step is
  * how a preview slowly stops looking like the editor.
  */
-export function todoBoxHtml(state: string): string {
+export function todoBoxHtml(state: string, priority = 0): string {
   const kind = kindOf(state);
   return (
-    `<span class="cm-todo-box cm-todo-box-${attr(kind)}" aria-hidden="true">` +
+    `<span class="${attr(todoBoxClass(kind, priority))}" aria-hidden="true">` +
     `<span class="cm-todo-glyph">${todoGlyphSvg(kind)}</span></span>`
   );
+}
+
+/** The box's classes: its state, and its priority level 0–3. The priority
+    only shows on the empty (TODO) box — the border takes the level's colour;
+    a filled box already says its state with its fill and stays as it is. */
+export function todoBoxClass(kind: string, priority = 0): string {
+  const p = Math.max(0, Math.min(3, Math.floor(priority)));
+  return `cm-todo-box cm-todo-box-${kind} cm-todo-box-p${p}`;
 }

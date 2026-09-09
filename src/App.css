@@ -1354,6 +1354,22 @@ body.resizing {
 .cm-todo-box-todo:hover .cm-todo-glyph {
   border-color: var(--todo-done);
 }
+/* Priority: the empty box's border, in the level's colour — a traffic ramp
+   with no grey, so a to-do with no bang already wears the base green and the
+   bangs climb from there. Filled boxes say their state with their fill and
+   show nothing for it. Decided on the visual spec (design/todo-visuals). */
+.cm-todo-box-todo.cm-todo-box-p0 .cm-todo-glyph {
+  border-color: var(--priority-base);
+}
+.cm-todo-box-todo.cm-todo-box-p1 .cm-todo-glyph {
+  border-color: var(--priority-low);
+}
+.cm-todo-box-todo.cm-todo-box-p2 .cm-todo-glyph {
+  border-color: var(--priority-mid);
+}
+.cm-todo-box-todo.cm-todo-box-p3 .cm-todo-glyph {
+  border-color: var(--priority-high);
+}
 .cm-todo-box-doing .cm-todo-glyph {
   background: var(--todo-doing);
   border-color: var(--todo-doing);
