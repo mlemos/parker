@@ -29,6 +29,8 @@ final class BoxTextView: UITextView {
 struct NoteTextView: UIViewRepresentable {
     @Binding var text: String
     let theme: Theme
+    /// Land on this line (1-based) the first time the note is shown.
+    var focusLine: Int? = nil
     var onChange: (String) -> Void
     /// A long press on a box: its storage index and what it is now.
     var onBoxLongPress: (Int, TodoAttachment) -> Void = { _, _ in }
@@ -70,6 +72,7 @@ struct NoteTextView: UIViewRepresentable {
         context.coordinator.textView = tv
         tv.inputAccessoryView = context.coordinator.makeBar(theme)
         context.coordinator.load(text)
+        if let line = focusLine { context.coordinator.focus(line: line, in: tv) }
         return tv
     }
 
@@ -139,6 +142,21 @@ struct NoteTextView: UIViewRepresentable {
                 tv.setContentOffset(CGPoint(x: 0, y: max(0, offset.y * ratio)), animated: false)
                 styledAtSize = size
             default: break
+            }
+        }
+
+        /// Put the caret at the start of a line's text and bring it into view.
+        func focus(line: Int, in tv: UITextView) {
+            let plain = NoteStorage.plainText(tv.attributedText)
+            let doc = TextDocument(plain)
+            guard line >= 1, line <= doc.lineCount else { return }
+            let l = doc.line(line)
+            let after = (Todo.tag(of: l.text)?.length).map { $0 + 1 } ?? Todo.leadingWhitespaceUTF16(l.text)
+            let offset = NoteStorage.storageOffset(in: tv.attributedText, file: l.from + min(after, l.to - l.from))
+            tv.selectedRange = NSRange(location: offset, length: 0)
+            DispatchQueue.main.async {
+                tv.scrollRangeToVisible(NSRange(location: offset, length: 0))
+                tv.becomeFirstResponder()
             }
         }
 

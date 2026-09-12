@@ -181,6 +181,45 @@ final class Workspace {
         notes.flatMap { note in Todo.scan(note: note.name, TextDocument(read(note.name))) }
     }
 
+    /// Rewrite one task's tag where it lives: a new state and priority, or no
+    /// tag at all. The note is read again first — the list may be older than
+    /// the file — and the line must still carry a tag, or nothing is written.
+    func setTask(_ item: TaskItem, state: TodoState?, bangs: String) {
+        let text = read(item.note)
+        let doc = TextDocument(text)
+        guard item.line >= 1, item.line <= doc.lineCount else { return }
+        let line = doc.line(item.line)
+        guard let tag = Todo.tag(of: line.text) else { return }
+        let ns = text as NSString
+        let out: String
+        if let state {
+            let from = line.from + tag.indent.utf16.count
+            out = ns.replacingCharacters(in: NSRange(location: from, length: tag.length - tag.indent.utf16.count), with: "/" + state.rawValue + bangs)
+        } else {
+            let c = Todo.tagChange(line: line, tag: tag, next: nil)
+            out = ns.replacingCharacters(in: NSRange(location: c.from, length: (c.to ?? c.from) - c.from), with: "")
+        }
+        write(item.note, out)
+        refresh()
+    }
+
+    /// Where a task typed into the Tasks tab lands: a note of its own in the
+    /// folder, created on first use, that the Mac sees like any other.
+    static let inboxNote = "Inbox.md"
+
+    /// A new open task at the end of the Inbox note. Returns the note's name.
+    @discardableResult
+    func addTask(_ text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, folder != nil else { return nil }
+        var body = (try? folder!.read(Self.inboxNote)) ?? "# Inbox\n"
+        if !body.hasSuffix("\n") { body += "\n" }
+        body += "/TODO " + trimmed + "\n"
+        write(Self.inboxNote, body)
+        refresh()
+        return Self.inboxNote
+    }
+
     static let welcomeNote = """
     # Welcome to Parker
 
