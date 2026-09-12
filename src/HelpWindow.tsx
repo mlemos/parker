@@ -92,6 +92,9 @@ const EDITOR: Section[] = [
     title: "To-dos — /TODO /DOING /PAUSE /WAIT /ATTN /DONE /FAIL /CANCEL",
     rows: [
       ["Rotate: todo → doing → paused → waiting → attention → done → fail → cancel", ["⌘⏎"]],
+      ["Priority up / down: /TODO → /TODO! → /TODO!! → /TODO!!!", ["⌥⌘↑", "⌥⌘↓"]],
+      ["Continue a task or a list item; on an empty one, end it", ["⏎"]],
+      ["Plain newline under a task", ["⇧⏎"]],
       ["Complete / reopen (on the checkbox)", ["Click"]],
       ["Cycle paused / waiting / attention / fail / cancel", ["⌥Click"]],
     ],

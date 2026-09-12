@@ -28,10 +28,12 @@ struct Fixtures: Decodable {
         struct TagCase: Decodable { let line: String; let word: String; let level: Int }
         struct Rotate: Decodable { let line: String; let after: String }
         struct ClickCase: Decodable { let line: String; let alt: Bool; let after: String }
+        struct StepCase: Decodable { let name: String; let doc: String; let from: Int; let to: Int; let delta: Int; let after: String }
         let tags: [TagCase]
         let notTags: [String]
         let rotate: [Rotate]
         let click: [ClickCase]
+        let step: [StepCase]
     }
     let order: [String]
     let aliases: [String: String]
@@ -285,6 +287,14 @@ private func applied(_ text: String, _ changes: [Change]) -> String {
         for c in Fixtures.shared.priority.rotate {
             let doc = TextDocument(lines: [c.line])
             #expect(applied(c.line, Todo.planRotate(doc, from: 0, to: 0)) == c.after, Comment(rawValue: c.line))
+        }
+    }
+
+    @Test("step up and down, clamped, over the same lines as the rotation")
+    func step() {
+        for c in Fixtures.shared.priority.step {
+            let doc = TextDocument(c.doc)
+            #expect(applied(c.doc, Todo.planPriority(doc, from: c.from, to: c.to, delta: c.delta)) == c.after, Comment(rawValue: c.name))
         }
     }
 

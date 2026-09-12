@@ -12,6 +12,7 @@ import {
   planEnter,
   planRotate,
   priorityOf,
+  planPriority,
   tagChange,
   type Change,
   type State,
@@ -32,6 +33,7 @@ interface Fixtures {
     notTags: string[];
     rotate: { line: string; after: string }[];
     click: { line: string; alt: boolean; after: string }[];
+    step: { name: string; doc: string; from: number; to: number; delta: 1 | -1; after: string }[];
   };
   enter: {
     cases: { line: string; col: number; kind: "newline" | "continue" | "exit"; prefix?: string; from?: number; to?: number }[];
@@ -199,6 +201,13 @@ describe("priority bangs", () => {
     for (const { line, after } of FX.priority.rotate) {
       const doc = Text.of([line]);
       expect(applied(line, planRotate(doc, 0, 0)), line).toBe(after);
+    }
+  });
+
+  it("step up and down with ⌥⌘↑ / ⌥⌘↓, clamped, over the same lines as ⌘⏎", () => {
+    for (const c of FX.priority.step) {
+      const doc = Text.of(c.doc.split("\n"));
+      expect(applied(c.doc, planPriority(doc, c.from, c.to, c.delta)), c.name).toBe(c.after);
     }
   });
 

@@ -125,6 +125,28 @@ export function nextInRotation(cur: string): State | null {
  * blank line still gets a tag (that's how you start a new to-do).
  */
 export function planRotate(doc: DocLike, from: number, to: number): Change[] {
+  const lines = linesInRange(doc, from, to);
+  if (lines.length === 0) return [];
+
+  const untagged = lines.filter((l) => !l.tag);
+  if (untagged.length) {
+    return untagged.map(({ line }) => ({
+      from: line.from + /^\s*/.exec(line.text)![0].length,
+      insert: "/TODO ",
+    }));
+  }
+  return lines.map(({ line, tag }) =>
+    tagChange(line, tag!, nextInRotation(tag![2]))
+  );
+}
+
+/** The lines a gesture over [from, to] acts on — the selection convention
+    planRotate describes, shared by every gesture that works line by line. */
+function linesInRange(
+  doc: DocLike,
+  from: number,
+  to: number
+): { line: DocLine; tag: RegExpExecArray | null }[] {
   const startLine = doc.lineAt(from);
   const endLine =
     to > from && to > startLine.to && doc.lineAt(to).from === to
@@ -138,18 +160,40 @@ export function planRotate(doc: DocLike, from: number, to: number): Change[] {
     if (multi && line.text.trim() === "") continue;
     lines.push({ line, tag: LINE_TAG.exec(line.text) });
   }
-  if (lines.length === 0) return [];
+  return lines;
+}
 
-  const untagged = lines.filter((l) => !l.tag);
-  if (untagged.length) {
-    return untagged.map(({ line }) => ({
-      from: line.from + /^\s*/.exec(line.text)![0].length,
-      insert: "/TODO ",
-    }));
+/** The highest priority a tag can carry: `/TODO!!!`. */
+export const MAX_PRIORITY = 3;
+
+/**
+ * The edits ⌥⌘↑ / ⌥⌘↓ should apply for a selection spanning [from, to]: every
+ * tagged line moves one step of priority in `delta`'s direction, clamped to
+ * 0…3. Lines without a tag are left alone — priority is a fact about a task,
+ * and there is no task to speak of — so over plain text this is a no-op, and
+ * the caller can let the key fall through.
+ */
+export function planPriority(
+  doc: DocLike,
+  from: number,
+  to: number,
+  delta: 1 | -1
+): Change[] {
+  const changes: Change[] = [];
+  for (const { line, tag } of linesInRange(doc, from, to)) {
+    if (!tag) continue;
+    const level = priorityOf(tag);
+    const next = Math.min(MAX_PRIORITY, Math.max(0, level + delta));
+    if (next === level) continue;
+    // Only the bangs move: from the end of the word to the end of the tag.
+    const bangsAt = line.from + tag[1].length + 1 + tag[2].length;
+    changes.push({
+      from: bangsAt,
+      to: line.from + tag[0].length,
+      insert: "!".repeat(next),
+    });
   }
-  return lines.map(({ line, tag }) =>
-    tagChange(line, tag!, nextInRotation(tag![2]))
-  );
+  return changes;
 }
 
 /**

@@ -43,6 +43,23 @@ extension Todo {
     /// line. Blank lines are skipped when several lines are selected; a lone
     /// cursor on a blank line still gets a tag (that's how you start a new to-do).
     public static func planRotate(_ doc: TextDocument, from: Int, to: Int) -> [Change] {
+        let lines = linesInRange(doc, from: from, to: to)
+        if lines.isEmpty { return [] }
+
+        let untagged = lines.filter { $0.tag == nil }
+        if !untagged.isEmpty {
+            return untagged.map { entry in
+                Change(from: entry.line.from + leadingWhitespaceUTF16(entry.line.text), insert: "/TODO ")
+            }
+        }
+        return lines.map { entry in
+            tagChange(line: entry.line, tag: entry.tag!, next: nextInRotation(entry.tag!.state))
+        }
+    }
+
+    /// The lines a gesture over [from, to] acts on — the selection convention
+    /// planRotate describes, shared by every gesture that works line by line.
+    static func linesInRange(_ doc: TextDocument, from: Int, to: Int) -> [(line: DocLine, tag: Tag?)] {
         let startLine = doc.lineAt(from)
         let endLine: DocLine = {
             if to > from && to > startLine.to && doc.lineAt(to).from == to {
@@ -58,17 +75,27 @@ extension Todo {
             if multi && isBlank(line.text) { continue }
             lines.append((line, tag(of: line.text)))
         }
-        if lines.isEmpty { return [] }
+        return lines
+    }
 
-        let untagged = lines.filter { $0.tag == nil }
-        if !untagged.isEmpty {
-            return untagged.map { entry in
-                Change(from: entry.line.from + leadingWhitespaceUTF16(entry.line.text), insert: "/TODO ")
-            }
+    /// The highest priority a tag can carry: `/TODO!!!`.
+    public static let maxPriority = 3
+
+    /// The edits ⌥⌘↑ / ⌥⌘↓ should apply for a selection spanning [from, to]:
+    /// every tagged line moves one step of priority in `delta`'s direction,
+    /// clamped to 0…3. Lines without a tag are left alone — priority is a fact
+    /// about a task, and there is no task to speak of.
+    public static func planPriority(_ doc: TextDocument, from: Int, to: Int, delta: Int) -> [Change] {
+        var changes: [Change] = []
+        for entry in linesInRange(doc, from: from, to: to) {
+            guard let tag = entry.tag else { continue }
+            let next = min(maxPriority, max(0, tag.priority + delta))
+            if next == tag.priority { continue }
+            // Only the bangs move: from the end of the word to the end of the tag.
+            let bangsAt = entry.line.from + tag.indent.utf16.count + 1 + tag.word.utf16.count
+            changes.append(Change(from: bangsAt, to: entry.line.from + tag.length, insert: String(repeating: "!", count: next)))
         }
-        return lines.map { entry in
-            tagChange(line: entry.line, tag: entry.tag!, next: nextInRotation(entry.tag!.state))
-        }
+        return changes
     }
 
     /// Where the cursor belongs after `changes` are applied, or nil to let the

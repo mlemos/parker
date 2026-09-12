@@ -218,7 +218,7 @@
     }
   ],
   "priority": {
-    "_comment": "Priority bangs glued to the tag: /TODO!, /TODO!!, /TODO!!!. level 0 = none. Four bangs or a space before them is not a priority.",
+    "_comment": "Priority bangs glued to the tag: /TODO!, /TODO!!, /TODO!!!. level 0 = none. Four bangs or a space before them is not a priority. `step`: ⌥⌘↑ / ⌥⌘↓ (delta ±1) over [from, to] with the same line rule as the rotation; clamped to 0…3; lines without a tag are left alone.",
     "tags": [
       {
         "line": "/TODO!! x",
@@ -295,6 +295,88 @@
         "line": "/PAUSE!! a",
         "alt": true,
         "after": "/WAIT!! a"
+      }
+    ],
+    "step": [
+      {
+        "name": "up from none",
+        "doc": "/TODO a",
+        "from": 0,
+        "to": 0,
+        "delta": 1,
+        "after": "/TODO! a"
+      },
+      {
+        "name": "up keeps the word as written",
+        "doc": "  /WIP!! a",
+        "from": 4,
+        "to": 4,
+        "delta": 1,
+        "after": "  /WIP!!! a"
+      },
+      {
+        "name": "up stops at three",
+        "doc": "/DOING!!! a",
+        "from": 0,
+        "to": 0,
+        "delta": 1,
+        "after": "/DOING!!! a"
+      },
+      {
+        "name": "down from three",
+        "doc": "/ATTN!!! a",
+        "from": 0,
+        "to": 0,
+        "delta": -1,
+        "after": "/ATTN!! a"
+      },
+      {
+        "name": "down stops at none",
+        "doc": "/DONE a",
+        "from": 0,
+        "to": 0,
+        "delta": -1,
+        "after": "/DONE a"
+      },
+      {
+        "name": "a tag with no text",
+        "doc": "/TODO!",
+        "from": 0,
+        "to": 0,
+        "delta": 1,
+        "after": "/TODO!!"
+      },
+      {
+        "name": "an untagged line is left alone",
+        "doc": "buy milk",
+        "from": 0,
+        "to": 0,
+        "delta": 1,
+        "after": "buy milk"
+      },
+      {
+        "name": "a selection moves every tagged line, skips the rest",
+        "doc": "/TODO a\nplain\n/DOING!! b\n\n/DONE!!! c",
+        "from": 0,
+        "to": 26,
+        "delta": 1,
+        "after": "/TODO! a\nplain\n/DOING!!! b\n\n/DONE!!! c"
+      },
+      {
+        "name": "a selection ending at column 0 leaves that line out",
+        "doc": "/TODO a\n/TODO b",
+        "from": 0,
+        "to": 8,
+        "delta": 1,
+        "after": "/TODO! a\n/TODO b"
+      },
+      {
+        "name": "a cursor at column 0 still acts on its line",
+        "doc": "/TODO a\n/TODO b",
+        "from": 8,
+        "to": 8,
+        "delta": 1,
+        "after": "/TODO a\n/TODO! b"
       }
     ]
   },

@@ -61,6 +61,7 @@ import {
   ownersForRange,
   cursorAfterRotate,
   planEnter,
+  planPriority,
   nextOnClick,
   norm,
   planRotate,
@@ -220,6 +221,15 @@ function rotateLine(view: EditorView): boolean {
   return true;
 }
 
+/** ⌥⌘↑ / ⌥⌘↓ — see planPriority. Over plain text the key falls through. */
+const stepPriority = (delta: 1 | -1) => (view: EditorView): boolean => {
+  const sel = view.state.selection.main;
+  const changes = planPriority(view.state.doc, sel.from, sel.to, delta);
+  if (!changes.length) return false;
+  view.dispatch({ changes, userEvent: "input" });
+  return true;
+};
+
 /**
  * Deleting into the checkbox removes the whole marker (and the space that
  * separated it from the text) rather than one character of it. The editor only
@@ -285,6 +295,8 @@ function plainNewline(view: EditorView): boolean {
 export const todoKeymap = Prec.highest(
   keymap.of([
     { key: "Mod-Enter", run: rotateLine },
+    { key: "Alt-Mod-ArrowUp", run: stepPriority(1) },
+    { key: "Alt-Mod-ArrowDown", run: stepPriority(-1) },
     { key: "Enter", run: continueLine },
     { key: "Shift-Enter", run: plainNewline },
     { key: "Backspace", run: deleteMarker(true) },
