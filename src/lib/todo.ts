@@ -221,7 +221,8 @@ function rotateLine(view: EditorView): boolean {
   return true;
 }
 
-/** ⌥⌘↑ / ⌥⌘↓ — see planPriority. Over plain text the key falls through. */
+/** ⌃⌘↑ / ⌃⌘↓ — see planPriority. Over plain text the key falls through.
+    Not ⌥⌘↑/↓: that is CodeMirror's "add cursor above / below". */
 const stepPriority = (delta: 1 | -1) => (view: EditorView): boolean => {
   const sel = view.state.selection.main;
   const changes = planPriority(view.state.doc, sel.from, sel.to, delta);
@@ -295,8 +296,8 @@ function plainNewline(view: EditorView): boolean {
 export const todoKeymap = Prec.highest(
   keymap.of([
     { key: "Mod-Enter", run: rotateLine },
-    { key: "Alt-Mod-ArrowUp", run: stepPriority(1) },
-    { key: "Alt-Mod-ArrowDown", run: stepPriority(-1) },
+    { key: "Ctrl-Mod-ArrowUp", run: stepPriority(1) },
+    { key: "Ctrl-Mod-ArrowDown", run: stepPriority(-1) },
     { key: "Enter", run: continueLine },
     { key: "Shift-Enter", run: plainNewline },
     { key: "Backspace", run: deleteMarker(true) },

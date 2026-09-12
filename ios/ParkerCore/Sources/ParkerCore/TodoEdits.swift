@@ -81,7 +81,7 @@ extension Todo {
     /// The highest priority a tag can carry: `/TODO!!!`.
     public static let maxPriority = 3
 
-    /// The edits ⌥⌘↑ / ⌥⌘↓ should apply for a selection spanning [from, to]:
+    /// The edits ⌃⌘↑ / ⌃⌘↓ should apply for a selection spanning [from, to]:
     /// every tagged line moves one step of priority in `delta`'s direction,
     /// clamped to 0…3. Lines without a tag are left alone — priority is a fact
     /// about a task, and there is no task to speak of.
