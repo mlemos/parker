@@ -15,6 +15,8 @@ import { api } from "./lib/api";
 import { changedLines } from "./lib/linediff";
 import { prettyPath } from "./lib/path";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
+import { textWidthOf } from "./lib/text-width";
+import type { TextWidth } from "./lib/text-width";
 import {
   allGroups,
   allTabNames,
@@ -79,6 +81,7 @@ export default function App() {
   // Coding ligatures in the editor (→ ⇒ ≠ …). Off by default: in prose a "->"
   // silently becoming an arrow is a surprise, not a feature.
   const [ligaturesOn, setLigaturesOn] = useState<boolean>(false);
+  const [textWidth, setTextWidth] = useState<TextWidth>(100);
   // Until the saved toggles have been read, a flip must not be written back —
   // it would overwrite the file with the defaults before they were loaded.
   const prefsLoaded = useRef(false);
@@ -371,6 +374,7 @@ export default function App() {
         setGutterOn(s.editor_gutter);
         setWrapOn(s.editor_wrap);
         setLigaturesOn(s.editor_ligatures);
+        setTextWidth(textWidthOf(s.editor_width));
         prefsLoaded.current = true;
       })
       .catch(() => {});
@@ -434,8 +438,10 @@ export default function App() {
   );
   useEffect(() => {
     if (!prefsLoaded.current) return;
-    api.setEditorPrefs(gutterOn, wrapOn, ligaturesOn).catch(() => {});
-  }, [gutterOn, wrapOn, ligaturesOn]);
+    api
+      .setEditorPrefs(gutterOn, wrapOn, ligaturesOn, textWidth)
+      .catch(() => {});
+  }, [gutterOn, wrapOn, ligaturesOn, textWidth]);
 
   // ---- Buffer / tab actions -----------------------------------------------
 
@@ -1043,6 +1049,7 @@ export default function App() {
           theme={theme}
           gutterOn={gutterOn}
           wrapOn={wrapOn}
+          width={textWidth}
           renamingName={renamingName}
           multiGroup={multiGroup}
           altHeld={altHeld}
@@ -1095,6 +1102,8 @@ export default function App() {
           homeDir={homeDir}
           ligaturesOn={ligaturesOn}
           onToggleLigatures={() => setLigaturesOn((v) => !v)}
+          textWidth={textWidth}
+          onTextWidth={setTextWidth}
           onClose={() => setSettingsOpen(false)}
           onNotesDirChange={(dir) => setNotesDir(dir)}
         />

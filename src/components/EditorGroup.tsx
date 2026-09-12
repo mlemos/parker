@@ -18,6 +18,7 @@ import { isMarkdown } from "../lib/markdown";
 import { Editor } from "./Editor";
 import { RenameInput } from "./RenameInput";
 import { MarkdownPreview } from "./MarkdownPreview";
+import type { TextWidth } from "../lib/text-width";
 
 const TAB_MIME = "application/x-parker-tab";
 
@@ -51,6 +52,7 @@ export function EditorGroup({
   theme,
   gutterOn,
   wrapOn,
+  width,
   renamingName,
   cb,
 }: {
@@ -63,6 +65,7 @@ export function EditorGroup({
   theme: ThemeDef;
   gutterOn: boolean;
   wrapOn: boolean;
+  width: TextWidth;
   renamingName: string | null;
   cb: GroupCallbacks;
 }) {
@@ -340,6 +343,7 @@ export function EditorGroup({
             theme={theme}
             gutterOn={gutterOn}
             wrapOn={wrapOn}
+            width={width}
             langExt={langExt}
             changed={activeBuf.changed}
             onChange={cb.onChange}

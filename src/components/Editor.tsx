@@ -16,6 +16,8 @@ import {
 import { foldMarkers, folding } from "../lib/fold";
 import { selectionGutter } from "../lib/selection-gutter";
 import { hybridSelection } from "../lib/selection";
+import { textWidth } from "../lib/text-width";
+import type { TextWidth } from "../lib/text-width";
 import { todoHighlighter, todoKeymap } from "../lib/todo";
 import { setActiveView } from "../lib/latency";
 import type { ThemeDef } from "../lib/themes";
@@ -50,6 +52,7 @@ export function Editor({
   theme,
   gutterOn,
   wrapOn,
+  width,
   langExt,
   changed,
   onChange,
@@ -63,6 +66,8 @@ export function Editor({
   theme: ThemeDef;
   gutterOn: boolean;
   wrapOn: boolean;
+  /** Measure in columns; 0 = the window's width. */
+  width: TextWidth;
   langExt: Extension[];
   /** Lines (1-based) rewritten by the last reload from disk. */
   changed: number[] | undefined;
@@ -95,6 +100,7 @@ export function Editor({
   const compartments = useRef({
     theme: new Compartment(),
     wrap: new Compartment(),
+    width: new Compartment(),
     gutter: new Compartment(),
     lang: new Compartment(),
   });
@@ -136,6 +142,7 @@ export function Editor({
       extensions: [
         c.theme.of(themeExt(theme)),
         c.wrap.of(wrapExt(wrapOn)),
+        c.width.of(textWidth(width)),
         c.gutter.of(gutterExt(gutterOn)),
         c.lang.of(langExt),
         todoHighlighter,
@@ -163,6 +170,7 @@ export function Editor({
     return [
       c.theme.reconfigure(themeExt(theme)),
       c.wrap.reconfigure(wrapExt(wrapOn)),
+      c.width.reconfigure(textWidth(width)),
       c.gutter.reconfigure(gutterExt(gutterOn)),
       c.lang.reconfigure(langExt),
     ];
@@ -276,6 +284,13 @@ export function Editor({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wrapOn]);
+
+  useEffect(() => {
+    view.current?.dispatch({
+      effects: compartments.current.width.reconfigure(textWidth(width)),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width]);
 
   useEffect(() => {
     view.current?.dispatch({
