@@ -4,8 +4,9 @@
 // The CSS used to cap the content at a fixed 900px, left-aligned — a measure
 // nobody chose and nobody could change. This is the same cap as a setting:
 // a max-width on the content in `ch`, so it scales with the interface zoom
-// (⌘= / ⌘-) the way the text does, and the gutter and text centred together
-// as one block, the way a readable-width mode usually sits.
+// (⌘= / ⌘-) the way the text does. The gutter stays on the window's left
+// edge and the text stays against the gutter, as it always has: the measure
+// only decides where a line stops, never where it starts.
 import { EditorView } from "@uiw/react-codemirror";
 import type { Extension } from "@uiw/react-codemirror";
 
@@ -26,7 +27,4 @@ export const textWidth = (w: TextWidth): Extension =>
         // measure is the columns plus that — `ch` is the advance of "0",
         // which in a monospace face is every glyph.
         ".cm-content": { maxWidth: `calc(${w}ch + 8px)` },
-        // Gutter and content are the scroller's flex children; centring them
-        // moves the two together, so the numbers stay glued to the text.
-        ".cm-scroller": { justifyContent: "center" },
       });
