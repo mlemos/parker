@@ -218,7 +218,7 @@
     }
   ],
   "priority": {
-    "_comment": "Priority bangs glued to the tag: /TODO!, /TODO!!, /TODO!!!. level 0 = none. Four bangs or a space before them is not a priority. `step`: ⌥⌘↑ / ⌥⌘↓ (delta ±1) over [from, to] with the same line rule as the rotation; clamped to 0…3; lines without a tag are left alone.",
+    "_comment": "Priority bangs glued to the tag: /TODO!, /TODO!!, /TODO!!!. level 0 = none. Four bangs or a space before them is not a priority. `step`: ⌃⌘↑ / ⌃⌘↓ (delta ±1) over [from, to] with the same line rule as the rotation; clamped to 0…3; lines without a tag are left alone.",
     "tags": [
       {
         "line": "/TODO!! x",

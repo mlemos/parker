@@ -204,7 +204,7 @@ describe("priority bangs", () => {
     }
   });
 
-  it("step up and down with ⌥⌘↑ / ⌥⌘↓, clamped, over the same lines as ⌘⏎", () => {
+  it("step up and down with ⌃⌘↑ / ⌃⌘↓, clamped, over the same lines as ⌘⏎", () => {
     for (const c of FX.priority.step) {
       const doc = Text.of(c.doc.split("\n"));
       expect(applied(c.doc, planPriority(doc, c.from, c.to, c.delta)), c.name).toBe(c.after);

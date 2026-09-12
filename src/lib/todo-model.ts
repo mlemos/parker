@@ -167,7 +167,7 @@ function linesInRange(
 export const MAX_PRIORITY = 3;
 
 /**
- * The edits ⌥⌘↑ / ⌥⌘↓ should apply for a selection spanning [from, to]: every
+ * The edits ⌃⌘↑ / ⌃⌘↓ should apply for a selection spanning [from, to]: every
  * tagged line moves one step of priority in `delta`'s direction, clamped to
  * 0…3. Lines without a tag are left alone — priority is a fact about a task,
  * and there is no task to speak of — so over plain text this is a no-op, and
