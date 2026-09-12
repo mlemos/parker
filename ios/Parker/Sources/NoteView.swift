@@ -9,6 +9,8 @@ struct NoteView: View {
     @Environment(Workspace.self) private var workspace
     @Environment(\.colorScheme) private var scheme
     let name: String
+    /// A line to land on when the note opens (1-based), from the Tasks tab.
+    var focusLine: Int? = nil
     @State private var text = ""
     @State private var loaded = false
     @State private var onDisk = ""
@@ -20,7 +22,7 @@ struct NoteView: View {
         let theme = Theme.current(scheme)
         Group {
             if loaded {
-                NoteTextView(text: $text, theme: theme, onChange: { new in
+                NoteTextView(text: $text, theme: theme, focusLine: focusLine, onChange: { new in
                     saveTask?.cancel()
                     saveTask = Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(500))
