@@ -1268,9 +1268,6 @@ body.resizing {
 .parker.ligatures .editor-wrap .cm-scroller {
   font-variant-ligatures: normal;
 }
-.editor-wrap .cm-content {
-  max-width: 900px; /* comfortable measure for prose & prompts */
-}
 .editor-wrap .cm-focused {
   outline: none;
 }

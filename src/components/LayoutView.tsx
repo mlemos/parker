@@ -3,6 +3,7 @@ import { EditorGroup } from "./EditorGroup";
 import type { GroupCallbacks } from "./EditorGroup";
 import type { Buffer, LayoutNode, SplitNode } from "../lib/layout";
 import type { ThemeDef } from "../lib/themes";
+import type { TextWidth } from "../lib/text-width";
 
 export interface LayoutHandlers {
   onFocus: (groupId: string) => void;
@@ -36,6 +37,7 @@ interface Common {
   theme: ThemeDef;
   gutterOn: boolean;
   wrapOn: boolean;
+  width: TextWidth;
   renamingName: string | null;
   multiGroup: boolean;
   altHeld: boolean;
@@ -80,6 +82,7 @@ export function LayoutView({
         theme={common.theme}
         gutterOn={common.gutterOn}
         wrapOn={common.wrapOn}
+        width={common.width}
         renamingName={common.renamingName}
         cb={cb}
       />

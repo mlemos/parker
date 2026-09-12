@@ -67,11 +67,23 @@ struct Settings {
     editor_wrap: bool,
     #[serde(default)]
     editor_ligatures: bool,
+    /// Measure of the text, in columns of the monospace font. 0 = the window's
+    /// width. Before 1.1.1 the CSS capped the content at 900px, which at the
+    /// default size is about 107 columns; the default keeps a measure of that
+    /// order rather than opening the line to the full width.
+    #[serde(default = "hundred")]
+    editor_width: u32,
 }
 
 /// serde default for `zoom` — a missing value means "no zoom", not 0×.
 fn one() -> f64 {
     1.0
+}
+
+/// serde default for `editor_width` — a settings file from before the key
+/// existed keeps a measure close to the old 900px cap.
+fn hundred() -> u32 {
+    100
 }
 
 /// serde default for `editor_wrap` — wrapping is on unless turned off, so a
@@ -95,6 +107,7 @@ impl Default for Settings {
             editor_gutter: false,
             editor_wrap: true,
             editor_ligatures: false,
+            editor_width: 100,
         }
     }
 }
@@ -468,6 +481,7 @@ struct SettingsInfo {
     editor_gutter: bool,
     editor_wrap: bool,
     editor_ligatures: bool,
+    editor_width: u32,
 }
 
 #[tauri::command]
@@ -485,17 +499,19 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
         editor_gutter: s.editor_gutter,
         editor_wrap: s.editor_wrap,
         editor_ligatures: s.editor_ligatures,
+        editor_width: s.editor_width,
     }
 }
 
 /// The editor toggles, all three at once — the frontend owns the live values
 /// and writes them whenever one flips, so a partial update has nothing to add.
 #[tauri::command]
-fn set_editor_prefs(gutter: bool, wrap: bool, ligatures: bool) -> Result<(), String> {
+fn set_editor_prefs(gutter: bool, wrap: bool, ligatures: bool, width: u32) -> Result<(), String> {
     let mut s = load_settings();
     s.editor_gutter = gutter;
     s.editor_wrap = wrap;
     s.editor_ligatures = ligatures;
+    s.editor_width = width;
     write_settings(&s)
 }
 
@@ -1623,6 +1639,7 @@ mod tests {
             editor_gutter: true,
             editor_wrap: false,
             editor_ligatures: true,
+            editor_width: 80,
         };
         let back: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
         assert_eq!(back.notes_dir, s.notes_dir);
@@ -1633,6 +1650,7 @@ mod tests {
         assert_eq!(back.editor_gutter, s.editor_gutter);
         assert_eq!(back.editor_wrap, s.editor_wrap);
         assert_eq!(back.editor_ligatures, s.editor_ligatures);
+        assert_eq!(back.editor_width, s.editor_width);
     }
 
     // The editor toggles arrived in 1.0.2. A settings file from before then has
@@ -1648,6 +1666,18 @@ mod tests {
         // and an explicit off stays off
         let off: Settings = serde_json::from_str(r#"{"editor_wrap":false}"#).unwrap();
         assert!(!off.editor_wrap);
+    }
+
+    // The measure arrived in 1.1.1. A file without it keeps a measure close
+    // to the 900px cap the CSS used to apply, not the full window — and an
+    // explicit 0 (the window's width) stays 0, since u32's default is also 0
+    // and the two must not be confused.
+    #[test]
+    fn a_settings_file_without_a_measure_keeps_one_near_the_old_cap() {
+        let s: Settings = serde_json::from_str(r#"{"zoom":1.0}"#).unwrap();
+        assert_eq!(s.editor_width, 100);
+        let win: Settings = serde_json::from_str(r#"{"editor_width":0}"#).unwrap();
+        assert_eq!(win.editor_width, 0);
     }
 
     // A settings file written by an older Parker is missing whatever was added

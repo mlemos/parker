@@ -5,6 +5,8 @@ import { SYNC_INTERVAL_EVENT } from "./GitMenu";
 import type { SettingsInfo } from "../lib/api";
 import { prettyPath } from "../lib/path";
 import { accelFromEvent, prettyShortcut } from "../lib/shortcut";
+import { TEXT_WIDTHS } from "../lib/text-width";
+import type { TextWidth } from "../lib/text-width";
 
 /** Timed-sync choices, in minutes. 0 = off. */
 const SYNC_INTERVALS = [0, 5, 15, 30, 60] as const;
@@ -15,12 +17,16 @@ export function Settings({
   homeDir,
   ligaturesOn,
   onToggleLigatures,
+  textWidth,
+  onTextWidth,
   onClose,
   onNotesDirChange,
 }: {
   homeDir: string;
   ligaturesOn: boolean;
   onToggleLigatures: () => void;
+  textWidth: TextWidth;
+  onTextWidth: (w: TextWidth) => void;
   onClose: () => void;
   onNotesDirChange: (dir: string) => void;
 }) {
@@ -280,6 +286,30 @@ export function Settings({
               >
                 <span className="switch-knob" />
               </button>
+            </div>
+
+            {/* Text width — the measure, in columns; 0 = the window */}
+            <div className="settings-row">
+              <div className="settings-label">
+                <div className="settings-title">Text width</div>
+                <div className="settings-sub">
+                  How far a line may run before it wraps, in columns. The text
+                  sits centred in the pane; Window uses all of it.
+                </div>
+              </div>
+              <div className="seg" role="radiogroup" aria-label="Text width">
+                {TEXT_WIDTHS.map((w) => (
+                  <button
+                    key={w}
+                    className={"seg-btn" + (textWidth === w ? " on" : "")}
+                    onClick={() => onTextWidth(w)}
+                    role="radio"
+                    aria-checked={textWidth === w}
+                  >
+                    {w === 0 ? "Window" : w}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Git auto-sync — commit & push the notes folder on quit */}

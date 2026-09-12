@@ -35,6 +35,8 @@ export interface SettingsInfo {
   editor_gutter: boolean;
   editor_wrap: boolean;
   editor_ligatures: boolean;
+  /** Measure in columns; 0 = the window's width. */
+  editor_width: number;
 }
 
 export interface GitFileChange {
@@ -97,8 +99,12 @@ export const api = {
   /** Zoom the whole interface. Returns the value actually applied (clamped). */
   setZoom: (scale: number) => invoke<number>("set_zoom", { scale }),
   /** Persist the three editor toggles together. */
-  setEditorPrefs: (gutter: boolean, wrap: boolean, ligatures: boolean) =>
-    invoke<void>("set_editor_prefs", { gutter, wrap, ligatures }),
+  setEditorPrefs: (
+    gutter: boolean,
+    wrap: boolean,
+    ligatures: boolean,
+    width: number
+  ) => invoke<void>("set_editor_prefs", { gutter, wrap, ligatures, width }),
   gitStatus: () => invoke<GitStatus>("git_status"),
   gitLog: (limit?: number) => invoke<GitLogEntry[]>("git_log", { limit }),
   gitCommit: (message: string, push: boolean) =>
