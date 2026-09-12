@@ -15,6 +15,7 @@ import {
 } from "../lib/external-change";
 import { foldMarkers, folding } from "../lib/fold";
 import { selectionGutter } from "../lib/selection-gutter";
+import { hybridSelection } from "../lib/selection";
 import { todoHighlighter, todoKeymap } from "../lib/todo";
 import { setActiveView } from "../lib/latency";
 import type { ThemeDef } from "../lib/themes";
@@ -115,12 +116,8 @@ export function Editor({
         lineNumbers: on,
         // Ours (foldMarkers) instead — uiw's would draw its own arrows.
         foldGutter: false,
-        // EXPERIMENT (2026-08-25): off, so the browser draws the selection.
-        // CodeMirror's version fills the middle lines to the full width of the
-        // content; the native one hugs the text and adds a small tail for the
-        // line break — the shape VS Code has. The cost is that a native
-        // selection can only show one range, so ⌘D's extra matches are edited
-        // but not seen. Revert this line to get them back.
+        // Off here; hybridSelection (lib/selection.ts) decides who draws —
+        // the browser for one range, CodeMirror as soon as there are two.
         drawSelection: false,
         highlightActiveLine: true,
         highlightActiveLineGutter: on,
@@ -145,6 +142,7 @@ export function Editor({
         todoKeymap,
         folding,
         changedLines,
+        hybridSelection,
         EditorView.updateListener.of((u) => {
           if (!u.docChanged) return;
           // A reload is not an edit. Reporting it back would mark the buffer
