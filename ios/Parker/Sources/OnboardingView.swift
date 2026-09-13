@@ -57,6 +57,11 @@ struct OnboardingView: View {
                             Text("No Mac app yet? Parker for Mac is free at getparker.dev")
                                 .font(.footnote).foregroundStyle(theme.secondary)
                         }
+                        // Continuing past this screen is accepting the terms — said
+                        // here, once, where the folder is chosen, not as a gate.
+                        Text("By continuing you accept the [terms](https://getparker.dev/terms) and [privacy policy](https://getparker.dev/privacy).")
+                            .font(.caption2).foregroundStyle(theme.secondary).tint(theme.accent)
+                            .multilineTextAlignment(.center).padding(.top, 6)
                     }
                     .padding(.top, 8).padding(.bottom, 16)
                     if let err = workspace.lastError {
