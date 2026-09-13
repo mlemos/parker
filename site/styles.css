@@ -599,6 +599,8 @@ h1 {
   max-width: 52ch;
   margin: 22px auto 0;
 }
+.final-note a { text-decoration: underline; text-underline-offset: 3px; }
+.final-note a:hover { color: var(--text); }
 /* The brand figure — a large, theme-adaptive Parker crowning the closing CTA.
    currentColor single-path SVG via mask → paper on dark, ink on light. */
 .brand-figure {

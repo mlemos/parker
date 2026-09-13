@@ -32,7 +32,8 @@
 > [!NOTE]
 > **Parker is beta, and personal.** It isn't a commercial product — it's a passion
 > project, vibe-coded for my own use and shared with the world. **No guarantees, no
-> support, use at your own risk.** 🙂
+> support, use at your own risk.** 🙂 The details are in the
+> [terms](https://getparker.dev/terms) and the [privacy page](https://getparker.dev/privacy).
 
 ## What is Parker?
 
@@ -66,7 +67,7 @@ of* your files, never where they live.
 
 ## ⬇️ Install
 
-> Provided as-is, with no warranty — use at your own risk and keep backups (its Git sync helps).
+> Provided as-is, with no warranty — use at your own risk and keep backups (its Git sync helps). By installing Parker you accept the [terms](https://getparker.dev/terms).
 
 1. Download the latest `.dmg` from **[Releases](https://github.com/mlemos/parker/releases)**.
    Requires **macOS 12+ on Apple Silicon** (M1/M2/M3…) — the build is `arm64` and does **not** run on Intel Macs.

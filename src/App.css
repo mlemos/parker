@@ -1199,6 +1199,11 @@ body.resizing {
   color: var(--danger);
   font-weight: 600;
 }
+.aboutwin-note a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .aboutwin-links {
   margin-top: 20px;
   font-size: 13px;

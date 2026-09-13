@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Privacy — Parker</title>
-  <meta name="description" content="What Parker does with your data: nothing leaves your notes folder. No account, no server, no telemetry — on the Mac, on the iPhone, and on this site." />
+  <title>Terms — Parker</title>
+  <meta name="description" content="The terms for using Parker: free, open source, provided as is, with no warranty. Your notes are yours; so are your backups." />
 
   <!-- No-flash theme: set before first paint -->
   <script>
@@ -22,11 +22,11 @@
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 
-  <link rel="canonical" href="https://getparker.dev/privacy" />
+  <link rel="canonical" href="https://getparker.dev/terms" />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://getparker.dev/privacy" />
-  <meta property="og:title" content="Privacy — Parker" />
-  <meta property="og:description" content="Nothing leaves your notes folder. No account, no server, no telemetry." />
+  <meta property="og:url" content="https://getparker.dev/terms" />
+  <meta property="og:title" content="Terms — Parker" />
+  <meta property="og:description" content="Free, open source, provided as is, with no warranty." />
   <meta property="og:image" content="https://getparker.dev/og.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
@@ -69,45 +69,49 @@
 
   <main>
     <section class="fhero">
-      <span class="eyebrow reveal">Privacy</span>
-      <h1 class="reveal">Nothing leaves your folder.</h1>
+      <span class="eyebrow reveal">Terms</span>
+      <h1 class="reveal">Free, as is, yours to keep.</h1>
       <p class="lede reveal">
-        Parker is a text editor for a folder of plain files. It has no account, no server
-        of its own and no telemetry — so there is very little to say here, and all of it
-        is below.
+        Parker is a free, open-source tool made by one person and shared with the world.
+        These are the terms for using it — the Mac app, the iPhone app and this site.
+        By installing or using Parker you agree to them.
       </p>
     </section>
 
     <section class="section prose">
-      <h2>What Parker stores</h2>
-      <p>Your notes, as <code>.md</code> and <code>.txt</code> files in a folder you choose. On the Mac that is <code>~/Documents/Parker</code> by default; on the iPhone it is a folder in iCloud Drive, or one you pick in the Files app. Parker reads and writes those files and nothing else of yours.</p>
-      <p>Alongside them, Parker keeps its own settings and session (which notes are open, the theme, the text width) in the app's support folder on the Mac and in the app's sandbox on the iPhone. These stay on the device.</p>
+      <h2>What Parker is</h2>
+      <p>A text editor for a folder of plain files, provided by Manoel Lemos ("we", "us") free of charge. The Mac app is distributed as a direct download; the iPhone app through Apple's TestFlight and App Store. The source code is published on GitHub under the <a href="https://github.com/mlemos/parker/blob/main/LICENSE" rel="noopener">MIT License</a>, which governs the code itself; these terms govern the apps as you install and use them.</p>
 
-      <h2>What Parker sends</h2>
-      <p><strong>Nothing, to us.</strong> Parker has no server. It does not phone home, does not check for updates, does not report crashes or usage, and does not embed any analytics or advertising SDK. The apps make no network requests of their own.</p>
-      <p>Two things can move your notes between devices, and both are yours, not ours:</p>
-      <ul>
-        <li><strong>A sync service you use.</strong> If your notes folder lives in iCloud Drive, Google Drive, Dropbox or a similar service, that service syncs the files under its own terms. Parker only reads and writes the folder. On the iPhone, "Start fresh" creates the folder in your own iCloud Drive; the data is in your Apple account, not in ours.</li>
-        <li><strong>Git, if you turn it on.</strong> Parker for Mac can commit your notes to a git repository and push to a remote you configured (GitHub, for example). It runs the <code>git</code> on your machine with your credentials. Parker never sees or stores those credentials, and nothing is pushed unless you set a remote and enable sync.</li>
-      </ul>
+      <h2>Beta software</h2>
+      <p>Parker is a personal project in active development. It may change, break, behave unexpectedly or stop being maintained at any time, without notice. Features may be added or removed between versions. There is no service level, no support commitment and no promise of future updates.</p>
 
-      <h2>What Apple collects</h2>
-      <p>If you install Parker for iPhone through TestFlight or the App Store, Apple may collect crash reports and, on TestFlight, the feedback and screenshots you choose to send. That data goes to Apple and is shared with us in App Store Connect under <a href="https://www.apple.com/legal/privacy/" rel="noopener">Apple's privacy policy</a>. We use it to fix bugs. The Mac app is distributed as a direct download and has no such channel.</p>
+      <h2>Your notes are yours — and so are your backups</h2>
+      <p>Everything you write in Parker stays in files you own, in a folder you chose. We never have a copy. That also means <strong>you are responsible for backing them up</strong>: use a sync service, Parker's Git sync, Time Machine, or all three. A bug, a crash, a sync conflict or a mistake of your own can lose or corrupt files, and nothing in Parker can restore what it never stored.</p>
 
-      <h2>This website</h2>
-      <p>getparker.dev is a static site hosted on Vercel, which keeps ordinary server logs (IP address, user agent, pages requested) for operating the service. The pages load the Geist typeface from Google Fonts, so your browser also requests those files from Google. There are no analytics, no cookies and no tracking pixels. Your theme choice is kept in your browser's local storage and never sent anywhere.</p>
+      <h2>No warranty</h2>
+      <p>Parker is provided <strong>"as is" and "as available", without warranty of any kind</strong>, express or implied — including, without limitation, the implied warranties of merchantability, fitness for a particular purpose, title and non-infringement. We do not warrant that Parker will be accurate, reliable, uninterrupted, error-free or secure, or that it will meet your needs.</p>
 
-      <h2>Children</h2>
-      <p>Parker collects no personal information from anyone, of any age.</p>
+      <h2>Limitation of liability</h2>
+      <p><strong>To the fullest extent permitted by law, we are not liable for any damages arising out of or related to your use of, or inability to use, Parker</strong> — including loss of data, loss of profits, loss of work, business interruption, or any indirect, incidental, special, consequential or punitive damages — whether in contract, tort or otherwise, even if we were advised of the possibility. Where liability cannot be excluded, it is limited to the amount you paid for Parker, which is nothing.</p>
+      <p>Some jurisdictions do not allow the exclusion of certain warranties or the limitation of certain damages; in those places the above applies only as far as the law allows, and nothing here removes rights you have as a consumer that cannot be waived.</p>
 
-      <h2>Changes</h2>
-      <p>If any of this changes — for instance, if a future version checks for updates — this page will say so first, with the date of the change. The page is versioned with the rest of Parker <a href="https://github.com/mlemos/parker/blob/main/site/privacy/index.html" rel="noopener">on GitHub</a>.</p>
+      <h2>Third-party services</h2>
+      <p>Parker can work with services you choose — iCloud Drive, Google Drive, Dropbox, GitHub or any git remote. Those services are governed by their own terms and are not ours; we are not responsible for what they do with your files, for their availability, or for conflicts and losses that originate in them. Apple's TestFlight and App Store have their own terms, which you accept with Apple.</p>
 
-      <h2>Terms</h2>
-      <p>This page is part of Parker's <a href="/terms">terms of use</a>, which also say what Parker does not promise: it is free software provided as is, and your backups are yours.</p>
+      <h2>Acceptable use</h2>
+      <p>Use Parker lawfully. Don't use it to store or distribute content you have no right to, and don't try to break it for other people. The MIT License already lets you copy, modify and redistribute the code; these terms don't take that away.</p>
+
+      <h2>Privacy</h2>
+      <p>What Parker does with your data — which is nothing — is on the <a href="/privacy">privacy page</a>. It is part of these terms.</p>
+
+      <h2>Changes to these terms</h2>
+      <p>We may update these terms as Parker evolves. The date below changes when they do, and the page is versioned with the rest of Parker <a href="https://github.com/mlemos/parker/blob/main/site/terms/index.html" rel="noopener">on GitHub</a>. Continuing to use Parker after a change means you accept the new terms.</p>
+
+      <h2>Governing law</h2>
+      <p>These terms are governed by the laws of the State of California, United States, without regard to its conflict-of-law rules, except where the law of your country of residence necessarily applies to you as a consumer. Any dispute that cannot be resolved informally will be brought in the courts of San Francisco County, California.</p>
 
       <h2>Contact</h2>
-      <p>Questions about privacy: <a href="mailto:manoel.lemos@mac.com">manoel.lemos@mac.com</a>.</p>
+      <p>Questions about these terms: <a href="mailto:manoel.lemos@mac.com">manoel.lemos@mac.com</a>.</p>
 
       <p class="prose-date">Last updated September 13, 2026.</p>
     </section>
@@ -125,8 +129,8 @@
         <a href="/">Home</a>
         <a href="https://github.com/mlemos/parker" rel="noopener">GitHub</a>
         <a href="https://github.com/mlemos/parker/releases" rel="noopener">Releases</a>
-        <a href="/privacy" aria-current="page">Privacy</a>
-        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms" aria-current="page">Terms</a>
       </nav>
 
       <p class="footer-author">Built by <a href="https://manoellemos.com" rel="noopener">Manoel Lemos</a></p>

@@ -6,6 +6,8 @@ import { themeById, DEFAULT_THEME_ID } from "./lib/themes";
 import "./App.css";
 
 const REPO = "https://github.com/mlemos/parker";
+const TERMS = "https://getparker.dev/terms";
+const PRIVACY = "https://getparker.dev/privacy";
 
 const initialTheme =
   new URLSearchParams(window.location.search).get("theme") || DEFAULT_THEME_ID;
@@ -73,7 +75,11 @@ export default function AboutWindow() {
       <div className="aboutwin-note">
         <strong>Beta software.</strong> Provided as-is, with no warranty of any
         kind. It may change, break, or lose data. Use at your own risk — keep
-        backups (Parker's Git sync helps).
+        backups (Parker's Git sync helps). Using Parker means you accept the{" "}
+        <a href={TERMS} onClick={open(TERMS)}>
+          terms
+        </a>
+        .
       </div>
 
       <div className="aboutwin-links">
@@ -83,6 +89,14 @@ export default function AboutWindow() {
         <span className="aboutwin-sep">·</span>
         <a href={`${REPO}/releases`} onClick={open(`${REPO}/releases`)}>
           Releases
+        </a>
+        <span className="aboutwin-sep">·</span>
+        <a href={TERMS} onClick={open(TERMS)}>
+          Terms
+        </a>
+        <span className="aboutwin-sep">·</span>
+        <a href={PRIVACY} onClick={open(PRIVACY)}>
+          Privacy
         </a>
       </div>
 
