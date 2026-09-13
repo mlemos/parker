@@ -293,8 +293,8 @@ export function Settings({
               <div className="settings-label">
                 <div className="settings-title">Text width</div>
                 <div className="settings-sub">
-                  How far a line may run before it wraps, in columns. The text
-                  sits centred in the pane; Window uses all of it.
+                  How far a line may run before it wraps, in columns. Window
+                  lets it run to the edge of the pane.
                 </div>
               </div>
               <div className="seg" role="radiogroup" aria-label="Text width">
