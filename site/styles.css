@@ -1062,3 +1062,16 @@ button.todo-out:focus-visible { outline: 2px solid var(--accent); outline-offset
 .more-link a:hover { border-bottom-color: var(--accent); }
 .more-link span { display: inline-block; transition: transform .15s ease; }
 .more-link a:hover span { transform: translateX(3px); }
+
+/* ───────────────────── Prose pages (privacy) ───────────────────── */
+.prose { max-width: 68ch; padding-top: clamp(40px, 7vh, 72px); }
+.prose h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 40px 0 12px; }
+.prose h2:first-child { margin-top: 0; }
+.prose p, .prose li { color: var(--text-2); font-size: 16.5px; line-height: 1.7; }
+.prose p { margin: 0 0 14px; }
+.prose ul { padding-left: 22px; margin: 0 0 14px; }
+.prose li { margin: 0 0 10px; }
+.prose strong { color: var(--text); font-weight: 600; }
+.prose a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.prose code { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
+.prose-date { color: var(--text-2); opacity: 0.8; font-size: 14px; margin-top: 32px; }

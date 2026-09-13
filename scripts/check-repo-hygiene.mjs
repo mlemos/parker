@@ -55,6 +55,9 @@ const ALLOW = [
   "noreply@", "example.com", "@2x", "@3x", "schema.", "w3.org", "purl.org",
   "fonts.googleapis.com", "fonts.gstatic.com", "@types/", "@tauri-apps/",
   "git@github.com:owner/repo", "user@host",
+  // The one address that is public on purpose: the privacy contact on the
+  // site, and the developer contact testers see in TestFlight.
+  "mailto:manoel.lemos@mac.com",
 ];
 
 /** Files whose content we don't scan (generated, binary, or noisy). */
