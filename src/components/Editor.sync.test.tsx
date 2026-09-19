@@ -44,9 +44,10 @@ describe("the editor tells the preview where it is", () => {
   });
 
   it("posts again when the selection moves", async () => {
+    const { getActiveView } = await import("../lib/latency.ts");
     const seen: number[] = [];
     const off = onCursor("n.md", (p) => seen.push(p.line));
-    const { container } = render(
+    render(
       <Editor
         tab="n.md"
         tabs={["n.md"]}
@@ -62,18 +63,11 @@ describe("the editor tells the preview where it is", () => {
       />
     );
     await flushFrames();
-    const content = container.querySelector(".cm-content") as HTMLElement;
-    // Four → cross "one" and its newline onto line 2 by document position —
-    // vertical and line-boundary moves need layout, which jsdom does not do.
-    const press = (key: string) =>
-      content.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
-    let handled: boolean[] = [];
-    act(() => {
-      handled = [1, 2, 3, 4].map(() => press("ArrowRight"));
-    });
+    // A transaction, not a key: a keyboard move asks CodeMirror to scroll
+    // the cursor into view, which measures the DOM — and jsdom has none.
+    act(() => getActiveView()!.dispatch({ selection: { anchor: 5 } }));
     await flushFrames();
     off();
-    expect(handled).toEqual([false, false, false, false]); // CodeMirror took them
     expect(seen[seen.length - 1]).toBe(2);
   });
 });
