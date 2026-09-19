@@ -151,6 +151,44 @@ describe("openNote", () => {
   });
 });
 
+// A file dropped on a tab takes that tab's place, as a dragged tab would.
+describe("openNoteAt", () => {
+  it("puts the new tab at the index, active and focused", () => {
+    const { w, g } = single();
+    const out = ws.openNoteAt(w, g.id, buf("/Volumes/work/x.md"), 1);
+    expect(tabsOf(out, g.id)).toEqual(["a.md", "/Volumes/work/x.md", "b.md", "c.md"]);
+    expect(findGroup(out.layout, g.id)!.active).toBe("/Volumes/work/x.md");
+    expect(out.focusedId).toBe(g.id);
+  });
+
+  it("goes first at 0 and last past the end", () => {
+    const { w, g } = single();
+    expect(tabsOf(ws.openNoteAt(w, g.id, buf("x.md"), 0), g.id)[0]).toBe("x.md");
+    const last = tabsOf(ws.openNoteAt(w, g.id, buf("x.md"), 99), g.id);
+    expect(last[last.length - 1]).toBe("x.md");
+  });
+
+  it("is a plain openNote without an index", () => {
+    const { w, g } = single();
+    expect(ws.openNoteAt(w, g.id, buf("x.md"))).toEqual(ws.openNote(w, g.id, buf("x.md")));
+  });
+
+  it("moves a tab already open rather than adding a second", () => {
+    const { w, g } = single();
+    const out = ws.openNoteAt(w, g.id, buf("c.md"), 0);
+    expect(tabsOf(out, g.id)).toEqual(["c.md", "a.md", "b.md"]);
+    expect(out.buffers).toHaveLength(3);
+  });
+
+  it("lands in the named pane even when another is focused", () => {
+    const { w, left, right } = pair();
+    const out = ws.openNoteAt({ ...w, focusedId: left.id }, right.id, buf("x.md"), 0);
+    expect(tabsOf(out, right.id)).toEqual(["x.md", "c.md"]);
+    expect(tabsOf(out, left.id)).toEqual(["a.md", "b.md"]);
+    expect(out.focusedId).toBe(right.id);
+  });
+});
+
 describe("closeTab", () => {
   it("hands active to the tab that took its place", () => {
     const { w, g } = single();

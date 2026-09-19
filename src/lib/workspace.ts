@@ -261,6 +261,20 @@ export function openNote(
   };
 }
 
+/** Open a note at a place in the strip — a file dropped on a tab takes that
+ *  tab's place, as a dragged tab would. Opening appends, so the tab is then
+ *  moved. `index` past the end, or undefined, means the end: plain openNote. */
+export function openNoteAt(
+  ws: Workspace,
+  groupId: string,
+  buffer: Buffer,
+  index?: number
+): Workspace {
+  const opened = openNote(ws, groupId, buffer);
+  if (index === undefined) return opened;
+  return dropTab(opened, { from: groupId, name: buffer.name }, groupId, index);
+}
+
 /** Close a tab. The pane keeps its neighbours; a pane left with nothing
  *  closes, unless it is the only one — then it simply stays empty. It used to
  *  ask the caller for a fresh note instead, on the theory that there had to be

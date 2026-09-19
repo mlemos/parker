@@ -81,7 +81,9 @@ impl Externals {
     /// Let the webview address this path, and start watching its folder. Gives
     /// back what the webview should open: a bare name for a note, the full
     /// path for anything else.
-    fn admit(&mut self, app: &tauri::AppHandle, path: &Path) -> Result<String, String> {
+    /// `app` builds the watcher on first use; tests pass None and get the
+    /// bookkeeping without one.
+    fn admit(&mut self, app: Option<&tauri::AppHandle>, path: &Path) -> Result<String, String> {
         let real = match locate(path)? {
             Place::Note(name) => return Ok(name),
             Place::Outside(real) => real,
@@ -112,7 +114,7 @@ impl Externals {
         }
     }
 
-    fn watch(&mut self, app: &tauri::AppHandle, dir: &Path) {
+    fn watch(&mut self, app: Option<&tauri::AppHandle>, dir: &Path) {
         use notify::{RecursiveMode, Watcher};
         let count = self.dirs.entry(dir.to_path_buf()).or_insert(0);
         *count += 1;
@@ -120,7 +122,7 @@ impl Externals {
             return;
         }
         if self.watcher.is_none() {
-            self.watcher = build_watcher(app, Arc::clone(&self.admitted));
+            self.watcher = app.and_then(|a| build_watcher(a, Arc::clone(&self.admitted)));
         }
         if let Some(w) = self.watcher.as_mut() {
             if let Err(e) = w.watch(dir, RecursiveMode::NonRecursive) {
@@ -201,7 +203,7 @@ pub fn queue_open(app: &tauri::AppHandle, paths: Vec<PathBuf>) {
     let Ok(mut ext) = st.0.lock() else { return };
     let mut any = false;
     for path in paths {
-        match ext.admit(app, &path) {
+        match ext.admit(Some(app), &path) {
             Ok(name) => {
                 ext.pending.push(name);
                 any = true;
@@ -223,7 +225,7 @@ pub fn admit_session(app: &tauri::AppHandle, open: &[String]) {
     let st = state(app);
     let Ok(mut ext) = st.0.lock() else { return };
     for name in open.iter().filter(|n| n.starts_with('/')) {
-        if let Err(e) = ext.admit(app, Path::new(name)) {
+        if let Err(e) = ext.admit(Some(app), Path::new(name)) {
             eprintln!("session: {e}");
         }
     }
@@ -306,12 +308,103 @@ pub fn reveal_file(app: tauri::AppHandle, path: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+
+    /// A scratch folder of our own, gone when the test is.
+    struct Scratch(PathBuf);
+    impl Scratch {
+        fn new(tag: &str) -> Self {
+            let dir = std::env::temp_dir().join(format!("parker-external-{tag}-{}", std::process::id()));
+            let _ = fs::remove_dir_all(&dir);
+            fs::create_dir_all(&dir).unwrap();
+            Scratch(dir)
+        }
+        fn file(&self, name: &str) -> PathBuf {
+            let p = self.0.join(name);
+            fs::write(&p, "x").unwrap();
+            p
+        }
+    }
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
 
     #[test]
     fn check_refuses_what_was_never_admitted() {
         let ext = Externals::default();
         assert!(ext.check("/etc/passwd").is_err());
         assert!(ext.check("").is_err());
+    }
+
+    #[test]
+    fn locate_rejects_missing_and_directories() {
+        assert!(locate(Path::new("/definitely/not/here.md")).is_err());
+        assert!(locate(Path::new("/tmp")).is_err());
+    }
+
+    #[test]
+    fn locate_gives_the_real_path_of_a_file() {
+        let s = Scratch::new("locate");
+        let f = s.file("a.md");
+        match locate(&f).unwrap() {
+            Place::Outside(real) => {
+                assert_eq!(real, f.canonicalize().unwrap());
+                assert!(real.is_absolute());
+            }
+            Place::Note(_) => panic!("a scratch file is not a note"),
+        }
+    }
+
+    #[test]
+    fn locate_resolves_a_symlink_to_its_target() {
+        let s = Scratch::new("symlink");
+        let target = s.file("real.md");
+        let link = s.0.join("link.md");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        match locate(&link).unwrap() {
+            Place::Outside(real) => assert_eq!(real, target.canonicalize().unwrap()),
+            Place::Note(_) => panic!(),
+        }
+    }
+
+    #[test]
+    fn admit_then_check_then_release() {
+        let s = Scratch::new("admit");
+        let f = s.file("a.md");
+        let mut ext = Externals::default();
+        let name = ext.admit(None, &f).unwrap();
+        assert_eq!(name, f.canonicalize().unwrap().to_string_lossy());
+        assert_eq!(ext.check(&name).unwrap(), PathBuf::from(&name));
+        // The folder is counted once for the one file in it.
+        assert_eq!(ext.dirs.len(), 1);
+        assert_eq!(ext.dirs.values().next(), Some(&1));
+
+        ext.release(Path::new(&name));
+        assert!(ext.check(&name).is_err(), "released path must not be served");
+        assert!(ext.dirs.is_empty(), "last file out stops the folder watch");
+    }
+
+    #[test]
+    fn a_folder_is_watched_once_for_all_its_files() {
+        let s = Scratch::new("refcount");
+        let a = s.file("a.md");
+        let b = s.file("b.md");
+        let mut ext = Externals::default();
+        let na = ext.admit(None, &a).unwrap();
+        let nb = ext.admit(None, &b).unwrap();
+        assert_eq!(ext.dirs.len(), 1);
+        assert_eq!(ext.dirs.values().next(), Some(&2));
+        // Admitting the same file again is not a second file.
+        ext.admit(None, &a).unwrap();
+        assert_eq!(ext.dirs.values().next(), Some(&2));
+
+        ext.release(Path::new(&na));
+        assert_eq!(ext.dirs.values().next(), Some(&1), "b still lives there");
+        assert!(ext.check(&nb).is_ok());
+        ext.release(Path::new(&nb));
+        assert!(ext.dirs.is_empty());
     }
 
     #[test]
@@ -322,8 +415,11 @@ mod tests {
     }
 
     #[test]
-    fn locate_rejects_missing_and_directories() {
-        assert!(locate(Path::new("/definitely/not/here.md")).is_err());
-        assert!(locate(Path::new("/tmp")).is_err());
+    fn admit_refuses_what_is_not_a_file() {
+        let s = Scratch::new("notafile");
+        let mut ext = Externals::default();
+        assert!(ext.admit(None, &s.0).is_err());
+        assert!(ext.admit(None, &s.0.join("missing.md")).is_err());
+        assert!(ext.dirs.is_empty(), "nothing admitted, nothing watched");
     }
 }

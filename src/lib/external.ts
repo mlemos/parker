@@ -30,3 +30,12 @@ export function splitPath(path: string): { head: string; tail: string } {
   const tail = "/" + segs.slice(-2).join("/");
   return { head: path.slice(0, path.length - tail.length), tail };
 }
+
+/** The outside files that were loaded before and aren't any more — the ones
+ *  Rust should stop serving and stop watching. Computed from the buffer lists
+ *  around a workspace transition, so every way of losing a tab (close, close
+ *  pane, drag away, forget) is covered without each one remembering to. */
+export function droppedExternals(before: { name: string }[], after: { name: string }[]): string[] {
+  const kept = new Set(after.map((b) => b.name));
+  return before.filter((b) => isExternal(b.name) && !kept.has(b.name)).map((b) => b.name);
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { displayName, isExternal, splitPath } from "./external.ts";
+import { displayName, droppedExternals, isExternal, splitPath } from "./external.ts";
 
 describe("isExternal", () => {
   it("is the leading slash", () => {
@@ -40,5 +40,21 @@ describe("splitPath", () => {
   it("has no head to lose when the path is already short", () => {
     expect(splitPath("~/README.md")).toEqual({ head: "", tail: "~/README.md" });
     expect(splitPath("/a/b.md")).toEqual({ head: "", tail: "/a/b.md" });
+  });
+});
+
+describe("droppedExternals", () => {
+  const b = (name: string) => ({ name });
+  it("names the outside files that vanished", () => {
+    expect(
+      droppedExternals([b("a.md"), b("/Volumes/work/x.md"), b("/Volumes/work/y.md")], [b("a.md"), b("/Volumes/work/y.md")])
+    ).toEqual(["/Volumes/work/x.md"]);
+  });
+  it("ignores notes, which Rust never admitted by path", () => {
+    expect(droppedExternals([b("a.md"), b("b.md")], [b("b.md")])).toEqual([]);
+  });
+  it("is empty when nothing left, or when files only arrived", () => {
+    expect(droppedExternals([b("/Volumes/work/x.md")], [b("/Volumes/work/x.md")])).toEqual([]);
+    expect(droppedExternals([], [b("/Volumes/work/x.md")])).toEqual([]);
   });
 });

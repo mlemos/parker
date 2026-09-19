@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import type { NoteHit } from "../lib/api";
+import { fmtSize } from "../lib/size";
 
 function relTime(secs: number): string {
   if (!secs) return "";
@@ -10,16 +11,6 @@ function relTime(secs: number): string {
   if (d < 3600) return `${Math.floor(d / 60)}m ago`;
   if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
   return `${Math.floor(d / 86400)}d ago`;
-}
-
-/** A file size as a badge: EMPTY, 12B, 3KB, 1.2MB. The unit hugs the number
- *  so it reads as one token — the "open" badge next to it is a word, this is
- *  a figure. */
-export function fmtSize(bytes: number): string {
-  if (bytes === 0) return "Empty";
-  if (bytes < 1000) return `${bytes}B`;
-  if (bytes < 1_000_000) return `${Math.round(bytes / 1000)}KB`;
-  return `${(bytes / 1_000_000).toFixed(1)}MB`;
 }
 
 // Highlight the first case-insensitive occurrence of `query` in `text`.

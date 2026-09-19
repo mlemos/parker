@@ -1660,6 +1660,60 @@ pub fn run() {
 mod tests {
     use super::*;
 
+    // ---- Writing ------------------------------------------------------------
+
+    fn scratch(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("parker-write-{tag}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn atomic_write_replaces_the_content_and_leaves_no_temp_behind() {
+        let dir = scratch("content");
+        let f = dir.join("n.md");
+        fs::write(&f, "old").unwrap();
+        atomic_write(&f, "new").unwrap();
+        assert_eq!(fs::read_to_string(&f).unwrap(), "new");
+        let leftovers: Vec<_> = fs::read_dir(&dir).unwrap().flatten().map(|e| e.file_name()).collect();
+        assert_eq!(leftovers, vec![std::ffi::OsString::from("n.md")]);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn atomic_write_creates_a_file_that_was_not_there() {
+        let dir = scratch("create");
+        let f = dir.join("fresh.md");
+        atomic_write(&f, "hello").unwrap();
+        assert_eq!(fs::read_to_string(&f).unwrap(), "hello");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    // The rename swaps in a new inode; a file from outside the notes folder
+    // may have been given mode bits on purpose, and a save must keep them.
+    #[test]
+    fn atomic_write_keeps_the_permissions_of_the_file_it_replaces() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = scratch("mode");
+        let f = dir.join("private.md");
+        fs::write(&f, "secret").unwrap();
+        fs::set_permissions(&f, fs::Permissions::from_mode(0o600)).unwrap();
+        atomic_write(&f, "still secret").unwrap();
+        let mode = fs::metadata(&f).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600, "mode changed to {mode:o}");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn temp_path_tells_extensions_apart() {
+        let a = temp_path(&PathBuf::from("/x/notes.md"));
+        let b = temp_path(&PathBuf::from("/x/notes.txt"));
+        assert_ne!(a, b);
+        assert!(a.to_string_lossy().ends_with("notes.md.parker-tmp"));
+        assert!(!is_listed_note(a.file_name().unwrap().to_str().unwrap()));
+    }
+
     // ---- Settings & session ----------------------------------------------
 
     // The black-window bug: a derived Default gave zoom 0.0, load_settings()

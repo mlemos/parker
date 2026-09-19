@@ -14,7 +14,8 @@ import { listen, emit } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
 import { changedLines } from "./lib/linediff";
 import { prettyPath } from "./lib/path";
-import { displayName, isExternal } from "./lib/external";
+import { displayName, droppedExternals, isExternal } from "./lib/external";
+import { isFirstLaunch } from "./lib/session";
 import { PathLabel } from "./components/PathLabel";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import { textWidthOf } from "./lib/text-width";
@@ -140,10 +141,8 @@ export default function App() {
         // A file from outside the folder that no pane shows any more is let
         // go of on the Rust side too: its path stops being addressable and
         // its folder stops being watched.
-        for (const b of before.buffers) {
-          if (isExternal(b.name) && !after.buffers.some((x) => x.name === b.name))
-            api.closeFile(b.name).catch(() => {});
-        }
+        for (const path of droppedExternals(before.buffers, after.buffers))
+          api.closeFile(path).catch(() => {});
       }
       if (after.layout !== before.layout) setLayout(after.layout);
       if (after.focusedId !== before.focusedId) setFocusedId(after.focusedId);
@@ -286,8 +285,7 @@ export default function App() {
         // nothing open — the last tab was closed, or every note it listed is
         // gone — comes back as the empty pane it was; making a note here is
         // how Untitled files used to pile up on every launch.
-        const firstLaunch = !session.layout && (session.open ?? []).length === 0;
-        if (restored.length === 0 && firstLaunch) {
+        if (restored.length === 0 && isFirstLaunch(session)) {
           const name = await api.createNote("md");
           restored.push({ name, content: "", disk: "", dirty: false });
         }
@@ -641,7 +639,7 @@ export default function App() {
   // Open a note in the focused group — or a given one — loading it if not
   // already a buffer.
   const openNote = useCallback(
-    async (name: string, groupId?: string) => {
+    async (name: string, groupId?: string, index?: number) => {
       const s = stateRef.current;
       const gid = groupId && findGroup(s.layout, groupId) ? groupId : s.focusedId;
       const loaded = s.buffers.find((b) => b.name === name);
@@ -655,7 +653,7 @@ export default function App() {
           return;
         }
       }
-      apply((w) => ws.openNote(w, gid, buffer!));
+      apply((w) => ws.openNoteAt(w, gid, buffer!, index));
     },
     [apply]
   );
@@ -694,12 +692,8 @@ export default function App() {
       let index = at?.index;
       for (const name of names) {
         if (!alive) return;
-        await openNote(name, at?.group);
-        if (at && index !== undefined) {
-          const gid = at.group;
-          const i = index++;
-          apply((w) => ws.dropTab(w, { from: gid, name }, gid, i));
-        }
+        await openNote(name, at?.group, index);
+        if (index !== undefined) index++;
       }
     };
     const p = listen("parker://files-opened", () => drain());
@@ -708,7 +702,7 @@ export default function App() {
       alive = false;
       p.then((un) => un());
     };
-  }, [ready, openNote, apply]);
+  }, [ready, openNote]);
 
   // A note was moved to Trash from the picker: drop its buffer, cancel any
   // pending autosave (so it isn't recreated), and remove it from every pane.
