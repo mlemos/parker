@@ -2195,17 +2195,21 @@ body.resizing {
   color: var(--muted);
   flex: none;
 }
+/* Same badge as "open", in the quiet colour; an empty note is the only one
+   in a colour, and the only one that is a word. */
 .picker-size {
-  font-size: 11px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--muted);
-  opacity: 0.7;
+  border: 1px solid color-mix(in srgb, var(--muted) 55%, transparent);
+  border-radius: 4px;
+  padding: 1px 5px;
   flex: none;
-  min-width: 3.5em;
-  text-align: right;
 }
 .picker-size.empty {
   color: var(--todo-attn);
-  opacity: 1;
+  border-color: var(--todo-attn);
 }
 /* Per-row "move to Trash" affordance — hidden until the row is hovered or
    selected so the list stays clean. */

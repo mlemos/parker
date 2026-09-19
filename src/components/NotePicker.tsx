@@ -12,11 +12,14 @@ function relTime(secs: number): string {
   return `${Math.floor(d / 86400)}d ago`;
 }
 
-/** A file size the way the Finder says it: whole KB and MB, bytes below. */
+/** A file size as a badge: EMPTY, 12B, 3KB, 1.2MB. The unit hugs the number
+ *  so it reads as one token — the "open" badge next to it is a word, this is
+ *  a figure. */
 export function fmtSize(bytes: number): string {
-  if (bytes < 1000) return `${bytes} B`;
-  if (bytes < 1_000_000) return `${Math.round(bytes / 1000)} KB`;
-  return `${(bytes / 1_000_000).toFixed(1)} MB`;
+  if (bytes === 0) return "Empty";
+  if (bytes < 1000) return `${bytes}B`;
+  if (bytes < 1_000_000) return `${Math.round(bytes / 1000)}KB`;
+  return `${(bytes / 1_000_000).toFixed(1)}MB`;
 }
 
 // Highlight the first case-insensitive occurrence of `query` in `text`.
@@ -203,15 +206,13 @@ export function NotePicker({
                   {openNames.includes(n.name) && (
                     <span className="picker-open">open</span>
                   )}
-                  {/* Quiet, next to the time — except an empty note, which
-                      is the one worth noticing in a list: it says so, in a
-                      colour, so a stray Untitled is caught here rather than
-                      opened to find out. */}
-                  {n.size === 0 ? (
-                    <span className="picker-size empty">empty</span>
-                  ) : (
-                    <span className="picker-size">{fmtSize(n.size)}</span>
-                  )}
+                  {/* A badge like "open", quiet — except an empty note, which
+                      is the one worth noticing in a list: it gets a colour,
+                      so a stray Untitled is caught here rather than opened
+                      to find out. */}
+                  <span className={"picker-size" + (n.size === 0 ? " empty" : "")}>
+                    {fmtSize(n.size)}
+                  </span>
                   <span className="picker-time">{relTime(n.modified)}</span>
                   <button
                     className="picker-trash"
