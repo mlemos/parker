@@ -353,19 +353,19 @@ export function EditorGroup({
 
       {outside && (
         <div className="outside-bar">
-          <FolderOutput size={13} strokeWidth={2} aria-hidden />
-          {/* One line, whole on the element for when the pane is narrow: what
-              this is, what Parker won't do with it, and where it lives. */}
-          <span
-            className="outside-msg"
-            title={`${activeBuf.name}  —  outside your notes folder: not backed up, not in search`}
+          {/* The label is the button: it says what this is, and takes you to
+              where it lives. The path beside it gives way when the pane is
+              narrow; the whole story is on the tooltip. */}
+          <button
+            className="outside-btn"
+            onClick={() => cb.onReveal(activeBuf.name)}
+            title="Outside your notes folder — not backed up, not in search. Click to show in Finder."
+            aria-label="External file — show in Finder"
           >
-            <span className="outside-what">Outside your notes folder · not backed up</span>
-            <PathLabel className="outside-path" path={activeBuf.name} home={homeDir} />
-          </span>
-          <button className="outside-btn" onClick={() => cb.onReveal(activeBuf.name)}>
-            Show in Finder
+            <FolderOutput size={13} strokeWidth={2} aria-hidden />
+            External
           </button>
+          <PathLabel className="outside-path" path={activeBuf.name} home={homeDir} />
         </div>
       )}
 

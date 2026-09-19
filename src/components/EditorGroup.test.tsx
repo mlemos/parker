@@ -79,9 +79,12 @@ describe("a file from outside the notes folder", () => {
     const { cb, container } = setup(["a.md", OUTSIDE], OUTSIDE);
     const bar = container.querySelector(".outside-bar")!;
     expect(bar).not.toBeNull();
-    expect(bar.textContent).toContain("Outside your notes folder");
+    expect(bar.textContent).toContain("External");
+    expect(screen.getByLabelText("External file — show in Finder").getAttribute("title")).toContain(
+      "Outside your notes folder"
+    );
     expect(bar.querySelector(".pathlabel")!.textContent).toBe("~/repo/README.md");
-    fireEvent.click(screen.getByText("Show in Finder"));
+    fireEvent.click(screen.getByLabelText("External file — show in Finder"));
     expect(cb.onReveal).toHaveBeenCalledWith(OUTSIDE);
   });
 
