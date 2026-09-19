@@ -1586,6 +1586,37 @@ body.resizing {
   font-weight: 600;
 }
 
+/* A file from outside the notes folder: a standing notice, not an alert —
+   it sits in the header's tone, and only the path is in the text colour. */
+.outside-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
+.outside-msg {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.outside-what {
+  flex: none;
+}
+.outside-path {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* The end of a path is the part that tells files apart. */
+  direction: rtl;
+  text-align: left;
+}
+
 .status-reloaded {
   display: inline-flex;
   align-items: center;

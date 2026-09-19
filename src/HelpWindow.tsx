@@ -38,6 +38,7 @@ const APP: Section[] = [
     rows: [
       ["New note", ["⌘N"]],
       ["Open / search notes", ["⌘O"]],
+      ["Open a file outside the notes folder", ["⌘⇧O"]],
       ["Save now", ["⌘S"]],
       ["Close tab", ["⌘W"]],
       ["Go to tab 1–9", ["⌘1–9"]],

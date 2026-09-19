@@ -32,6 +32,22 @@
         "appPosition": { "x": 180, "y": 250 },
         "applicationFolderPosition": { "x": 480, "y": 250 }
       }
-    }
+    },
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mdown", "mkd"],
+        "name": "Markdown",
+        "description": "Markdown document",
+        "mimeType": "text/markdown",
+        "role": "Editor"
+      },
+      {
+        "ext": ["txt"],
+        "name": "Plain text",
+        "description": "Plain text document",
+        "mimeType": "text/plain",
+        "role": "Editor"
+      }
+    ]
   }
 }
