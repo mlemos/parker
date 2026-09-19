@@ -5,6 +5,7 @@ import {
   SquareSplitVertical,
   SquaresUnite,
   TriangleAlert,
+  FolderOutput,
   Eye,
   Columns2,
   X,
@@ -12,6 +13,8 @@ import {
 } from "lucide-react";
 import { languageForName } from "../lib/lang";
 import { tabStatus } from "../lib/workspace";
+import { displayName, isExternal } from "../lib/external";
+import { prettyPath } from "../lib/path";
 import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Group } from "../lib/layout";
 import { isMarkdown } from "../lib/markdown";
@@ -40,6 +43,7 @@ export interface GroupCallbacks {
   onTabDragEnd: () => void;
   onCloseGroup: () => void;
   onResolveConflict: (name: string, take: "disk" | "mine") => void;
+  onReveal: (name: string) => void;
 }
 
 export function EditorGroup({
@@ -54,6 +58,7 @@ export function EditorGroup({
   wrapOn,
   width,
   renamingName,
+  homeDir,
   cb,
 }: {
   group: Group;
@@ -67,6 +72,7 @@ export function EditorGroup({
   wrapOn: boolean;
   width: TextWidth;
   renamingName: string | null;
+  homeDir: string; // for showing an outside file's path as ~/…
   cb: GroupCallbacks;
 }) {
   const [langExt, setLangExt] = useState<Extension[]>([]);
@@ -77,6 +83,8 @@ export function EditorGroup({
   const active = group.active;
   const activeBuf = buffers.find((b) => b.name === active) ?? null;
   const isMd = isMarkdown(active);
+  // A file from outside the notes folder — edited where it is, and said so.
+  const outside = !!activeBuf && isExternal(activeBuf.name);
   const showPreview = group.mode === "preview" && isMd && !!activeBuf;
   // Deferred so a side-by-side preview re-renders at low priority instead of
   // running markdown-it over the whole document inside every keystroke.
@@ -215,13 +223,17 @@ export function EditorGroup({
                   setOverIndex(null);
                   cb.onTabDragEnd();
                 }}
-                title={`${name}  —  double-click to rename`}
+                title={
+                  isExternal(name)
+                    ? `${name}  —  outside your notes folder`
+                    : `${name}  —  double-click to rename`
+                }
               >
                 {/* Status sits left of the name and the close button right of
                     it: one side says what the note is, the other acts on it,
                     and a glance never has to tell them apart. */}
                 <span className={`tab-dot ${status}`} title={dotTitle} />
-                <span className="tab-name">{name}</span>
+                <span className="tab-name">{displayName(name)}</span>
                 <span
                   className="tab-close"
                   onClick={(e) => {
@@ -304,6 +316,24 @@ export function EditorGroup({
           )}
         </div>
       </div>
+
+      {outside && (
+        <div className="outside-bar">
+          <FolderOutput size={13} strokeWidth={2} aria-hidden />
+          {/* One line, whole on the element for when the pane is narrow: what
+              this is, what Parker won't do with it, and where it lives. */}
+          <span
+            className="outside-msg"
+            title={`${activeBuf.name}  —  outside your notes folder: not backed up, not in search`}
+          >
+            <span className="outside-what">Outside your notes folder · not backed up</span>
+            <span className="outside-path">{prettyPath(activeBuf.name, homeDir)}</span>
+          </span>
+          <button className="conflict-btn" onClick={() => cb.onReveal(activeBuf.name)}>
+            Show in Finder
+          </button>
+        </div>
+      )}
 
       {activeBuf?.conflict && (
         <div className="conflict-bar">

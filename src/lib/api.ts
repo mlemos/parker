@@ -113,6 +113,16 @@ export const api = {
   pickNotesDir: () => invoke<string | null>("pick_notes_dir"),
   setNotesDir: (path: string, moveExisting: boolean) =>
     invoke<string>("set_notes_dir", { path, moveExisting }),
+  // Files outside the notes folder, addressed by absolute path. Rust serves
+  // only paths it admitted itself (Finder open, Open… panel, saved session).
+  readFile: (path: string) => invoke<string>("read_file", { path }),
+  writeFile: (path: string, content: string) =>
+    invoke<void>("write_file", { path, content }),
+  closeFile: (path: string) => invoke<void>("close_file", { path }),
+  /** What the OS asked Parker to open since the last call: bare names are
+   *  notes in the folder, everything else an absolute path. */
+  takeOpenedFiles: () => invoke<string[]>("take_opened_files"),
+  revealFile: (path: string) => invoke<void>("reveal_file", { path }),
   openHelp: () => invoke<void>("open_help"),
   quit: () => invoke<void>("quit"),
 };

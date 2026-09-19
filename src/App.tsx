@@ -14,6 +14,7 @@ import { listen, emit } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
 import { changedLines } from "./lib/linediff";
 import { prettyPath } from "./lib/path";
+import { isExternal } from "./lib/external";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import { textWidthOf } from "./lib/text-width";
 import type { TextWidth } from "./lib/text-width";
@@ -50,6 +51,14 @@ const SESSION_MS = 400;
 const ZOOM_STEPS = [
   0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3,
 ];
+
+// A buffer's text comes and goes through one of two doors in Rust, and its
+// name says which: a note by bare name, a file from outside the folder by its
+// absolute path. Nothing below this line needs to know the difference.
+const readText = (name: string) =>
+  isExternal(name) ? api.readFile(name) : api.readNote(name);
+const writeText = (name: string, content: string) =>
+  isExternal(name) ? api.writeFile(name, content) : api.writeNote(name, content);
 
 export default function App() {
   const [buffers, setBuffers] = useState<Buffer[]>([]);
@@ -118,7 +127,16 @@ export default function App() {
         focusedId: s.focusedId,
       };
       const after = step(before);
-      if (after.buffers !== before.buffers) setBuffers(after.buffers);
+      if (after.buffers !== before.buffers) {
+        setBuffers(after.buffers);
+        // A file from outside the folder that no pane shows any more is let
+        // go of on the Rust side too: its path stops being addressable and
+        // its folder stops being watched.
+        for (const b of before.buffers) {
+          if (isExternal(b.name) && !after.buffers.some((x) => x.name === b.name))
+            api.closeFile(b.name).catch(() => {});
+        }
+      }
       if (after.layout !== before.layout) setLayout(after.layout);
       if (after.focusedId !== before.focusedId) setFocusedId(after.focusedId);
       return after;
@@ -168,7 +186,7 @@ export default function App() {
     if (buf.conflict) return;
     try {
       const written = buf.content;
-      await api.writeNote(name, written);
+      await writeText(name, written);
       const seq = (lastWrite.current.get(name)?.seq ?? 0) + 1;
       lastWrite.current.set(name, { text: written, seq });
       setBuffers((prev) => ws.setError(ws.markSaved(prev, name, written), name, undefined));
@@ -250,7 +268,7 @@ export default function App() {
         const restored: Buffer[] = [];
         for (const name of session.open ?? []) {
           try {
-            const content = await api.readNote(name);
+            const content = await readText(name);
             restored.push({ name, content, disk: content, dirty: false });
           } catch {
             // deleted/renamed outside the app — skip it
@@ -637,7 +655,7 @@ export default function App() {
       let buffer = loaded;
       if (!buffer) {
         try {
-          const text = await api.readNote(name);
+          const text = await readText(name);
           buffer = { name, content: text, disk: text, dirty: false };
         } catch (e) {
           console.error("open failed", name, e);
@@ -650,6 +668,42 @@ export default function App() {
   );
 
   const openPicker = useCallback(() => setPickerOpen(true), []);
+
+  // Files the OS asked Parker to open — a double-click in the Finder, File ›
+  // Open…, `open -a Parker`. Rust admits and queues them and only says "come
+  // and get them": the event can fire before this listener exists (a cold
+  // launch by double-click), so the queue is drained once here as well, and a
+  // second drain of an already-emptied queue is nothing. Opening waits for
+  // the session to be restored, since the file goes into the focused pane
+  // and until then there isn't one.
+  useEffect(() => {
+    if (!ready) return;
+    let alive = true;
+    const drain = async () => {
+      if (!alive) return;
+      if (!sessionRestored.current) {
+        window.setTimeout(drain, 250);
+        return;
+      }
+      let names: string[];
+      try {
+        names = await api.takeOpenedFiles();
+      } catch {
+        return;
+      }
+      // One after the other, so the last one asked for ends up in front.
+      for (const name of names) {
+        if (!alive) return;
+        await openNote(name);
+      }
+    };
+    const p = listen("parker://files-opened", () => drain());
+    drain();
+    return () => {
+      alive = false;
+      p.then((un) => un());
+    };
+  }, [ready, openNote]);
 
   // A note was moved to Trash from the picker: drop its buffer, cancel any
   // pending autosave (so it isn't recreated), and remove it from every pane.
@@ -667,14 +721,16 @@ export default function App() {
     const s = stateRef.current;
     const n =
       name ?? (findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout)).active;
-    if (n) setRenamingName(n);
+    // A file from outside the folder keeps its name: Parker edits it where it
+    // is and does nothing else to it.
+    if (n && !isExternal(n)) setRenamingName(n);
   }, []);
 
   const commitRename = useCallback(
     async (oldName: string, raw: string) => {
       setRenamingName(null);
       const newName = raw.trim();
-      if (!newName || newName === oldName) return;
+      if (!newName || newName === oldName || isExternal(oldName)) return;
       try {
         await flushSave(oldName);
         await api.renameNote(oldName, newName);
@@ -906,7 +962,7 @@ export default function App() {
       const seqAtRead = lastWrite.current.get(name)?.seq ?? 0;
       let disk: string;
       try {
-        disk = await api.readNote(name);
+        disk = await readText(name);
       } catch (e) {
         setBuffers((prev) =>
           ws.setError(prev, name, `Could not read: ${e instanceof Error ? e.message : e}`)
@@ -983,6 +1039,7 @@ export default function App() {
     onTabDragEnd: () => setTabDragging(false),
     onCloseGroup: closeGroup,
     onResolveConflict: resolveConflict,
+    onReveal: (name) => api.revealFile(name).catch((e) => console.error("reveal failed", e)),
     onResize,
     onEqualize,
   };
@@ -1051,6 +1108,7 @@ export default function App() {
           wrapOn={wrapOn}
           width={textWidth}
           renamingName={renamingName}
+          homeDir={homeDir}
           multiGroup={multiGroup}
           altHeld={altHeld}
           dragging={tabDragging}
@@ -1059,7 +1117,9 @@ export default function App() {
       </div>
 
       <div className="statusbar">
-        <span className="status-file">{activeName ?? ""}</span>
+        <span className="status-file">
+          {activeName ? (isExternal(activeName) ? prettyPath(activeName, homeDir) : activeName) : ""}
+        </span>
         {reloaded.length > 0 && (
           <span
             className="status-reloaded"

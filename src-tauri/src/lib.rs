@@ -17,6 +17,7 @@ use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 
+mod external;
 mod monitor;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -226,7 +227,7 @@ fn default_notes_dir() -> PathBuf {
 
 /// The resolved notes directory (from settings, or the default), created if
 /// missing.
-fn notes_dir() -> PathBuf {
+pub(crate) fn notes_dir() -> PathBuf {
     let dir = match load_settings().notes_dir {
         Some(p) if !p.trim().is_empty() => PathBuf::from(p),
         _ => default_notes_dir(),
@@ -258,7 +259,7 @@ fn safe_note_path(name: &str) -> Result<PathBuf, String> {
 
 /// Whether a file in the notes folder is a note the app shows and syncs.
 /// Dotfiles are the OS's business, and .parker-tmp files are ours mid-write.
-fn is_listed_note(name: &str) -> bool {
+pub(crate) fn is_listed_note(name: &str) -> bool {
     !name.starts_with('.') && !name.ends_with(".parker-tmp")
 }
 
@@ -275,9 +276,15 @@ fn temp_path(path: &PathBuf) -> PathBuf {
 }
 
 /// Atomic write: temp file in the same dir, then rename over the target.
-fn atomic_write(path: &PathBuf, content: &str) -> Result<(), String> {
+/// The rename swaps in a new inode, so the old file's permissions are copied
+/// across first — a file from outside the notes folder may have been given
+/// mode bits on purpose, and a save is not the moment to lose them.
+pub(crate) fn atomic_write(path: &PathBuf, content: &str) -> Result<(), String> {
     let tmp = temp_path(path);
     fs::write(&tmp, content).map_err(|e| e.to_string())?;
+    if let Ok(meta) = fs::metadata(path) {
+        let _ = fs::set_permissions(&tmp, meta.permissions());
+    }
     fs::rename(&tmp, path).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -449,12 +456,24 @@ fn rename_note(from: String, to: String) -> Result<(), String> {
     fs::rename(&from_path, &to_path).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-fn load_session() -> Session {
+fn read_session() -> Session {
     fs::read_to_string(session_path())
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default()
+}
+
+#[tauri::command]
+fn load_session(app: tauri::AppHandle) -> Session {
+    let session = read_session();
+    // Files from outside the notes folder are named by path in the session.
+    // The webview may only read a path this side has admitted, so they are
+    // admitted here, before the restore asks for them.
+    #[cfg(desktop)]
+    external::admit_session(&app, &session.open);
+    #[cfg(not(desktop))]
+    let _ = app;
+    session
 }
 
 #[tauri::command]
@@ -1152,7 +1171,7 @@ fn follow_active_space<R: tauri::Runtime>(window: &tauri::WebviewWindow<R>) {
 /// Bring the main window to the front (showing it if hidden). Re-asserts the
 /// "move to active Space" behavior right before showing so summon always lands
 /// on the current desktop.
-fn show_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+pub(crate) fn show_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     use tauri::Manager;
     if let Some(w) = app.get_webview_window("main") {
         #[cfg(target_os = "macos")]
@@ -1173,7 +1192,7 @@ fn show_about_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         return;
     }
     // Pass the current theme so the About window matches the editor's look.
-    let theme = load_session().theme.unwrap_or_default();
+    let theme = read_session().theme.unwrap_or_default();
     let url = format!("index.html?view=about&theme={theme}");
     // Secondary windows are sized in logical pixels, so a zoomed webview inside
     // a fixed frame would simply be cropped — the frame scales with it.
@@ -1205,7 +1224,7 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         let _ = w.set_focus();
         return;
     }
-    let theme = load_session().theme.unwrap_or_default();
+    let theme = read_session().theme.unwrap_or_default();
     let url = format!("index.html?view=help&theme={theme}");
     let z = saved_zoom();
     #[allow(unused_mut)]
@@ -1325,10 +1344,17 @@ fn build_menu<R: tauri::Runtime>(
         .select_all()
         .build()?;
 
-    // Deliberately NO File/Window submenu: this frees Cmd+T, Cmd+W and
-    // Cmd+1..9 so the webview handles tab management itself.
+    // A File menu with the one thing the webview can't do for itself: the
+    // native open panel, for a file outside the notes folder. Nothing else
+    // goes in here on purpose — no New, Close or Window items — so Cmd+T,
+    // Cmd+W and Cmd+1..9 stay with the webview, which handles tabs itself.
+    let open_file = MenuItemBuilder::with_id("open_file", "Open File…")
+        .accelerator("CmdOrCtrl+Shift+O")
+        .build(handle)?;
+    let file_menu = SubmenuBuilder::new(handle, "File").item(&open_file).build()?;
+
     MenuBuilder::new(handle)
-        .items(&[&app_menu, &edit_menu])
+        .items(&[&app_menu, &file_menu, &edit_menu])
         .build()
 }
 
@@ -1453,7 +1479,13 @@ fn rewatch_notes(app: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
+    let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        // Files opened from outside the notes folder (Finder, Open…). Managed
+        // here rather than in setup: on macOS a double-clicked file arrives
+        // as an Opened event while the app is still launching, before setup
+        // has run, and looking the state up then must not find it missing.
+        .manage(external::ExternalState::default());
 
     #[cfg(desktop)]
     let builder = builder
@@ -1544,6 +1576,8 @@ pub fn run() {
             }
             "about" => show_about_window(app),
             "help" => show_help_window(app),
+            #[cfg(desktop)]
+            "open_file" => external::open_dialog(app),
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
@@ -1575,6 +1609,11 @@ pub fn run() {
             quit,
             monitor::perf_stats,
             monitor::perf_log_path,
+            external::read_file,
+            external::write_file,
+            external::close_file,
+            external::take_opened_files,
+            external::reveal_file,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -1584,6 +1623,16 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Reopen { .. } = &_event {
                 show_window(_app);
+            }
+            // A file double-clicked in the Finder, dropped on the Dock icon,
+            // or handed over by `open -a Parker`. Arrives as file:// URLs, on a
+            // cold launch possibly before the webview is up — external queues
+            // them for it.
+            #[cfg(desktop)]
+            if let tauri::RunEvent::Opened { urls } = &_event {
+                let paths: Vec<PathBuf> =
+                    urls.iter().filter_map(|u| u.to_file_path().ok()).collect();
+                external::queue_open(_app, paths);
             }
         });
 }

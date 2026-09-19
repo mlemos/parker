@@ -27,6 +27,7 @@ export interface LayoutHandlers {
   onTabDragEnd: () => void;
   onCloseGroup: (groupId: string) => void;
   onResolveConflict: (name: string, take: "disk" | "mine") => void;
+  onReveal: (name: string) => void;
   onResize: (splitId: string, index: number, delta: number) => void;
   onEqualize: (splitId: string, index: number) => void;
 }
@@ -39,6 +40,7 @@ interface Common {
   wrapOn: boolean;
   width: TextWidth;
   renamingName: string | null;
+  homeDir: string;
   multiGroup: boolean;
   altHeld: boolean;
   dragging: boolean;
@@ -70,6 +72,7 @@ export function LayoutView({
       onTabDragEnd: common.h.onTabDragEnd,
       onCloseGroup: () => common.h.onCloseGroup(g.id),
       onResolveConflict: common.h.onResolveConflict,
+      onReveal: common.h.onReveal,
     };
     return (
       <EditorGroup
@@ -84,6 +87,7 @@ export function LayoutView({
         wrapOn={common.wrapOn}
         width={common.width}
         renamingName={common.renamingName}
+        homeDir={common.homeDir}
         cb={cb}
       />
     );
