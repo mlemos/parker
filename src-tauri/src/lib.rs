@@ -492,6 +492,26 @@ fn save_session(session: Session) -> Result<(), String> {
     Ok(())
 }
 
+/// One line into changes.jsonl in the config folder: every time a note is
+/// reloaded from disk or raised as a conflict, what the webview saw. This is
+/// how a "Parker says the file changed and I don't think it did" gets
+/// investigated with data — the log says which note, how the two texts
+/// differed, and whether Parker's own last write was in the picture.
+/// Rotated to .1 past a megabyte; best-effort, never an error to the caller.
+#[tauri::command]
+fn log_change(line: String) {
+    use std::io::Write;
+    let path = config_dir().join("changes.jsonl");
+    if let Ok(meta) = fs::metadata(&path) {
+        if meta.len() > 1_000_000 {
+            let _ = fs::rename(&path, path.with_extension("jsonl.1"));
+        }
+    }
+    if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(&path) {
+        let _ = writeln!(f, "{line}");
+    }
+}
+
 // ---- Settings commands ----------------------------------------------------
 
 #[derive(Serialize)]
@@ -1605,6 +1625,7 @@ pub fn run() {
             rename_note,
             load_session,
             save_session,
+            log_change,
             get_settings,
             set_shortcut,
             set_autostart,

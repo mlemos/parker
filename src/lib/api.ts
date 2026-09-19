@@ -87,6 +87,8 @@ export const api = {
     invoke<void>("rename_note", { from, to }),
   deleteNote: (name: string) => invoke<void>("delete_note", { name }),
   loadSession: () => invoke<Session>("load_session"),
+  /** Append one JSON line to changes.jsonl — the reload/conflict diary. */
+  logChange: (line: string) => invoke<void>("log_change", { line }),
   saveSession: (session: Session) => invoke<void>("save_session", { session }),
 
   getSettings: () => invoke<SettingsInfo>("get_settings"),
