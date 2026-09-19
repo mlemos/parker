@@ -22,8 +22,8 @@ export function displayName(name: string): string {
 /** A path in two parts for showing in one line: the tail is the last two
  *  segments — folder and file, the part that tells files apart — and the head
  *  is everything before it. A narrow label drops the *head* to an ellipsis
- *  and keeps the tail whole, so "/Users/me/Projects/…/repo/README.md" survives
- *  where a plain end-ellipsis left "/Users/me/Projects/parker/src-tauri/…". */
+ *  and keeps the tail whole, so "/Volumes/work/Projects/…/repo/README.md" survives
+ *  where a plain end-ellipsis left "/Volumes/work/Projects/parker/src-tauri/…". */
 export function splitPath(path: string): { head: string; tail: string } {
   const segs = path.split("/");
   if (segs.length <= 3) return { head: "", tail: path };
