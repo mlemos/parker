@@ -74,9 +74,9 @@ describe("NotePicker", () => {
     ]);
     setup();
     await listed(3);
-    expect(screen.getByText("2 KB")).toBeDefined();
-    expect(screen.getByText("12 B")).toBeDefined();
-    const empty = screen.getByText("empty");
+    expect(screen.getByText("2KB")).toBeDefined();
+    expect(screen.getByText("12B")).toBeDefined();
+    const empty = screen.getByText("Empty");
     expect(empty.className).toContain("empty");
   });
 
