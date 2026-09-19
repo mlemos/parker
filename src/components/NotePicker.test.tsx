@@ -19,6 +19,7 @@ const deleteNote = vi.mocked(api.deleteNote);
 const hit = (name: string, over: Partial<NoteHit> = {}): NoteHit => ({
   name,
   modified: Math.floor(Date.now() / 1000),
+  size: 42,
   in_name: true,
   snippet: null,
   ...over,
@@ -63,6 +64,20 @@ describe("NotePicker", () => {
     setup();
     await listed(3);
     expect(screen.getByText("alpha.md")).toBeDefined();
+  });
+
+  it("shows each note's size, and calls an empty one out", async () => {
+    searchNotes.mockResolvedValue([
+      hit("alpha.md", { size: 2300 }),
+      hit("beta.md", { size: 0 }),
+      hit("gamma.md", { size: 12 }),
+    ]);
+    setup();
+    await listed(3);
+    expect(screen.getByText("2 KB")).toBeDefined();
+    expect(screen.getByText("12 B")).toBeDefined();
+    const empty = screen.getByText("empty");
+    expect(empty.className).toContain("empty");
   });
 
   it("says so when nothing matches", async () => {
