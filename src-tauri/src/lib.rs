@@ -18,6 +18,8 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 
 mod external;
+#[cfg(target_os = "macos")]
+mod filedrop;
 mod monitor;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -1537,6 +1539,13 @@ pub fn run() {
                 // *current* desktop, not the Space it was created on.
                 #[cfg(target_os = "macos")]
                 follow_active_space(&win);
+                // A file dropped on the window opens like a double-click —
+                // filedrop.rs explains why this can't be Tauri's own handler.
+                #[cfg(target_os = "macos")]
+                {
+                    let handle = app.handle().clone();
+                    let _ = win.with_webview(move |wv| filedrop::install(&handle, wv.inner()));
+                }
             }
 
             #[cfg(desktop)]
