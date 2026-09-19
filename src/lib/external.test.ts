@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { displayName, isExternal } from "./external.ts";
+import { displayName, isExternal, splitPath } from "./external.ts";
 
 describe("isExternal", () => {
   it("is the leading slash", () => {
@@ -21,5 +21,24 @@ describe("displayName", () => {
   });
   it("leaves a note name alone", () => {
     expect(displayName("Inbox.md")).toBe("Inbox.md");
+  });
+});
+
+describe("splitPath", () => {
+  it("keeps folder and file whole in the tail", () => {
+    expect(splitPath("/Users/me/Projects/parker/README.md")).toEqual({
+      head: "/Users/me/Projects",
+      tail: "/parker/README.md",
+    });
+  });
+  it("works on the ~ form", () => {
+    expect(splitPath("~/Projects/repo/README.md")).toEqual({
+      head: "~/Projects",
+      tail: "/repo/README.md",
+    });
+  });
+  it("has no head to lose when the path is already short", () => {
+    expect(splitPath("~/README.md")).toEqual({ head: "", tail: "~/README.md" });
+    expect(splitPath("/a/b.md")).toEqual({ head: "", tail: "/a/b.md" });
   });
 });

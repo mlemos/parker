@@ -1622,11 +1622,24 @@ body.resizing {
 }
 .outside-path {
   opacity: 0.92;
+}
+
+/* A path that gives way in the middle: the head shrinks to an ellipsis, the
+   folder and file at the end stay whole. No measuring — flex does it. */
+.pathlabel {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+}
+.pathlabel-head {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* The end of a path is the part that tells files apart. */
-  direction: rtl;
-  text-align: left;
+}
+.pathlabel-tail {
+  flex: none;
 }
 .outside-btn {
   padding: 2px 9px;
@@ -1678,6 +1691,12 @@ body.resizing {
 }
 .status-spacer {
   flex: 1;
+}
+.status-file {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .status-dir {
   max-width: 40%;

@@ -14,7 +14,8 @@ import { listen, emit } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
 import { changedLines } from "./lib/linediff";
 import { prettyPath } from "./lib/path";
-import { isExternal } from "./lib/external";
+import { displayName, isExternal } from "./lib/external";
+import { PathLabel } from "./components/PathLabel";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import { textWidthOf } from "./lib/text-width";
 import type { TextWidth } from "./lib/text-width";
@@ -1055,7 +1056,9 @@ export default function App() {
             title="Search notes (Cmd+O)"
           >
             <Search className="search-icon" size={13} strokeWidth={2} aria-hidden="true" />
-            <span className="search-text">{activeName ?? "Search notes…"}</span>
+            <span className="search-text">
+              {activeName ? displayName(activeName) : "Search notes…"}
+            </span>
             <span className="search-kbd">⌘O</span>
           </button>
         </div>
@@ -1117,9 +1120,11 @@ export default function App() {
       </div>
 
       <div className="statusbar">
-        <span className="status-file">
-          {activeName ? (isExternal(activeName) ? prettyPath(activeName, homeDir) : activeName) : ""}
-        </span>
+        {activeName && isExternal(activeName) ? (
+          <PathLabel className="status-file" path={activeName} home={homeDir} />
+        ) : (
+          <span className="status-file">{activeName ?? ""}</span>
+        )}
         {reloaded.length > 0 && (
           <span
             className="status-reloaded"

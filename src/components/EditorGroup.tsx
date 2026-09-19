@@ -14,7 +14,7 @@ import {
 import { languageForName } from "../lib/lang";
 import { tabStatus } from "../lib/workspace";
 import { displayName, isExternal } from "../lib/external";
-import { prettyPath } from "../lib/path";
+import { PathLabel } from "./PathLabel";
 import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Group } from "../lib/layout";
 import { isMarkdown } from "../lib/markdown";
@@ -327,7 +327,7 @@ export function EditorGroup({
             title={`${activeBuf.name}  —  outside your notes folder: not backed up, not in search`}
           >
             <span className="outside-what">Outside your notes folder · not backed up</span>
-            <span className="outside-path">{prettyPath(activeBuf.name, homeDir)}</span>
+            <PathLabel className="outside-path" path={activeBuf.name} home={homeDir} />
           </span>
           <button className="outside-btn" onClick={() => cb.onReveal(activeBuf.name)}>
             Show in Finder
