@@ -4,11 +4,13 @@ import { invoke } from "@tauri-apps/api/core";
 export interface NoteMeta {
   name: string;
   modified: number;
+  size: number; // bytes
 }
 
 export interface NoteHit {
   name: string;
   modified: number;
+  size: number; // bytes
   in_name: boolean; // matched by filename
   snippet: string | null; // matching content line
 }

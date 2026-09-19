@@ -2195,6 +2195,18 @@ body.resizing {
   color: var(--muted);
   flex: none;
 }
+.picker-size {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.7;
+  flex: none;
+  min-width: 3.5em;
+  text-align: right;
+}
+.picker-size.empty {
+  color: var(--todo-attn);
+  opacity: 1;
+}
 /* Per-row "move to Trash" affordance — hidden until the row is hovered or
    selected so the list stays clean. */
 .picker-trash {

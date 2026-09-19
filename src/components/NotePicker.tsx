@@ -12,6 +12,13 @@ function relTime(secs: number): string {
   return `${Math.floor(d / 86400)}d ago`;
 }
 
+/** A file size the way the Finder says it: whole KB and MB, bytes below. */
+export function fmtSize(bytes: number): string {
+  if (bytes < 1000) return `${bytes} B`;
+  if (bytes < 1_000_000) return `${Math.round(bytes / 1000)} KB`;
+  return `${(bytes / 1_000_000).toFixed(1)} MB`;
+}
+
 // Highlight the first case-insensitive occurrence of `query` in `text`.
 function Highlight({ text, query }: { text: string; query: string }) {
   const q = query.trim();
@@ -195,6 +202,15 @@ export function NotePicker({
                 <>
                   {openNames.includes(n.name) && (
                     <span className="picker-open">open</span>
+                  )}
+                  {/* Quiet, next to the time — except an empty note, which
+                      is the one worth noticing in a list: it says so, in a
+                      colour, so a stray Untitled is caught here rather than
+                      opened to find out. */}
+                  {n.size === 0 ? (
+                    <span className="picker-size empty">empty</span>
+                  ) : (
+                    <span className="picker-size">{fmtSize(n.size)}</span>
                   )}
                   <span className="picker-time">{relTime(n.modified)}</span>
                   <button

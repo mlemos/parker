@@ -26,6 +26,7 @@ mod monitor;
 struct NoteMeta {
     name: String,
     modified: u64, // seconds since UNIX epoch, 0 if unknown
+    size: u64,     // bytes; 0 is how an empty note tells itself apart in a list
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -323,14 +324,15 @@ async fn list_notes() -> Result<Vec<NoteMeta>, String> {
         if !is_listed_note(&name) {
             continue;
         }
-        let modified = entry
-            .metadata()
-            .ok()
+        let meta = entry.metadata().ok();
+        let modified = meta
+            .as_ref()
             .and_then(|m| m.modified().ok())
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        notes.push(NoteMeta { name, modified });
+        let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+        notes.push(NoteMeta { name, modified, size });
     }
     notes.sort_by(|a, b| b.modified.cmp(&a.modified));
     Ok(notes)
@@ -340,6 +342,7 @@ async fn list_notes() -> Result<Vec<NoteMeta>, String> {
 struct NoteHit {
     name: String,
     modified: u64,
+    size: u64,
     in_name: bool,           // matched by filename
     snippet: Option<String>, // first matching content line (content matches)
 }
@@ -363,16 +366,17 @@ async fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
         if !is_listed_note(&name) {
             continue;
         }
-        let modified = entry
-            .metadata()
-            .ok()
+        let meta = entry.metadata().ok();
+        let modified = meta
+            .as_ref()
             .and_then(|m| m.modified().ok())
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs())
             .unwrap_or(0);
+        let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
 
         if q.is_empty() {
-            hits.push(NoteHit { name, modified, in_name: true, snippet: None });
+            hits.push(NoteHit { name, modified, size, in_name: true, snippet: None });
             continue;
         }
 
@@ -386,7 +390,7 @@ async fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
         });
 
         if in_name || snippet.is_some() {
-            hits.push(NoteHit { name, modified, in_name, snippet });
+            hits.push(NoteHit { name, modified, size, in_name, snippet });
         }
     }
     // Filename matches first, then most-recently-modified.
