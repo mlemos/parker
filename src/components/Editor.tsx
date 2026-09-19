@@ -20,6 +20,7 @@ import { textWidth } from "../lib/text-width";
 import type { TextWidth } from "../lib/text-width";
 import { todoHighlighter, todoKeymap } from "../lib/todo";
 import { setActiveView } from "../lib/latency";
+import { postCursor, postViewport } from "../lib/preview-sync";
 import type { ThemeDef } from "../lib/themes";
 
 /**
@@ -97,6 +98,31 @@ export function Editor({
   const changedRef = useRef(changed);
   changedRef.current = changed;
 
+  // Tell the side-by-side preview where we are. Coalesced to a frame: a
+  // keystroke is a doc change and a selection change, and a burst of them
+  // should post once.
+  const postFrame = useRef<number | null>(null);
+  const postPosition = (v: EditorView) => {
+    if (postFrame.current !== null) return;
+    postFrame.current = requestAnimationFrame(() => {
+      postFrame.current = null;
+      const name = loaded.current;
+      if (!name) return;
+      const sel = v.state.selection.main;
+      const doc = v.state.doc;
+      // Viewport first: the preview scrolls with it, then makes sure the
+      // cursor's block is in view.
+      const top = v.lineBlockAtHeight(v.scrollDOM.scrollTop);
+      postViewport({ name, top: doc.lineAt(top.from).number });
+      postCursor({
+        name,
+        line: doc.lineAt(sel.head).number,
+        from: doc.lineAt(sel.from).number,
+        to: doc.lineAt(sel.to).number,
+      });
+    });
+  };
+
   const compartments = useRef({
     theme: new Compartment(),
     wrap: new Compartment(),
@@ -151,6 +177,7 @@ export function Editor({
         changedLines,
         hybridSelection,
         EditorView.updateListener.of((u) => {
+          if (u.selectionSet || u.docChanged) postPosition(u.view);
           if (!u.docChanged) return;
           // A reload is not an edit. Reporting it back would mark the buffer
           // dirty, have autosave write the file it just read, and wipe the
@@ -189,7 +216,13 @@ export function Editor({
     emitted.current = contentRef.current;
     setActiveView(v);
     if (focused) v.focus();
+    // Scrolling is not a transaction; the preview hears about it here.
+    const onScroll = () => postPosition(v);
+    v.scrollDOM.addEventListener("scroll", onScroll, { passive: true });
+    postPosition(v);
     return () => {
+      v.scrollDOM.removeEventListener("scroll", onScroll);
+      if (postFrame.current !== null) cancelAnimationFrame(postFrame.current);
       v.destroy();
       view.current = null;
       loaded.current = null;
@@ -225,6 +258,7 @@ export function Editor({
     loaded.current = tab;
     emitted.current = contentRef.current;
     if (focused) v.focus();
+    postPosition(v);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -252,6 +286,10 @@ export function Editor({
     }
     v.dispatch({
       changes: { from: 0, to: current.length, insert: content },
+      // The caret stays put, by offset. Left to CodeMirror, a selection that
+      // was open when the text was replaced under it had its two ends mapped
+      // to the two ends of the replacement — the whole document, selected.
+      selection: { anchor: Math.min(v.state.selection.main.head, content.length) },
       // Not something the user typed — a reload from disk or another pane. It
       // must not be reported back as an edit, and must not become a step that
       // ⌘Z walks back into.

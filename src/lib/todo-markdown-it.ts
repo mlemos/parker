@@ -30,8 +30,9 @@ export function todoPlugin(md: MarkdownIt): void {
   md.renderer.rules.parker_todo_open = (tokens: Token[], i: number) => {
     const state = tokens[i].info;
     const priority = (tokens[i].meta as { priority?: number } | null)?.priority ?? 0;
+    // The line map's attribute rides along; nothing else is on the token.
     return (
-      `<div class="todo todo-${state.toLowerCase()}">` +
+      `<div class="todo todo-${state.toLowerCase()}"${md.renderer.renderAttrs(tokens[i])}>` +
       `<div class="todo-head">${todoBoxHtml(state, priority)}`
     );
   };

@@ -4,6 +4,7 @@ import {
   ListOrdered,
   WrapText,
   Palette,
+  Link2,
   Settings as SettingsIcon,
   CircleQuestionMark,
   RefreshCw,
@@ -94,6 +95,9 @@ export default function App() {
   // silently becoming an arrow is a surprise, not a feature.
   const [ligaturesOn, setLigaturesOn] = useState<boolean>(false);
   const [textWidth, setTextWidth] = useState<TextWidth>(100);
+  // The side-by-side preview follows the editor — cursor, selection, scroll
+  // and the amber marks. A global switch, like the gutter and wrapping.
+  const [previewSync, setPreviewSync] = useState<boolean>(true);
   // Until the saved toggles have been read, a flip must not be written back —
   // it would overwrite the file with the defaults before they were loaded.
   const prefsLoaded = useRef(false);
@@ -405,6 +409,7 @@ export default function App() {
         setWrapOn(s.editor_wrap);
         setLigaturesOn(s.editor_ligatures);
         setTextWidth(textWidthOf(s.editor_width));
+        setPreviewSync(s.preview_sync);
         prefsLoaded.current = true;
       })
       .catch(() => {});
@@ -472,6 +477,10 @@ export default function App() {
       .setEditorPrefs(gutterOn, wrapOn, ligaturesOn, textWidth)
       .catch(() => {});
   }, [gutterOn, wrapOn, ligaturesOn, textWidth]);
+  useEffect(() => {
+    if (!prefsLoaded.current) return;
+    api.setPreviewSync(previewSync).catch(() => {});
+  }, [previewSync]);
 
   // ---- Buffer / tab actions -----------------------------------------------
 
@@ -1130,6 +1139,15 @@ export default function App() {
             <WrapText size={16} strokeWidth={1.8} aria-hidden="true" />
           </button>
           <button
+            className={"icon-btn" + (previewSync ? " on" : "")}
+            onClick={() => setPreviewSync((v) => !v)}
+            title="Preview follows the editor — cursor, selection, scroll"
+            aria-label="Toggle preview sync"
+            aria-pressed={previewSync}
+          >
+            <Link2 size={16} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <button
             className="icon-btn"
             onClick={cycleTheme}
             onDoubleClick={() => setThemeId(DEFAULT_THEME_ID)}
@@ -1158,6 +1176,7 @@ export default function App() {
           gutterOn={gutterOn}
           wrapOn={wrapOn}
           width={textWidth}
+          previewSync={previewSync}
           renamingName={renamingName}
           homeDir={homeDir}
           multiGroup={multiGroup}

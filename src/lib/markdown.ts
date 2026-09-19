@@ -1,5 +1,6 @@
 import MarkdownIt from "markdown-it";
 import { todoPlugin } from "./todo-markdown-it";
+import { lineMapPlugin } from "./line-map";
 
 // html:false keeps raw HTML in notes from executing (renders as text);
 // markdown-it also validates link schemes, so javascript: links are dropped.
@@ -11,18 +12,21 @@ const md = new MarkdownIt({
 
 // To-do lines render as to-do items here too, not as the literal text "/DONE".
 md.use(todoPlugin);
+// Every block carries the source line it starts on, for the preview to follow.
+md.use(lineMapPlugin);
 
 // GFM-style task lists: markdown-it leaves "[ ]" / "[x]" as literal text, so
 // swap them for disabled checkboxes at the start of a list item.
+// The <li> and <p> carry the line map's attribute, which rides along.
 function taskLists(html: string): string {
   return html
     .replace(
-      /<li>\s*(<p>)?\[ \]\s?/g,
-      '<li class="task">$1<input type="checkbox" disabled> '
+      /<li([^>]*)>\s*(<p[^>]*>)?\[ \]\s?/g,
+      '<li class="task"$1>$2<input type="checkbox" disabled> '
     )
     .replace(
-      /<li>\s*(<p>)?\[[xX]\]\s?/g,
-      '<li class="task">$1<input type="checkbox" checked disabled> '
+      /<li([^>]*)>\s*(<p[^>]*>)?\[[xX]\]\s?/g,
+      '<li class="task"$1>$2<input type="checkbox" checked disabled> '
     );
 }
 
