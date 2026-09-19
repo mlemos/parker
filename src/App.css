@@ -1586,16 +1586,26 @@ body.resizing {
   font-weight: 600;
 }
 
-/* A file from outside the notes folder: a standing notice, not an alert —
-   it sits in the header's tone, and only the path is in the text colour. */
+/* A file from outside the notes folder. Loud on purpose: this is the one
+   place Parker writes somewhere other than your notes, and the band has to
+   be unmissable in a pane you've stopped looking at. A solid pink no other
+   surface uses — not the amber of a reload, not the purple of a conflict —
+   with the path in full on it. */
+:root {
+  --outside: #ec4899; /* pink-500 */
+  --outside-ink: #ffffff;
+}
+:root[data-mode="light"] {
+  --outside: #db2777; /* pink-600 */
+}
 .outside-bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 12px;
-  background: var(--header-bg);
-  border-bottom: 1px solid var(--border);
-  color: var(--muted);
+  padding: 7px 12px;
+  background: var(--outside);
+  border-bottom: 1px solid color-mix(in srgb, var(--outside) 70%, #000);
+  color: var(--outside-ink);
   font-size: 12px;
 }
 .outside-msg {
@@ -1607,14 +1617,32 @@ body.resizing {
 }
 .outside-what {
   flex: none;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 .outside-path {
-  color: var(--text);
+  opacity: 0.92;
   overflow: hidden;
   text-overflow: ellipsis;
   /* The end of a path is the part that tells files apart. */
   direction: rtl;
   text-align: left;
+}
+.outside-btn {
+  padding: 2px 9px;
+  border: 1px solid color-mix(in srgb, var(--outside-ink) 70%, transparent);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--outside-ink);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.outside-btn:hover {
+  background: color-mix(in srgb, var(--outside-ink) 18%, transparent);
+  border-color: var(--outside-ink);
 }
 
 .status-reloaded {

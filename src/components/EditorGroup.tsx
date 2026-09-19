@@ -329,7 +329,7 @@ export function EditorGroup({
             <span className="outside-what">Outside your notes folder · not backed up</span>
             <span className="outside-path">{prettyPath(activeBuf.name, homeDir)}</span>
           </span>
-          <button className="conflict-btn" onClick={() => cb.onReveal(activeBuf.name)}>
+          <button className="outside-btn" onClick={() => cb.onReveal(activeBuf.name)}>
             Show in Finder
           </button>
         </div>
