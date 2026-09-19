@@ -25,6 +25,7 @@ export interface LayoutHandlers {
   ) => void;
   onTabDragStart: () => void;
   onTabDragEnd: () => void;
+  onFileDragOver: (groupId: string, index?: number) => void;
   onCloseGroup: (groupId: string) => void;
   onResolveConflict: (name: string, take: "disk" | "mine") => void;
   onReveal: (name: string) => void;
@@ -44,6 +45,7 @@ interface Common {
   multiGroup: boolean;
   altHeld: boolean;
   dragging: boolean;
+  fileDragging: boolean;
   h: LayoutHandlers;
 }
 
@@ -70,6 +72,7 @@ export function LayoutView({
         common.h.onDropTab(source, g.id, toIndex),
       onTabDragStart: common.h.onTabDragStart,
       onTabDragEnd: common.h.onTabDragEnd,
+      onFileDragOver: (index) => common.h.onFileDragOver(g.id, index),
       onCloseGroup: () => common.h.onCloseGroup(g.id),
       onResolveConflict: common.h.onResolveConflict,
       onReveal: common.h.onReveal,
@@ -82,6 +85,7 @@ export function LayoutView({
         canClose={common.multiGroup}
         altHeld={common.altHeld}
         dragging={common.dragging}
+        fileDragging={common.fileDragging}
         theme={common.theme}
         gutterOn={common.gutterOn}
         wrapOn={common.wrapOn}

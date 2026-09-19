@@ -42,4 +42,8 @@ trash = "5"
 # Raw Obj-C messaging to tweak the NSWindow collection behavior (already in the
 # tree via Tauri) so summon follows the user to the active Space.
 objc2 = "0.6"
+# The pasteboard types and NSArray/NSString for reading a Finder drop (see
+# filedrop.rs); already in the tree via wry, same versions.
+objc2-app-kit = "0.3"
+objc2-foundation = "0.3"
 

@@ -216,6 +216,10 @@ body,
 .tabs.drop-end .tab-new {
   box-shadow: inset 2px 0 0 0 var(--accent);
 }
+.tabs.file.drop-end .tab-new,
+.tabs.file .tab.drag-over {
+  box-shadow: inset 2px 0 0 0 var(--outside);
+}
 
 .tab-name {
   overflow: hidden;
@@ -850,6 +854,11 @@ body.resizing {
    rather than "drop here". */
 .drop-catcher.active {
   box-shadow: inset 0 0 0 2px var(--accent);
+}
+/* A file from outside the notes folder: the ring is the colour of the band
+   it is about to get. */
+.drop-catcher.file.active {
+  box-shadow: inset 0 0 0 2px var(--outside);
 }
 
 /* Empty pane placeholder */

@@ -41,6 +41,7 @@ export interface GroupCallbacks {
   onDropTab: (source: { from: string; name: string }, toIndex: number) => void;
   onTabDragStart: () => void;
   onTabDragEnd: () => void;
+  onFileDragOver: (index?: number) => void;
   onCloseGroup: () => void;
   onResolveConflict: (name: string, take: "disk" | "mine") => void;
   onReveal: (name: string) => void;
@@ -53,6 +54,7 @@ export function EditorGroup({
   canClose,
   altHeld,
   dragging,
+  fileDragging,
   theme,
   gutterOn,
   wrapOn,
@@ -67,6 +69,7 @@ export function EditorGroup({
   canClose: boolean; // more than one group exists
   altHeld: boolean; // Option held → each action button shows its alternate
   dragging: boolean; // a tab is being dragged somewhere in the app
+  fileDragging: boolean; // a file from the Finder is over the window
   theme: ThemeDef;
   gutterOn: boolean;
   wrapOn: boolean;
@@ -110,14 +113,33 @@ export function EditorGroup({
       setDragIndex(null);
     }
   }, [dragging]);
+  // The file drop is taken natively, so no dragleave follows it: the ring
+  // goes when the app-wide flag does.
+  useEffect(() => {
+    if (!fileDragging) {
+      setDropActive(false);
+      setOverIndex(null);
+    }
+  }, [fileDragging]);
 
   return (
-    <div className={"egroup" + (focused ? " focused" : "")} onMouseDown={cb.onFocus}>
+    <div
+      className={"egroup" + (focused ? " focused" : "")}
+      onMouseDown={cb.onFocus}
+      // A file crossing this pane, wherever over it: this is where it opens
+      // if it is let go of here. The drop itself never reaches the DOM.
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) cb.onFileDragOver();
+      }}
+    >
       <div className="tabstrip">
         <div
           className={
             "tabs" +
-            (dragging && overIndex === group.tabs.length ? " drop-end" : "")
+            ((dragging || fileDragging) && overIndex === group.tabs.length
+              ? " drop-end"
+              : "") +
+            (fileDragging ? " file" : "")
           }
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes(TAB_MIME)) {
@@ -131,6 +153,13 @@ export function EditorGroup({
                 overIndex !== group.tabs.length
               )
                 setOverIndex(group.tabs.length);
+            } else if (e.dataTransfer.types.includes("Files")) {
+              // Over the strip past the tabs, a file goes on the end — the
+              // bar says so. The pane root, above, hears this too and records
+              // the pane.
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              if (overIndex !== group.tabs.length) setOverIndex(group.tabs.length);
             }
           }}
           onDragLeave={(e) => {
@@ -182,7 +211,7 @@ export function EditorGroup({
                   (i === dragIndex ? " dragging" : "") +
                   // App-wide `dragging` rather than this group's dragIndex, so
                   // a tab arriving from another pane also shows where it lands.
-                  (i === overIndex && dragging && dragIndex !== i
+                  (i === overIndex && (dragging || fileDragging) && dragIndex !== i
                     ? " drag-over"
                     : "")
                 }
@@ -199,11 +228,14 @@ export function EditorGroup({
                   cb.onTabDragStart();
                 }}
                 onDragOver={(e) => {
-                  if (!e.dataTransfer.types.includes(TAB_MIME)) return;
+                  const tab = e.dataTransfer.types.includes(TAB_MIME);
+                  if (!tab && !e.dataTransfer.types.includes("Files")) return;
                   e.preventDefault();
                   e.stopPropagation();
-                  e.dataTransfer.dropEffect = "move";
+                  e.dataTransfer.dropEffect = tab ? "move" : "copy";
                   if (overIndex !== i) setOverIndex(i);
+                  // A file takes this tab's place, as a dragged tab would.
+                  if (!tab) cb.onFileDragOver(i);
                 }}
                 onDrop={(e) => {
                   const raw = e.dataTransfer.getData(TAB_MIME);
@@ -391,18 +423,25 @@ export function EditorGroup({
             </div>
           </div>
         )}
-        {/* While a tab is being dragged, a full-body catcher sits above the
-            editor so the tab can be dropped anywhere on the pane. */}
-        {dragging && (
+        {/* While a tab — or a file from the Finder — is being dragged, a
+            full-body catcher sits above the editor so it can be dropped
+            anywhere on the pane. For a file it is also what keeps WebKit from
+            showing an insertion caret in the editor underneath. */}
+        {(dragging || fileDragging) && (
           <div
-            className={"drop-catcher" + (dropActive ? " active" : "")}
+            className={
+              "drop-catcher" +
+              (dropActive ? " active" : "") +
+              (fileDragging ? " file" : "")
+            }
             // Last resort: if a catcher ever outlives its drag, clicking the
             // editor dismisses it instead of leaving the pane unresponsive.
             onMouseDown={cb.onTabDragEnd}
             onDragOver={(e) => {
-              if (!e.dataTransfer.types.includes(TAB_MIME)) return;
+              const tab = e.dataTransfer.types.includes(TAB_MIME);
+              if (!tab && !e.dataTransfer.types.includes("Files")) return;
               e.preventDefault();
-              e.dataTransfer.dropEffect = "move";
+              e.dataTransfer.dropEffect = tab ? "move" : "copy";
               if (!dropActive) setDropActive(true);
             }}
             onDragLeave={() => setDropActive(false)}

@@ -100,6 +100,13 @@ export default function App() {
   // True while a tab is being dragged — lets every pane show a full-body drop
   // zone (above the editor) so a tab can be dropped anywhere on a pane.
   const [tabDragging, setTabDragging] = useState(false);
+  // True while a file from the Finder is being dragged over the window. The
+  // panes show the same drop ring as for a tab, in the outside-folder colour,
+  // and the last pane the file crossed is where it opens.
+  const [fileDragging, setFileDragging] = useState(false);
+  // Where it is: the pane, and the tab it is over if any — the file takes
+  // that tab's place in the strip, as a dragged tab would.
+  const fileDrop = useRef<{ group: string; index?: number } | null>(null);
 
   // Mirror state into a ref so global handlers never read stale values.
   const stateRef = useRef({ buffers, layout, focusedId, themeId });
@@ -647,11 +654,12 @@ export default function App() {
     setThemeId((id) => nextThemeId(id));
   }, []);
 
-  // Open a note in the focused group (loading it if not already a buffer).
+  // Open a note in the focused group — or a given one — loading it if not
+  // already a buffer.
   const openNote = useCallback(
-    async (name: string) => {
+    async (name: string, groupId?: string) => {
       const s = stateRef.current;
-      const gid = s.focusedId;
+      const gid = groupId && findGroup(s.layout, groupId) ? groupId : s.focusedId;
       const loaded = s.buffers.find((b) => b.name === name);
       let buffer = loaded;
       if (!buffer) {
@@ -686,6 +694,12 @@ export default function App() {
         window.setTimeout(drain, 250);
         return;
       }
+      // A drop lands in the pane it was dropped on, at the tab it was dropped
+      // on; anything else (Finder double-click, Open…) goes to the focused
+      // pane, at the end.
+      const at = fileDrop.current;
+      fileDrop.current = null;
+      setFileDragging(false);
       let names: string[];
       try {
         names = await api.takeOpenedFiles();
@@ -693,9 +707,15 @@ export default function App() {
         return;
       }
       // One after the other, so the last one asked for ends up in front.
+      let index = at?.index;
       for (const name of names) {
         if (!alive) return;
-        await openNote(name);
+        await openNote(name, at?.group);
+        if (at && index !== undefined) {
+          const gid = at.group;
+          const i = index++;
+          apply((w) => ws.dropTab(w, { from: gid, name }, gid, i));
+        }
       }
     };
     const p = listen("parker://files-opened", () => drain());
@@ -704,7 +724,7 @@ export default function App() {
       alive = false;
       p.then((un) => un());
     };
-  }, [ready, openNote]);
+  }, [ready, openNote, apply]);
 
   // A note was moved to Trash from the picker: drop its buffer, cancel any
   // pending autosave (so it isn't recreated), and remove it from every pane.
@@ -887,6 +907,30 @@ export default function App() {
     };
   }, []);
 
+  // A file from the Finder. The DOM sees it come and go (dragenter, dragover,
+  // dragleave) but never the drop: that is taken on the native side before
+  // WebKit can navigate to the file, and comes back as `parker://files-opened`
+  // — which is where the flag is cleared on a successful drop. Leaving the
+  // window clears it too; there is no dragend for a drag the OS started.
+  useEffect(() => {
+    const isFile = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+    const enter = (e: DragEvent) => {
+      if (isFile(e)) setFileDragging(true);
+    };
+    const leave = (e: DragEvent) => {
+      if (isFile(e) && e.relatedTarget === null) {
+        setFileDragging(false);
+        fileDrop.current = null;
+      }
+    };
+    window.addEventListener("dragenter", enter);
+    window.addEventListener("dragleave", leave);
+    return () => {
+      window.removeEventListener("dragenter", enter);
+      window.removeEventListener("dragleave", leave);
+    };
+  }, []);
+
   // Track Option so the pane buttons can flip to "merge" while it's held.
   useEffect(() => {
     const sync = (e: KeyboardEvent) => setAltHeld(e.altKey);
@@ -1037,7 +1081,13 @@ export default function App() {
     onPreviewToSide: previewToSide,
     onDropTab: dropTab,
     onTabDragStart: () => setTabDragging(true),
-    onTabDragEnd: () => setTabDragging(false),
+    onTabDragEnd: () => {
+      setTabDragging(false);
+      setFileDragging(false);
+    },
+    onFileDragOver: (group, index) => {
+      fileDrop.current = { group, index };
+    },
     onCloseGroup: closeGroup,
     onResolveConflict: resolveConflict,
     onReveal: (name) => api.revealFile(name).catch((e) => console.error("reveal failed", e)),
@@ -1115,6 +1165,7 @@ export default function App() {
           multiGroup={multiGroup}
           altHeld={altHeld}
           dragging={tabDragging}
+          fileDragging={fileDragging}
           h={handlers}
         />
       </div>
