@@ -3,7 +3,7 @@ import { displayName, isExternal, splitPath } from "./external.ts";
 
 describe("isExternal", () => {
   it("is the leading slash", () => {
-    expect(isExternal("/Users/me/repo/README.md")).toBe(true);
+    expect(isExternal("/Volumes/work/repo/README.md")).toBe(true);
     expect(isExternal("README.md")).toBe(false);
     expect(isExternal("a/b.md")).toBe(false); // never a note name, never a path
   });
@@ -16,7 +16,7 @@ describe("isExternal", () => {
 
 describe("displayName", () => {
   it("shows the filename of a path", () => {
-    expect(displayName("/Users/me/repo/README.md")).toBe("README.md");
+    expect(displayName("/Volumes/work/repo/README.md")).toBe("README.md");
     expect(displayName("/notes.md")).toBe("notes.md");
   });
   it("leaves a note name alone", () => {
@@ -26,8 +26,8 @@ describe("displayName", () => {
 
 describe("splitPath", () => {
   it("keeps folder and file whole in the tail", () => {
-    expect(splitPath("/Users/me/Projects/parker/README.md")).toEqual({
-      head: "/Users/me/Projects",
+    expect(splitPath("/Volumes/work/Projects/parker/README.md")).toEqual({
+      head: "/Volumes/work/Projects",
       tail: "/parker/README.md",
     });
   });
