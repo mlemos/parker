@@ -417,8 +417,12 @@ export function EditorGroup({
               <button className="empty-btn" onClick={cb.onNewTab}>
                 New note
               </button>
+              {/* There is no tab to drop when no pane has one — then the
+                  only thing that can be dropped here is a file. */}
               <div className="empty-hint">
-                ⌘N new · ⌘O open · or drop a tab here
+                {buffers.length > 0
+                  ? "⌘N new · ⌘O open · or drop a tab or a file here"
+                  : "⌘N new · ⌘O open · or drop a file here"}
               </div>
             </div>
           </div>
