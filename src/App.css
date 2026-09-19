@@ -1003,6 +1003,28 @@ body.resizing {
   background: var(--editor-bg);
   color: var(--editor-fg);
 }
+/* The preview following the editor: the cursor's block lit like the current
+   line, the selection's blocks like a selection, and the lines a reload
+   rewrote in the editor's amber. Painted as a left band plus a tint — a block
+   in the preview is taller than a line in the editor, so a fill alone reads
+   as a card. */
+.md-preview.synced .md-cursor {
+  background: var(--current-line);
+  box-shadow: -8px 0 0 0 var(--current-line), 8px 0 0 0 var(--current-line);
+}
+.md-preview.synced .md-selected {
+  background: var(--selection);
+  box-shadow: -8px 0 0 0 var(--selection), 8px 0 0 0 var(--selection);
+}
+.md-body .md-changed {
+  background: color-mix(in srgb, var(--todo-attn) 13%, transparent);
+  box-shadow: -8px 0 0 0 color-mix(in srgb, var(--todo-attn) 13%, transparent),
+    8px 0 0 0 color-mix(in srgb, var(--todo-attn) 13%, transparent);
+}
+.md-preview.synced .md-changed.md-cursor {
+  background: color-mix(in srgb, var(--todo-attn) 26%, transparent);
+}
+
 .md-body {
   max-width: 820px;
   margin: 0 auto;

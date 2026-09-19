@@ -59,6 +59,7 @@ export function EditorGroup({
   gutterOn,
   wrapOn,
   width,
+  previewSync,
   renamingName,
   homeDir,
   cb,
@@ -74,6 +75,7 @@ export function EditorGroup({
   gutterOn: boolean;
   wrapOn: boolean;
   width: TextWidth;
+  previewSync: boolean; // the preview follows the editor
   renamingName: string | null;
   homeDir: string; // for showing an outside file's path as ~/…
   cb: GroupCallbacks;
@@ -395,7 +397,12 @@ export function EditorGroup({
 
       <div className="editor-wrap">
         {activeBuf && showPreview ? (
-          <MarkdownPreview content={previewContent} />
+          <MarkdownPreview
+            content={previewContent}
+            name={activeBuf.name}
+            changed={activeBuf.changed}
+            sync={previewSync}
+          />
         ) : activeBuf ? (
           <Editor
             tab={activeBuf.name}

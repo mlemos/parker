@@ -39,6 +39,8 @@ export interface SettingsInfo {
   editor_ligatures: boolean;
   /** Measure in columns; 0 = the window's width. */
   editor_width: number;
+  /** The side-by-side preview follows the editor. */
+  preview_sync: boolean;
 }
 
 export interface GitFileChange {
@@ -109,6 +111,8 @@ export const api = {
     ligatures: boolean,
     width: number
   ) => invoke<void>("set_editor_prefs", { gutter, wrap, ligatures, width }),
+  setPreviewSync: (enabled: boolean) =>
+    invoke<void>("set_preview_sync", { enabled }),
   gitStatus: () => invoke<GitStatus>("git_status"),
   gitLog: (limit?: number) => invoke<GitLogEntry[]>("git_log", { limit }),
   gitCommit: (message: string, push: boolean) =>

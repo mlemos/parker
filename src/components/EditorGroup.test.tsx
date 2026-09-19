@@ -58,6 +58,7 @@ function setup(tabs: string[], active: string, extra: Partial<Buffer>[] = []) {
       gutterOn={false}
       wrapOn
       width={100}
+      previewSync
       renamingName={null}
       homeDir="/Volumes/work"
       cb={cb}
@@ -117,6 +118,7 @@ describe("the empty pane", () => {
         gutterOn={false}
         wrapOn
         width={100}
+        previewSync
         renamingName={null}
         homeDir=""
         cb={cb}

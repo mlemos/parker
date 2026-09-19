@@ -111,7 +111,7 @@ describe("what the preview leaves alone", () => {
 
   it("leaves a tag inside a fenced code block as code", () => {
     const out = html("```\n/TODO inside a fence\n```");
-    expect(out).toContain("<code>");
+    expect(out).toMatch(/<code[^>]*>/);
     expect(out).toContain("/TODO inside a fence");
     expect(out).not.toContain("cm-todo-box");
   });

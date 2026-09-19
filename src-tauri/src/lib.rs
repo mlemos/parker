@@ -77,6 +77,10 @@ struct Settings {
     /// order rather than opening the line to the full width.
     #[serde(default = "hundred")]
     editor_width: u32,
+    /// The side-by-side preview follows the editor: cursor, selection,
+    /// scroll and the amber marks. On unless turned off.
+    #[serde(default = "yes")]
+    preview_sync: bool,
 }
 
 /// serde default for `zoom` — a missing value means "no zoom", not 0×.
@@ -112,6 +116,7 @@ impl Default for Settings {
             editor_wrap: true,
             editor_ligatures: false,
             editor_width: 100,
+            preview_sync: true,
         }
     }
 }
@@ -527,6 +532,7 @@ struct SettingsInfo {
     editor_wrap: bool,
     editor_ligatures: bool,
     editor_width: u32,
+    preview_sync: bool,
 }
 
 #[tauri::command]
@@ -544,6 +550,7 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
         editor_gutter: s.editor_gutter,
         editor_wrap: s.editor_wrap,
         editor_ligatures: s.editor_ligatures,
+        preview_sync: s.preview_sync,
         editor_width: s.editor_width,
     }
 }
@@ -557,6 +564,13 @@ fn set_editor_prefs(gutter: bool, wrap: bool, ligatures: bool, width: u32) -> Re
     s.editor_wrap = wrap;
     s.editor_ligatures = ligatures;
     s.editor_width = width;
+    write_settings(&s)
+}
+
+#[tauri::command]
+fn set_preview_sync(enabled: bool) -> Result<(), String> {
+    let mut s = load_settings();
+    s.preview_sync = enabled;
     write_settings(&s)
 }
 
@@ -1633,6 +1647,7 @@ pub fn run() {
             set_git_sync_interval,
             set_zoom,
             set_editor_prefs,
+            set_preview_sync,
             open_help,
             git_status,
             git_commit,
@@ -1777,6 +1792,7 @@ mod tests {
             editor_wrap: false,
             editor_ligatures: true,
             editor_width: 80,
+            preview_sync: false,
         };
         let back: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
         assert_eq!(back.notes_dir, s.notes_dir);
@@ -1788,6 +1804,17 @@ mod tests {
         assert_eq!(back.editor_wrap, s.editor_wrap);
         assert_eq!(back.editor_ligatures, s.editor_ligatures);
         assert_eq!(back.editor_width, s.editor_width);
+        assert_eq!(back.preview_sync, s.preview_sync);
+    }
+
+    // The preview toggle arrived after 1.2.1; a settings file without it means
+    // the preview follows the editor, as it will for everyone by default.
+    #[test]
+    fn a_settings_file_without_preview_sync_follows_the_editor() {
+        let s: Settings = serde_json::from_str(r#"{"zoom":1.0}"#).unwrap();
+        assert!(s.preview_sync);
+        let off: Settings = serde_json::from_str(r#"{"preview_sync":false}"#).unwrap();
+        assert!(!off.preview_sync);
     }
 
     // The editor toggles arrived in 1.0.2. A settings file from before then has

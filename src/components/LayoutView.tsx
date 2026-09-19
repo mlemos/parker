@@ -40,6 +40,7 @@ interface Common {
   gutterOn: boolean;
   wrapOn: boolean;
   width: TextWidth;
+  previewSync: boolean;
   renamingName: string | null;
   homeDir: string;
   multiGroup: boolean;
@@ -90,6 +91,7 @@ export function LayoutView({
         gutterOn={common.gutterOn}
         wrapOn={common.wrapOn}
         width={common.width}
+        previewSync={common.previewSync}
         renamingName={common.renamingName}
         homeDir={common.homeDir}
         cb={cb}
