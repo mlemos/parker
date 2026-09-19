@@ -87,3 +87,41 @@ const changedGutterField = StateField.define<RangeSet<GutterMarker>>({
 });
 
 export const changedLines = [changedLinesField, changedGutterField];
+
+// ---- The diary --------------------------------------------------------------
+// What to write down when a note is reloaded or raised as a conflict, so a
+// "Parker says it changed and it didn't" can be looked at afterwards with the
+// facts: how the two texts differed, and whether Parker's own last write was
+// in the picture. Pure; App hands it to log_change.
+
+export interface ChangeRecord {
+  name: string;
+  verdict: "reload" | "conflict";
+  /** Length of the buffer's baseline (what Parker last saw in the file). */
+  baseline: number;
+  /** Length of what is in the file now. */
+  disk: number;
+  /** Length of the buffer, when it differs from the baseline (unsaved typing). */
+  buffer?: number;
+  /** The 1-based lines that differ, as the amber marks will show them. */
+  lines: number[];
+  /** True when the two texts are the same once whitespace is ignored — a
+   *  trailing newline, CRLF, trailing spaces: a tool's fingerprint, not an
+   *  edit. */
+  whitespaceOnly: boolean;
+  /** Parker's own last write of this note: its sequence number, and whether
+   *  its text is what the file holds now (which should have made this an own
+   *  write, not a change). */
+  ownSeq: number;
+  ownMatches: boolean;
+}
+
+export function whitespaceOnly(a: string, b: string): boolean {
+  if (a === b) return false;
+  const squash = (s: string) => s.replace(/\s+/g, "");
+  return squash(a) === squash(b);
+}
+
+export function changeRecord(r: ChangeRecord): string {
+  return JSON.stringify({ ts: new Date().toISOString(), ...r });
+}

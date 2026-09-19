@@ -50,10 +50,47 @@ describe("changedLines", () => {
     for (const n of marks) expect(n).toBeLessThanOrEqual(2);
   });
 
-  it("is coarse between two distant edits, and says so honestly", () => {
-    // Both ends changed; everything between is marked. Documented, not a bug.
-    expect(changedLines(doc("a", "b", "c", "d"), doc("A", "b", "c", "D"))).toEqual([
-      1, 2, 3, 4,
-    ]);
+  it("marks two distant edits as two places, not everything between", () => {
+    // This used to paint all four: a to-do checked on the phone painted a
+    // page amber, which read as "everything changed" in a note where one
+    // line did.
+    expect(changedLines(doc("a", "b", "c", "d"), doc("A", "b", "c", "D"))).toEqual([1, 4]);
+  });
+
+  it("marks one checked to-do among many lines, and only it", () => {
+    const before = doc("# Day", "", "/TODO milk", "/TODO eggs", "/TODO bread", "", "notes");
+    const after = doc("# Day", "", "/TODO milk", "/DONE eggs", "/TODO bread", "", "notes");
+    expect(changedLines(before, after)).toEqual([4]);
+  });
+
+  it("marks an insertion and a rewrite far apart, separately", () => {
+    const before = doc("a", "b", "c", "d", "e", "f");
+    const after = doc("a", "b", "NEW", "c", "d", "E", "f");
+    expect(changedLines(before, after)).toEqual([3, 6]);
+  });
+
+  it("marks a deletion in the middle at its junction, and a rewrite elsewhere", () => {
+    // "c" removed — the junction is the line before the gap, "b", as for a
+    // deletion at the end — and "f" rewritten.
+    const before = doc("a", "b", "c", "d", "e", "f");
+    const after = doc("a", "b", "d", "e", "F");
+    expect(changedLines(before, after)).toEqual([2, 5]);
+  });
+
+  it("does not pair lines across a rewrite just because they repeat", () => {
+    // Blank lines are everywhere; a rewrite between two of them must not be
+    // read as "the blank moved".
+    const before = doc("a", "", "b", "", "c");
+    const after = doc("a", "", "B", "", "c");
+    expect(changedLines(before, after)).toEqual([3]);
+  });
+
+  it("falls back to the span when the middle is too big to align", () => {
+    const n = 2500; // 2500² > the cell budget
+    const before = Array.from({ length: n }, (_, i) => `x${i}`).join("\n");
+    const after = Array.from({ length: n }, (_, i) => `y${i}`).join("\n");
+    const marks = changedLines(before, after);
+    expect(marks.length).toBe(n);
+    expect(marks[0]).toBe(1);
   });
 });

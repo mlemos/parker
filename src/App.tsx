@@ -13,6 +13,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen, emit } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
 import { changedLines } from "./lib/linediff";
+import { changeRecord, whitespaceOnly } from "./lib/external-change";
 import { prettyPath } from "./lib/path";
 import { displayName, droppedExternals, isExternal } from "./lib/external";
 import { isFirstLaunch } from "./lib/session";
@@ -999,6 +1000,25 @@ export default function App() {
       if (ws.isOwnWrite(lastWrite.current.get(name), disk, seqAtRead)) return;
       const verdict = ws.classifyDiskChange(now, disk);
       if (verdict === "nothing") return;
+      // The diary: what was seen, for when the change is doubted afterwards.
+      {
+        const own = lastWrite.current.get(name);
+        api
+          .logChange(
+            changeRecord({
+              name,
+              verdict,
+              baseline: now.disk.length,
+              disk: disk.length,
+              buffer: now.content !== now.disk ? now.content.length : undefined,
+              lines: changedLines(now.disk, disk),
+              whitespaceOnly: whitespaceOnly(now.disk, disk),
+              ownSeq: own?.seq ?? 0,
+              ownMatches: own?.text === disk,
+            })
+          )
+          .catch(() => {});
+      }
       if (verdict === "conflict") {
         // Two versions exist and only the user can choose. Parker used to keep
         // theirs in silence and let autosave write it over the other one —
