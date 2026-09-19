@@ -282,14 +282,19 @@ export default function App() {
             // deleted/renamed outside the app — skip it
           }
         }
-        if (restored.length === 0) {
+        // A first launch gets a note to type into. A session that merely has
+        // nothing open — the last tab was closed, or every note it listed is
+        // gone — comes back as the empty pane it was; making a note here is
+        // how Untitled files used to pile up on every launch.
+        const firstLaunch = !session.layout && (session.open ?? []).length === 0;
+        if (restored.length === 0 && firstLaunch) {
           const name = await api.createNote("md");
           restored.push({ name, content: "", disk: "", dirty: false });
         }
         const active =
           session.active && restored.some((b) => b.name === session.active)
             ? session.active
-            : restored[0].name;
+            : restored[0]?.name ?? null;
 
         // Restore the split layout if we saved one and it still holds notes;
         // otherwise fall back to a single pane with the open notes.
@@ -523,28 +528,7 @@ export default function App() {
   const closeTab = useCallback(
     async (groupId: string, name: string) => {
       await flushSave(name);
-      const s = stateRef.current;
-      // Ask the state machine what this close would do before doing it: if it
-      // empties the only pane there has to be something left to edit, and
-      // creating that note is the one part that touches disk. Doing it up
-      // front keeps the whole close a single update — closing first and
-      // filling in after would paint an empty pane in between.
-      const { needsNote } = ws.closeTab(s, groupId, name);
-      let fresh: string | null = null;
-      if (needsNote) {
-        try {
-          fresh = await api.createNote("md");
-        } catch (e) {
-          console.error("close tab failed", e);
-          return;
-        }
-      }
-      const after = apply((w) => {
-        const { workspace, needsNote: empty } = ws.closeTab(w, groupId, name);
-        return empty && fresh
-          ? ws.openNote(workspace, groupId, { name: fresh, content: "", disk: "", dirty: false })
-          : workspace;
-      });
+      const after = apply((w) => ws.closeTab(w, groupId, name));
       // The echo record outlives the buffer otherwise, holding a copy of a note
       // nothing has open any more.
       if (!after.buffers.some((b) => b.name === name)) lastWrite.current.delete(name);
