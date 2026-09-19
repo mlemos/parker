@@ -1639,22 +1639,20 @@ body.resizing {
   color: var(--outside-ink);
   font-size: 12px;
 }
-.outside-msg {
-  flex: 1;
-  display: flex;
-  gap: 10px;
-  min-width: 0;
-  white-space: nowrap;
-}
-.outside-what {
-  flex: none;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
 .outside-path {
+  flex: 1;
+  min-width: 0;
   opacity: 0.92;
 }
-
+/* In this bar the path is the only thing that may give: the head goes first,
+   down to nothing, and only a pane too narrow even for "folder/file" cuts
+   the tail — which does not shrink, but is capped at the line. */
+.outside-path .pathlabel-tail {
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 /* A path that gives way in the middle: the head shrinks to an ellipsis, the
    folder and file at the end stay whole. No measuring — flex does it. */
 .pathlabel {
@@ -1672,15 +1670,22 @@ body.resizing {
 .pathlabel-tail {
   flex: none;
 }
+/* The label is the button: "External", with the folder, takes you to the file. */
 .outside-btn {
-  padding: 2px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px 0 6px;
+  flex: none;
   border: 1px solid color-mix(in srgb, var(--outside-ink) 70%, transparent);
   border-radius: 5px;
   background: transparent;
   color: var(--outside-ink);
   font: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   white-space: nowrap;
   cursor: pointer;
 }
