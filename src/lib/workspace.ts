@@ -261,21 +261,15 @@ export function openNote(
   };
 }
 
-export interface CloseTabResult {
-  workspace: Workspace;
-  /** The last tab of the only pane just closed. There has to be something to
-   *  edit, and only the caller can create a note — it does, then calls
-   *  openNote with it. */
-  needsNote: boolean;
-}
-
-export function closeTab(
-  ws: Workspace,
-  groupId: string,
-  name: string
-): CloseTabResult {
+/** Close a tab. The pane keeps its neighbours; a pane left with nothing
+ *  closes, unless it is the only one — then it simply stays empty. It used to
+ *  ask the caller for a fresh note instead, on the theory that there had to be
+ *  something to edit, and every close of the last tab left an Untitled file on
+ *  disk that nobody asked for. An empty pane is a fine place to be: it says
+ *  how to get a note, and does not make one. */
+export function closeTab(ws: Workspace, groupId: string, name: string): Workspace {
   const g = findGroup(ws.layout, groupId);
-  if (!g || !g.tabs.includes(name)) return { workspace: ws, needsNote: false };
+  if (!g || !g.tabs.includes(name)) return ws;
 
   const idx = g.tabs.indexOf(name);
   const remaining = g.tabs.filter((t) => t !== name);
@@ -284,32 +278,17 @@ export function closeTab(
   if (remaining.length > 0) {
     const active =
       g.active === name ? remaining[Math.min(idx, remaining.length - 1)] : g.active;
-    return {
-      workspace: withLayout(
-        ws,
-        updateGroup(ws.layout, groupId, { tabs: remaining, active })
-      ),
-      needsNote: false,
-    };
+    return withLayout(ws, updateGroup(ws.layout, groupId, { tabs: remaining, active }));
   }
 
-  // The pane is empty. The last one standing stays, and gets a fresh note.
+  // The pane is empty. The last one standing stays, empty.
   if (allGroups(ws.layout).length <= 1) {
-    return {
-      workspace: withLayout(
-        ws,
-        updateGroup(ws.layout, groupId, { tabs: [], active: null })
-      ),
-      needsNote: true,
-    };
+    return withLayout(ws, updateGroup(ws.layout, groupId, { tabs: [], active: null }));
   }
 
   // One of several panes: it goes.
   const layout = removeGroup(ws.layout, groupId)!;
-  return {
-    workspace: { ...withLayout(ws, layout), focusedId: firstGroup(layout).id },
-    needsNote: false,
-  };
+  return { ...withLayout(ws, layout), focusedId: firstGroup(layout).id };
 }
 
 /** Move the active tab within its pane. Clamped at the ends — it does not wrap,

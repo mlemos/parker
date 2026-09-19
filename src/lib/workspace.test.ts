@@ -154,26 +154,26 @@ describe("openNote", () => {
 describe("closeTab", () => {
   it("hands active to the tab that took its place", () => {
     const { w, g } = single();
-    const { workspace: out } = ws.closeTab(w, g.id, "a.md");
+    const out = ws.closeTab(w, g.id, "a.md");
     expect(tabsOf(out, g.id)).toEqual(["b.md", "c.md"]);
     expect(findGroup(out.layout, g.id)!.active).toBe("b.md");
   });
 
   it("falls back to the last tab when the closed one was last", () => {
     const { w, g } = single();
-    const { workspace: out } = ws.closeTab(ws.selectTab(w, g.id, "c.md"), g.id, "c.md");
+    const out = ws.closeTab(ws.selectTab(w, g.id, "c.md"), g.id, "c.md");
     expect(findGroup(out.layout, g.id)!.active).toBe("b.md");
   });
 
   it("leaves the active tab alone when a different one closes", () => {
     const { w, g } = single();
-    const { workspace: out } = ws.closeTab(w, g.id, "c.md");
+    const out = ws.closeTab(w, g.id, "c.md");
     expect(findGroup(out.layout, g.id)!.active).toBe("a.md");
   });
 
   it("forgets the buffer of the note it closed", () => {
     const { w, g } = single();
-    const { workspace: out } = ws.closeTab(w, g.id, "b.md");
+    const out = ws.closeTab(w, g.id, "b.md");
     expect(names(out)).toEqual(["a.md", "c.md"]);
   });
 
@@ -185,34 +185,34 @@ describe("closeTab", () => {
       layout: split("row", [left, right]),
       focusedId: left.id,
     };
-    const { workspace: out } = ws.closeTab(w, left.id, "a.md");
+    const out = ws.closeTab(w, left.id, "a.md");
     expect(names(out)).toEqual(["a.md"]);
   });
 
-  // The window must never end up with nothing to edit, and only the caller can
-  // create a note — so the machine asks for one instead of inventing it.
-  it("asks for a note when the only pane loses its last tab", () => {
+  // The only pane losing its last tab stays, empty. It used to demand a fresh
+  // note, and every such close left an Untitled file on disk.
+  it("leaves the only pane empty when it loses its last tab", () => {
     const g = makeGroup(["a.md"], "a.md");
     const w: Workspace = { buffers: [buf("a.md")], layout: g, focusedId: g.id };
     const r = ws.closeTab(w, g.id, "a.md");
-    expect(r.needsNote).toBe(true);
-    expect((r.workspace.layout as Group).tabs).toEqual([]);
-    expect(r.workspace.buffers).toEqual([]);
+    expect((r.layout as Group).tabs).toEqual([]);
+    expect((r.layout as Group).active).toBeNull();
+    expect(r.buffers).toEqual([]);
+    expect(r.focusedId).toBe(g.id);
   });
 
   it("closes the pane instead when there are others", () => {
     const { w, left, right } = pair();
     const r = ws.closeTab(w, right.id, "c.md");
-    expect(r.needsNote).toBe(false);
-    expect(allGroups(r.workspace.layout)).toHaveLength(1);
-    expect(r.workspace.focusedId).toBe(left.id);
-    expect(names(r.workspace)).toEqual(["a.md", "b.md"]);
+    expect(allGroups(r.layout)).toHaveLength(1);
+    expect(r.focusedId).toBe(left.id);
+    expect(names(r)).toEqual(["a.md", "b.md"]);
   });
 
   it("does nothing for a tab that isn't in the pane", () => {
     const { w, g } = single();
-    expect(ws.closeTab(w, g.id, "gone.md").workspace).toBe(w);
-    expect(ws.closeTab(w, "ghost", "a.md").workspace).toBe(w);
+    expect(ws.closeTab(w, g.id, "gone.md")).toBe(w);
+    expect(ws.closeTab(w, "ghost", "a.md")).toBe(w);
   });
 });
 
@@ -525,7 +525,7 @@ describe("a working session", () => {
     const { w, g } = single();
     let s: Workspace = w;
     s = ws.splitPane(s, g.id, "row");
-    s = ws.closeTab(s, s.focusedId, "a.md").workspace;
+    s = ws.closeTab(s, s.focusedId, "a.md");
     s = ws.closePane(s, s.focusedId);
     const open = new Set(allGroups(s.layout).flatMap((x) => x.tabs));
     expect(names(s).filter((n) => !open.has(n))).toEqual([]);
