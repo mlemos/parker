@@ -240,23 +240,14 @@ export function selectTab(ws: Workspace, groupId: string, id: string): Workspace
 
 /** Select no tab, keeping the view: the note in front stays on screen, the
  *  strip just stops marking it. A click on the strip's empty space does
- *  this, and a split from here is born empty instead of taking the tab. */
+ *  this, and a split from here is born empty instead of taking the tab.
+ *  Only selecting a tab ends it — not focus, not a click on the pane's
+ *  buttons: the split button is a click on the pane, and the gesture has
+ *  to survive exactly that click. */
 export function deselectTab(ws: Workspace, groupId: string): Workspace {
   return {
     ...ws,
     layout: updateGroup(ws.layout, groupId, { unselected: true }),
-    focusedId: groupId,
-  };
-}
-
-/** Focusing a pane — a click anywhere in it — makes its shown tab selected
- *  again; the empty-strip click is the one that comes after and undoes it. */
-export function focusGroupSelecting(ws: Workspace, groupId: string): Workspace {
-  const g = findGroup(ws.layout, groupId);
-  if (!g) return ws;
-  return {
-    ...ws,
-    layout: g.unselected ? updateGroup(ws.layout, groupId, { unselected: false }) : ws.layout,
     focusedId: groupId,
   };
 }
