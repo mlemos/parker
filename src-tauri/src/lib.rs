@@ -244,17 +244,20 @@ pub(crate) fn notes_dir() -> PathBuf {
     dir
 }
 
-/// Reject anything that isn't a plain filename living directly in notes_dir.
-/// The webview only ever addresses notes by bare name, so a separator, a
-/// "..", or a leading dot is not a note — it's an attempt to reach out of the
-/// notes folder, or to write a file the app then refuses to list.
+/// A note is named by its path relative to the notes folder — "note.md", or
+/// "backlogs/note.md" for one in a subfolder. Reject anything that could
+/// reach out of the folder, or name a file the app then refuses to list: a
+/// leading separator (absolute), a ".." segment, a segment starting with a
+/// dot, an empty segment ("a//b"), a backslash.
 fn validate_note_name(name: &str) -> Result<(), String> {
-    if name.is_empty()
-        || name.contains('/')
+    let bad = name.is_empty()
+        || name.starts_with('/')
+        || name.ends_with('/')
         || name.contains('\\')
-        || name.contains("..")
-        || name.starts_with('.')
-    {
+        || name
+            .split('/')
+            .any(|seg| seg.is_empty() || seg == ".." || seg.starts_with('.'));
+    if bad {
         return Err(format!("invalid note name: {name:?}"));
     }
     Ok(())
@@ -267,8 +270,50 @@ fn safe_note_path(name: &str) -> Result<PathBuf, String> {
 
 /// Whether a file in the notes folder is a note the app shows and syncs.
 /// Dotfiles are the OS's business, and .parker-tmp files are ours mid-write.
+/// `name` is the relative path; every segment is checked, so a file inside
+/// ".git" or ".obsidian" is not a note either.
 pub(crate) fn is_listed_note(name: &str) -> bool {
-    !name.starts_with('.') && !name.ends_with(".parker-tmp")
+    !name.ends_with(".parker-tmp") && !name.split('/').any(|seg| seg.starts_with('.'))
+}
+
+/// Every note in the folder, at any depth, as (relative name, path). Folders
+/// starting with a dot are not entered. Symlinked folders are not followed —
+/// a loop would never end, and a link out of the folder is out of the folder.
+fn walk_notes(dir: &PathBuf) -> Vec<(String, PathBuf)> {
+    let mut out = Vec::new();
+    let mut stack = vec![(String::new(), dir.clone())];
+    while let Some((prefix, d)) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&d) else { continue };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let Some(base) = path.file_name().and_then(|n| n.to_str()) else { continue };
+            if base.starts_with('.') {
+                continue;
+            }
+            let name = if prefix.is_empty() { base.to_string() } else { format!("{prefix}/{base}") };
+            let Ok(ft) = entry.file_type() else { continue };
+            if ft.is_dir() {
+                stack.push((name, path));
+            } else if ft.is_file() && is_listed_note(&name) {
+                out.push((name, path));
+            }
+        }
+    }
+    out
+}
+
+/// The name the webview knows a file by, if it lives in the notes folder —
+/// at any depth. None for anything outside, or for a file that is not a
+/// listed note (a dotfile, a temp file).
+pub(crate) fn note_name_of(path: &std::path::Path) -> Option<String> {
+    let notes = notes_dir();
+    let notes = notes.canonicalize().unwrap_or(notes);
+    let rel = path.strip_prefix(&notes).ok()?;
+    let name = rel.to_str()?.to_string();
+    if name.is_empty() || !is_listed_note(&name) || validate_note_name(&name).is_err() {
+        return None;
+    }
+    Some(name)
 }
 
 /// The scratch file `atomic_write` writes before renaming into place. Built
@@ -317,19 +362,8 @@ fn home_dir_path() -> String {
 async fn list_notes() -> Result<Vec<NoteMeta>, String> {
     let dir = notes_dir();
     let mut notes = Vec::new();
-    for entry in fs::read_dir(&dir).map_err(|e| e.to_string())?.flatten() {
-        let path = entry.path();
-        if !path.is_file() {
-            continue;
-        }
-        let name = match path.file_name().and_then(|n| n.to_str()) {
-            Some(n) => n.to_string(),
-            None => continue,
-        };
-        if !is_listed_note(&name) {
-            continue;
-        }
-        let meta = entry.metadata().ok();
+    for (name, path) in walk_notes(&dir) {
+        let meta = fs::metadata(&path).ok();
         let modified = meta
             .as_ref()
             .and_then(|m| m.modified().ok())
@@ -359,19 +393,8 @@ async fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
     let q = query.trim().to_lowercase();
     let dir = notes_dir();
     let mut hits = Vec::new();
-    for entry in fs::read_dir(&dir).map_err(|e| e.to_string())?.flatten() {
-        let path = entry.path();
-        if !path.is_file() {
-            continue;
-        }
-        let name = match path.file_name().and_then(|n| n.to_str()) {
-            Some(n) => n.to_string(),
-            None => continue,
-        };
-        if !is_listed_note(&name) {
-            continue;
-        }
-        let meta = entry.metadata().ok();
+    for (name, path) in walk_notes(&dir) {
+        let meta = fs::metadata(&path).ok();
         let modified = meta
             .as_ref()
             .and_then(|m| m.modified().ok())
@@ -412,6 +435,9 @@ async fn read_note(name: String) -> Result<String, String> {
 #[tauri::command]
 async fn write_note(name: String, content: String) -> Result<(), String> {
     let path = safe_note_path(&name)?;
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
     atomic_write(&path, &content)
 }
 
@@ -463,6 +489,10 @@ fn rename_note(from: String, to: String) -> Result<(), String> {
     let to_path = safe_note_path(&to)?;
     if to_path.exists() {
         return Err(format!("a note named {to:?} already exists"));
+    }
+    // "a/b.md" moves the note into a — made on the way if need be.
+    if let Some(parent) = to_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     fs::rename(&from_path, &to_path).map_err(|e| e.to_string())
 }
@@ -1129,21 +1159,13 @@ fn set_notes_dir(
         let old = old.canonicalize().unwrap_or(old);
         let target = new_dir.canonicalize().unwrap_or_else(|_| new_dir.clone());
         if old != target {
-            for entry in fs::read_dir(&old).map_err(|e| e.to_string())?.flatten() {
-                let p = entry.path();
-                if !p.is_file() {
-                    continue;
-                }
-                let name = match p.file_name().and_then(|n| n.to_str()) {
-                    Some(n) => n.to_string(),
-                    None => continue,
-                };
-                if !is_listed_note(&name) {
-                    continue;
-                }
+            for (name, p) in walk_notes(&old) {
                 let dest = target.join(&name);
                 if dest.exists() {
                     continue; // don't overwrite a note already in the new folder
+                }
+                if let Some(parent) = dest.parent() {
+                    let _ = fs::create_dir_all(parent);
                 }
                 // Prefer a rename; fall back to copy+remove across filesystems.
                 if fs::rename(&p, &dest).is_err() {
@@ -1456,8 +1478,9 @@ fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()>
 #[cfg(desktop)]
 struct NotesWatcher(std::sync::Mutex<Option<notify::RecommendedWatcher>>);
 
-/// Build a watcher over the *current* notes folder (non-recursive) that emits
-/// `parker://note-changed` with the file's basename on create/modify/remove.
+/// Build a watcher over the *current* notes folder, subfolders included, that
+/// emits `parker://note-changed` with the note's relative name on
+/// create/modify/remove.
 #[cfg(desktop)]
 fn build_notes_watcher(app: &tauri::AppHandle) -> Option<notify::RecommendedWatcher> {
     use notify::{EventKind, RecursiveMode, Watcher};
@@ -1474,13 +1497,10 @@ fn build_notes_watcher(app: &tauri::AppHandle) -> Option<notify::RecommendedWatc
                 return;
             }
             for path in event.paths {
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    // Skip our own autosave temp files and dotfiles — they'd
-                    // fire 2-4 spurious emissions per autosave otherwise.
-                    if !is_listed_note(name) {
-                        continue;
-                    }
-                    let _ = handle.emit("parker://note-changed", name.to_string());
+                // The relative name, or nothing: our own autosave temp files
+                // and dotfiles would fire 2-4 spurious emissions per save.
+                if let Some(name) = note_name_of(&path) {
+                    let _ = handle.emit("parker://note-changed", name);
                 }
             }
         },
@@ -1491,7 +1511,7 @@ fn build_notes_watcher(app: &tauri::AppHandle) -> Option<notify::RecommendedWatc
             return None;
         }
     };
-    if let Err(e) = watcher.watch(&notes_dir(), RecursiveMode::NonRecursive) {
+    if let Err(e) = watcher.watch(&notes_dir(), RecursiveMode::Recursive) {
         eprintln!("notes watcher: watch failed: {e}");
         return None;
     }
@@ -1750,6 +1770,38 @@ mod tests {
         assert!(!is_listed_note(a.file_name().unwrap().to_str().unwrap()));
     }
 
+    // ---- Walking the folder ------------------------------------------------
+
+    #[test]
+    fn walk_finds_notes_at_any_depth_and_skips_dot_folders_and_temp_files() {
+        let dir = scratch("walk");
+        fs::write(dir.join("top.md"), "").unwrap();
+        fs::create_dir_all(dir.join("backlogs/deeper")).unwrap();
+        fs::write(dir.join("backlogs/parker.md"), "").unwrap();
+        fs::write(dir.join("backlogs/deeper/x.txt"), "").unwrap();
+        fs::write(dir.join("backlogs/note.md.parker-tmp"), "").unwrap();
+        fs::create_dir_all(dir.join(".git/refs")).unwrap();
+        fs::write(dir.join(".git/HEAD"), "").unwrap();
+        fs::write(dir.join(".DS_Store"), "").unwrap();
+        let mut names: Vec<String> = walk_notes(&dir).into_iter().map(|(n, _)| n).collect();
+        names.sort();
+        assert_eq!(names, vec!["backlogs/deeper/x.txt", "backlogs/parker.md", "top.md"]);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn walk_does_not_follow_a_symlinked_folder() {
+        let dir = scratch("walk-link");
+        let outside = scratch("walk-outside");
+        fs::write(outside.join("secret.md"), "").unwrap();
+        std::os::unix::fs::symlink(&outside, dir.join("link")).unwrap();
+        fs::write(dir.join("mine.md"), "").unwrap();
+        let names: Vec<String> = walk_notes(&dir).into_iter().map(|(n, _)| n).collect();
+        assert_eq!(names, vec!["mine.md"]);
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::remove_dir_all(&outside);
+    }
+
     // ---- Settings & session ----------------------------------------------
 
     // The black-window bug: a derived Default gave zoom 0.0, load_settings()
@@ -1916,6 +1968,10 @@ mod tests {
             "日本語.md",
             "no-extension",
             "weird!@#$%^&()name.md",
+            // in a subfolder, any depth
+            "backlogs/parker.md",
+            "a/b/c/deep.md",
+            "a..b.md", // ".." inside a segment is just a name
         ] {
             assert!(validate_note_name(name).is_ok(), "{name:?} should be a valid note name");
         }
@@ -1930,13 +1986,16 @@ mod tests {
             "..",
             "../secret",
             "../../etc/passwd",
-            "sub/note.md",
             "/etc/passwd",
             "notes/../../etc/passwd",
+            "sub/../note.md",
             "sub\\note.md",
             ".ssh",
             ".hidden.md",
-            "a..b.md", // a legitimate name, refused as collateral: ".." is out
+            "sub/.hidden.md",
+            ".git/config",
+            "a//b.md",
+            "sub/",
         ] {
             assert!(validate_note_name(name).is_err(), "{name:?} should be refused");
         }
@@ -1950,6 +2009,10 @@ mod tests {
         assert!(!is_listed_note(".gitignore"));
         assert!(!is_listed_note("note.md.parker-tmp"));
         assert!(!is_listed_note("note.parker-tmp"));
+        assert!(is_listed_note("backlogs/parker.md"));
+        assert!(!is_listed_note(".git/HEAD"));
+        assert!(!is_listed_note("sub/.DS_Store"));
+        assert!(!is_listed_note("sub/note.md.parker-tmp"));
     }
 
     #[test]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { displayName, droppedExternals, isExternal, splitPath } from "./external.ts";
+import { displayName, droppedExternals, folderOf, isExternal, renamedIn, splitPath } from "./external.ts";
 
 describe("isExternal", () => {
   it("is the leading slash", () => {
@@ -21,6 +21,25 @@ describe("displayName", () => {
   });
   it("leaves a note name alone", () => {
     expect(displayName("Inbox.md")).toBe("Inbox.md");
+  });
+  it("shows the filename of a note in a subfolder", () => {
+    expect(displayName("backlogs/parker.md")).toBe("parker.md");
+  });
+});
+
+describe("folderOf / renamedIn", () => {
+  it("splits the folder off a note's name", () => {
+    expect(folderOf("backlogs/parker.md")).toBe("backlogs/");
+    expect(folderOf("a/b/c.md")).toBe("a/b/");
+    expect(folderOf("top.md")).toBe("");
+  });
+  it("keeps a renamed note in its folder", () => {
+    expect(renamedIn("backlogs/parker.md", "notes.md")).toBe("backlogs/notes.md");
+    expect(renamedIn("top.md", "other.md")).toBe("other.md");
+  });
+  it("takes a slash as a move", () => {
+    expect(renamedIn("backlogs/parker.md", "archive/parker.md")).toBe("archive/parker.md");
+    expect(renamedIn("top.md", "backlogs/top.md")).toBe("backlogs/top.md");
   });
 });
 

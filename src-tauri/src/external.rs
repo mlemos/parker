@@ -10,9 +10,9 @@
 // A path arriving any other way is refused exactly as `validate_note_name`
 // refuses it: there is a second door, and the door has a list.
 //
-// A file the Finder hands over that turns out to live *in* the notes folder is
-// not external at all — it goes back to the webview as a bare note name and
-// opens like any other note.
+// A file the Finder hands over that turns out to live *in* the notes folder —
+// at any depth — is not external at all: it goes back to the webview as a
+// note name, relative to the folder, and opens like any other note.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 
 use tauri::Emitter;
 
-use crate::{atomic_write, is_listed_note, notes_dir, show_window};
+use crate::{atomic_write, note_name_of, show_window};
 
 #[derive(Default)]
 pub struct Externals {
@@ -64,15 +64,8 @@ fn locate(path: &Path) -> Result<Place, String> {
     if !real.is_file() {
         return Err(format!("{}: not a file", real.display()));
     }
-    let notes = notes_dir().canonicalize().unwrap_or_else(|_| notes_dir());
-    if real.parent() == Some(notes.as_path()) {
-        let name = real
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        if is_listed_note(&name) {
-            return Ok(Place::Note(name));
-        }
+    if let Some(name) = note_name_of(&real) {
+        return Ok(Place::Note(name));
     }
     Ok(Place::Outside(real))
 }

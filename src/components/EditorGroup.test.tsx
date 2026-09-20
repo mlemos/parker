@@ -104,6 +104,20 @@ describe("a note", () => {
   });
 });
 
+describe("a note in a subfolder", () => {
+  it("shows only its filename on the tab, and the folder on hover", () => {
+    setup(["backlogs/parker.md"], "backlogs/parker.md");
+    const tab = screen.getByText("parker.md").closest(".tab")!;
+    expect(tab.getAttribute("title")).toContain("backlogs/parker.md");
+    expect(tab.getAttribute("title")).toContain("rename");
+  });
+
+  it("is not an outside file: no band", () => {
+    const { container } = setup(["backlogs/parker.md"], "backlogs/parker.md");
+    expect(container.querySelector(".outside-bar")).toBeNull();
+  });
+});
+
 describe("the empty pane", () => {
   it("offers a file drop, and a tab drop only when there is a tab somewhere", () => {
     const { rerender, cb } = setup([], null as unknown as string);

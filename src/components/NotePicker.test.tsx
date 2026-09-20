@@ -80,6 +80,16 @@ describe("NotePicker", () => {
     expect(empty.className).toContain("empty");
   });
 
+  it("shows a note's folder before its name, quietly", async () => {
+    searchNotes.mockResolvedValue([hit("backlogs/parker.md"), hit("top.md")]);
+    setup();
+    await listed(2);
+    const dir = document.querySelector(".picker-dir")!;
+    expect(dir.textContent).toBe("backlogs/");
+    expect(dir.parentElement!.textContent).toBe("backlogs/parker.md");
+    expect(document.querySelectorAll(".picker-dir")).toHaveLength(1);
+  });
+
   it("says so when nothing matches", async () => {
     searchNotes.mockResolvedValue([]);
     setup();

@@ -199,7 +199,7 @@ export function EditorGroup({
             return renamingName === name && focused ? (
               <div key={name} className="tab active editing">
                 <RenameInput
-                  initial={name}
+                  initial={displayName(name)}
                   onCommit={(v) => cb.onCommitRename(name, v)}
                   onCancel={cb.onCancelRename}
                 />
