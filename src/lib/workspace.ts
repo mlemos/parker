@@ -11,7 +11,11 @@ import {
   allGroups,
   findGroup,
   firstGroup,
+  groupWithTab,
+  isPreviewTab,
   makeGroup,
+  noteOf,
+  previewTab,
   removeGroup,
   siblingGroupId,
   splitGroup,
@@ -32,16 +36,18 @@ export function focusedGroup(ws: Workspace): Group {
   return findGroup(ws.layout, ws.focusedId) ?? firstGroup(ws.layout);
 }
 
-/** The note showing in the focused pane, if any. */
+/** The note showing in the focused pane, if any — the note, whether the tab
+ *  in front is its editor or its preview. */
 export function activeName(ws: Workspace): string | null {
-  return focusedGroup(ws).active;
+  const id = focusedGroup(ws).active;
+  return id ? noteOf(id) : null;
 }
 
 /** Notes no pane has open any more. Their buffers are dropped: an unreferenced
  *  buffer is memory nobody can reach, and a stale one would be resurrected by
  *  the next save. */
 export function gcBuffers(layout: LayoutNode, buffers: Buffer[]): Buffer[] {
-  const referenced = new Set(allGroups(layout).flatMap((g) => g.tabs));
+  const referenced = new Set(allGroups(layout).flatMap((g) => g.tabs.map(noteOf)));
   return buffers.filter((b) => referenced.has(b.name));
 }
 
@@ -223,22 +229,31 @@ export function unseenChanges(buffers: Buffer[]): string[] {
 
 // ---- Tabs ------------------------------------------------------------------
 
-/** Show a tab that's already in the pane, and focus that pane. Switching to a
- *  different note returns the pane to the editor, so preview stays a
- *  deliberate view of the current note rather than a sticky mode. */
-export function selectTab(ws: Workspace, groupId: string, name: string): Workspace {
-  const g = findGroup(ws.layout, groupId);
-  const patch =
-    g && g.active !== name ? { active: name, mode: "edit" as const } : { active: name };
+/** Show a tab that's already in the pane, and focus that pane. */
+export function selectTab(ws: Workspace, groupId: string, id: string): Workspace {
   return {
     ...ws,
-    layout: updateGroup(ws.layout, groupId, patch),
+    layout: updateGroup(ws.layout, groupId, { active: id }),
+    focusedId: groupId,
+  };
+}
+
+/** Put no tab in front: the tabs stay, the pane shows nothing. A click on
+ *  the strip's empty space does this, and a split from here is born empty. */
+export function deselectTab(ws: Workspace, groupId: string): Workspace {
+  return {
+    ...ws,
+    layout: updateGroup(ws.layout, groupId, { active: null }),
     focusedId: groupId,
   };
 }
 
 /** Open a note in a pane: add the tab if it isn't there, make it active, focus
- *  the pane. The buffer is added if the caller loaded one. */
+ *  the pane. The buffer is added if the caller loaded one.
+ *
+ *  One editor per note: a note already open in another pane is shown there
+ *  instead of opened again. (Two editors on one note is a thing worth having
+ *  one day; until the Editor keeps two cursors apart, this is the rule.) */
 export function openNote(
   ws: Workspace,
   groupId: string,
@@ -249,14 +264,14 @@ export function openNote(
   const buffers = ws.buffers.some((b) => b.name === buffer.name)
     ? ws.buffers
     : [...ws.buffers, buffer];
+  const elsewhere = groupWithTab(ws.layout, buffer.name);
+  if (elsewhere && elsewhere.id !== groupId) {
+    return selectTab({ ...ws, buffers }, elsewhere.id, buffer.name);
+  }
   const tabs = g.tabs.includes(buffer.name) ? g.tabs : [...g.tabs, buffer.name];
   return {
     buffers,
-    layout: updateGroup(ws.layout, groupId, {
-      tabs,
-      active: buffer.name,
-      mode: "edit",
-    }),
+    layout: updateGroup(ws.layout, groupId, { tabs, active: buffer.name }),
     focusedId: groupId,
   };
 }
@@ -417,13 +432,17 @@ export function splitPane(
   };
 }
 
-/** Open a second view of a note beside its editor. The one deliberate mirror:
- *  the preview pane shows the same buffer, and focus stays with the editor so
- *  you keep typing. */
+/** Open a note's preview beside its editor: a new pane to the right holding
+ *  the preview tab, focus staying with the editor so you keep typing. One
+ *  preview per note: if it is open somewhere already, that pane shows it. */
 export function previewToSide(ws: Workspace, groupId: string): Workspace {
   const g = findGroup(ws.layout, groupId);
   if (!g || !g.active) return ws;
-  const preview = makeGroup([g.active], g.active, "preview");
+  const name = noteOf(g.active);
+  const id = previewTab(name);
+  const existing = groupWithTab(ws.layout, id);
+  if (existing) return { ...selectTab(ws, existing.id, id), focusedId: groupId };
+  const preview = makeGroup([id], id);
   return {
     ...ws,
     layout: splitGroup(ws.layout, groupId, "row", preview),
@@ -468,13 +487,25 @@ export function focusPaneByOffset(ws: Workspace, delta: number): Workspace {
 /** Flip a pane between the editor and the markdown preview. */
 export function toggleMode(ws: Workspace, groupId: string): Workspace {
   const g = findGroup(ws.layout, groupId);
-  if (!g) return ws;
-  return {
-    ...ws,
-    layout: updateGroup(ws.layout, groupId, {
-      mode: g.mode === "preview" ? "edit" : "preview",
-    }),
-  };
+  if (!g || !g.active) return ws;
+  const from = g.active;
+  const to = isPreviewTab(from) ? noteOf(from) : previewTab(noteOf(from));
+  // The tab we are turning into may exist in another pane already: it comes
+  // here, so the note keeps one editor and one preview in the workspace.
+  let layout = ws.layout;
+  const holder = groupWithTab(layout, to);
+  if (holder && holder.id !== groupId) {
+    const rest = holder.tabs.filter((t) => t !== to);
+    layout = updateGroup(layout, holder.id, {
+      tabs: rest,
+      active: holder.active === to ? rest[0] ?? null : holder.active,
+    });
+  }
+  const here = findGroup(layout, groupId)!;
+  const tabs = here.tabs.includes(to)
+    ? here.tabs.filter((t) => t !== from) // both were here: the other one stays
+    : here.tabs.map((t) => (t === from ? to : t));
+  return { ...ws, layout: updateGroup(layout, groupId, { tabs, active: to }) };
 }
 
 // ---- Notes appearing and disappearing --------------------------------------
@@ -485,9 +516,9 @@ export function toggleMode(ws: Workspace, groupId: string): Workspace {
 export function forgetNote(ws: Workspace, name: string): Workspace {
   let layout = ws.layout;
   for (const g of allGroups(ws.layout)) {
-    if (!g.tabs.includes(name)) continue;
-    const idx = g.tabs.indexOf(name);
-    const remaining = g.tabs.filter((t) => t !== name);
+    if (!g.tabs.some((t) => noteOf(t) === name)) continue;
+    const idx = g.tabs.findIndex((t) => noteOf(t) === name);
+    const remaining = g.tabs.filter((t) => noteOf(t) !== name);
     const active =
       g.active === name
         ? remaining[Math.min(idx, remaining.length - 1)] ?? null
@@ -507,8 +538,13 @@ export function renameNote(ws: Workspace, from: string, to: string): Workspace {
     node.kind === "group"
       ? {
           ...node,
-          tabs: node.tabs.map((t) => (t === from ? to : t)),
-          active: node.active === from ? to : node.active,
+          tabs: node.tabs.map((t) => (t === from ? to : t === previewTab(from) ? previewTab(to) : t)),
+          active:
+            node.active === from
+              ? to
+              : node.active === previewTab(from)
+                ? previewTab(to)
+                : node.active,
         }
       : { ...node, children: node.children.map(rename) };
   return {

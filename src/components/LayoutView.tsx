@@ -8,6 +8,7 @@ import type { TextWidth } from "../lib/text-width";
 export interface LayoutHandlers {
   onFocus: (groupId: string) => void;
   onSelectTab: (groupId: string, name: string) => void;
+  onDeselectTab: (groupId: string) => void;
   onCloseTab: (groupId: string, name: string) => void;
   onNewTab: (groupId: string) => void;
   onChange: (name: string, value: string) => void;
@@ -59,6 +60,7 @@ export function LayoutView({
     const cb: GroupCallbacks = {
       onFocus: () => common.h.onFocus(g.id),
       onSelectTab: (name) => common.h.onSelectTab(g.id, name),
+      onDeselectTab: () => common.h.onDeselectTab(g.id),
       onCloseTab: (name) => common.h.onCloseTab(g.id, name),
       onNewTab: () => common.h.onNewTab(g.id),
       onChange: common.h.onChange,

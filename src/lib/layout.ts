@@ -31,9 +31,37 @@ export interface Buffer {
 export interface Group {
   id: string;
   kind: "group";
-  tabs: string[]; // note names open here, in tab order
+  /** Tab ids, in tab order. A tab is a note's editor, named by the note
+   *  ("a.md"), or its rendered preview ("preview:a.md") — see previewTab.
+   *  Both are strings, so everything that moves tabs between panes moves
+   *  either without knowing. */
+  tabs: string[];
+  /** The tab in front, or null: a pane can have tabs and none selected,
+   *  which is how a split is asked for empty. */
   active: string | null;
-  mode?: "edit" | "preview"; // how the active note is shown (default edit)
+}
+
+// ---- Tab ids ----------------------------------------------------------------
+// The preview used to be a *mode of the pane*: a pane showed its active note
+// rendered instead of editable. That made "the preview" nothing you could
+// drag — moving its tab moved the note, which arrived as an editor, and if the
+// note was already open there, vanished into it. Now the preview is a tab of
+// its own, telling itself apart by its id.
+
+const PREVIEW = "preview:";
+
+/** The id of the tab that shows this note rendered. */
+export function previewTab(name: string): string {
+  return PREVIEW + name;
+}
+
+export function isPreviewTab(id: string | null | undefined): boolean {
+  return !!id && id.startsWith(PREVIEW);
+}
+
+/** The note a tab shows, whichever kind of tab it is. */
+export function noteOf(id: string): string {
+  return id.startsWith(PREVIEW) ? id.slice(PREVIEW.length) : id;
 }
 
 export interface SplitNode {
@@ -54,12 +82,8 @@ export function newId(prefix = "n"): string {
   return `${prefix}${_id}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function makeGroup(
-  tabs: string[],
-  active: string | null,
-  mode: "edit" | "preview" = "edit"
-): Group {
-  return { id: newId("g"), kind: "group", tabs, active, mode };
+export function makeGroup(tabs: string[], active: string | null): Group {
+  return { id: newId("g"), kind: "group", tabs, active };
 }
 
 export function allGroups(node: LayoutNode): Group[] {
@@ -68,15 +92,20 @@ export function allGroups(node: LayoutNode): Group[] {
     : node.children.flatMap(allGroups);
 }
 
-// Every note name referenced anywhere in the tree (deduped).
+// Every tab id referenced anywhere in the tree (deduped).
 export function allTabNames(node: LayoutNode): string[] {
   return [...new Set(allGroups(node).flatMap((g) => g.tabs))];
+}
+
+/** The pane holding this tab id, if any. */
+export function groupWithTab(node: LayoutNode, id: string): Group | null {
+  return allGroups(node).find((g) => g.tabs.includes(id)) ?? null;
 }
 
 // Drop tabs whose note no longer exists; keep structure (panes may go empty).
 export function pruneLayout(node: LayoutNode, valid: Set<string>): LayoutNode {
   if (node.kind === "group") {
-    const tabs = node.tabs.filter((t) => valid.has(t));
+    const tabs = node.tabs.filter((t) => valid.has(noteOf(t)));
     const active =
       node.active && tabs.includes(node.active) ? node.active : tabs[0] ?? null;
     return { ...node, tabs, active };
@@ -91,15 +120,20 @@ export function asLayout(x: unknown): LayoutNode | null {
   const n = x as Record<string, unknown>;
   if (n.kind === "group") {
     if (!Array.isArray(n.tabs)) return null;
-    const tabs = n.tabs.filter((t): t is string => typeof t === "string");
-    const active = typeof n.active === "string" ? n.active : null;
-    const mode = n.mode === "preview" ? "preview" : "edit";
+    let tabs = n.tabs.filter((t): t is string => typeof t === "string");
+    let active = typeof n.active === "string" ? n.active : null;
+    // A session from when the preview was a mode of the pane: the active
+    // note of a pane in preview mode is that note's preview tab now.
+    if (n.mode === "preview" && active && !isPreviewTab(active)) {
+      const id = previewTab(active);
+      tabs = tabs.map((t) => (t === active ? id : t));
+      active = id;
+    }
     return {
       id: typeof n.id === "string" ? n.id : newId("g"),
       kind: "group",
       tabs,
       active,
-      mode,
     };
   }
   if (n.kind === "split") {
@@ -140,7 +174,7 @@ export function firstGroup(node: LayoutNode): Group {
 export function updateGroup(
   node: LayoutNode,
   id: string,
-  patch: Partial<Pick<Group, "tabs" | "active" | "mode">>
+  patch: Partial<Pick<Group, "tabs" | "active">>
 ): LayoutNode {
   if (node.kind === "group") {
     return node.id === id ? { ...node, ...patch } : node;

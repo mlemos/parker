@@ -17,6 +17,7 @@ import { displayName, isExternal } from "../lib/external";
 import { PathLabel } from "./PathLabel";
 import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Group } from "../lib/layout";
+import { isPreviewTab, noteOf } from "../lib/layout";
 import { isMarkdown } from "../lib/markdown";
 import { Editor } from "./Editor";
 import { RenameInput } from "./RenameInput";
@@ -28,6 +29,7 @@ const TAB_MIME = "application/x-parker-tab";
 export interface GroupCallbacks {
   onFocus: () => void;
   onSelectTab: (name: string) => void;
+  onDeselectTab: () => void;
   onCloseTab: (name: string) => void;
   onNewTab: () => void;
   onChange: (name: string, value: string) => void;
@@ -86,25 +88,28 @@ export function EditorGroup({
   const [dropActive, setDropActive] = useState(false); // a tab is over the body
 
   const active = group.active;
-  const activeBuf = buffers.find((b) => b.name === active) ?? null;
-  const isMd = isMarkdown(active);
+  // The tab in front is an editor or a preview of a note; the note is what
+  // the buffer, the language and the band are about.
+  const activeNote = active ? noteOf(active) : null;
+  const activeBuf = buffers.find((b) => b.name === activeNote) ?? null;
+  const isMd = isMarkdown(activeNote);
   // A file from outside the notes folder — edited where it is, and said so.
   const outside = !!activeBuf && isExternal(activeBuf.name);
-  const showPreview = group.mode === "preview" && isMd && !!activeBuf;
+  const showPreview = isPreviewTab(active) && !!activeBuf;
   // Deferred so a side-by-side preview re-renders at low priority instead of
   // running markdown-it over the whole document inside every keystroke.
   const previewContent = useDeferredValue(activeBuf?.content ?? "");
 
   useEffect(() => {
-    if (!active) return;
+    if (!activeNote) return;
     let alive = true;
-    languageForName(active).then((ext) => {
+    languageForName(activeNote).then((ext) => {
       if (alive) setLangExt(ext);
     });
     return () => {
       alive = false;
     };
-  }, [active]);
+  }, [activeNote]);
 
   // A drag that began in another group never reaches this group's tab
   // onDragEnd, so the hover state it left here is cleared when the app-wide
@@ -182,8 +187,15 @@ export function EditorGroup({
             setDragIndex(null);
             setOverIndex(null);
           }}
+          // The strip's own empty space: a click there puts no tab in front,
+          // which is how a split is asked for empty.
+          onClick={(e) => {
+            if (e.target === e.currentTarget) cb.onDeselectTab();
+          }}
         >
-          {group.tabs.map((name, i) => {
+          {group.tabs.map((id, i) => {
+            const name = noteOf(id);
+            const preview = isPreviewTab(id);
             const buf = buffers.find((b) => b.name === name);
             // One dot, one colour per state. Green is stated rather than
             // implied: a tab that says nothing looks the same as a tab whose
@@ -196,8 +208,8 @@ export function EditorGroup({
               dirty: "Unsaved changes",
               saved: "Saved",
             }[status];
-            return renamingName === name && focused ? (
-              <div key={name} className="tab active editing">
+            return renamingName === name && focused && !preview ? (
+              <div key={id} className="tab active editing">
                 <RenameInput
                   initial={displayName(name)}
                   onCommit={(v) => cb.onCommitRename(name, v)}
@@ -206,10 +218,11 @@ export function EditorGroup({
               </div>
             ) : (
               <button
-                key={name}
+                key={id}
                 className={
                   "tab" +
-                  (name === active ? " active" : "") +
+                  (preview ? " preview" : "") +
+                  (id === active ? " active" : "") +
                   (i === dragIndex ? " dragging" : "") +
                   // App-wide `dragging` rather than this group's dragIndex, so
                   // a tab arriving from another pane also shows where it lands.
@@ -218,14 +231,14 @@ export function EditorGroup({
                     : "")
                 }
                 draggable
-                onClick={() => cb.onSelectTab(name)}
+                onClick={() => cb.onSelectTab(id)}
                 onDoubleClick={() => cb.onStartRename(name)}
                 onDragStart={(e) => {
                   setDragIndex(i);
                   e.dataTransfer.effectAllowed = "move";
                   e.dataTransfer.setData(
                     TAB_MIME,
-                    JSON.stringify({ from: group.id, name })
+                    JSON.stringify({ from: group.id, name: id })
                   );
                   cb.onTabDragStart();
                 }}
@@ -258,21 +271,29 @@ export function EditorGroup({
                   cb.onTabDragEnd();
                 }}
                 title={
-                  isExternal(name)
-                    ? `${name}  —  outside your notes folder`
-                    : `${name}  —  double-click to rename`
+                  preview
+                    ? `Preview of ${name}`
+                    : isExternal(name)
+                      ? `${name}  —  outside your notes folder`
+                      : `${name}  —  double-click to rename`
                 }
               >
                 {/* Status sits left of the name and the close button right of
                     it: one side says what the note is, the other acts on it,
-                    and a glance never has to tell them apart. */}
-                <span className={`tab-dot ${status}`} title={dotTitle} />
+                    and a glance never has to tell them apart. A preview tab
+                    wears the eye instead of the dot: it has no state of its
+                    own — the note's editor carries that. */}
+                {preview ? (
+                  <Eye className="tab-eye" size={12} strokeWidth={2} aria-hidden />
+                ) : (
+                  <span className={`tab-dot ${status}`} title={dotTitle} />
+                )}
                 <span className="tab-name">{displayName(name)}</span>
                 <span
                   className="tab-close"
                   onClick={(e) => {
                     e.stopPropagation();
-                    cb.onCloseTab(name);
+                    cb.onCloseTab(id);
                   }}
                   title="Close (Cmd+W)"
                 >
