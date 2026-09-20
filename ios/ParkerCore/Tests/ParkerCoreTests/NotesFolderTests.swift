@@ -24,8 +24,8 @@ private func touch(_ folder: NotesFolder, _ name: String, _ text: String = "", m
 @Suite("note names") struct NameTests {
     @Test("a note is a plain filename in the folder, nothing that reaches out of it")
     func validity() {
-        for ok in ["a.md", "Untitled-1.md", "notes.txt", "x"] { #expect(NotesFolder.isValidName(ok), Comment(rawValue: ok)) }
-        for bad in ["", "a/b.md", "a\\b.md", "..", "../x.md", ".hidden.md"] { #expect(!NotesFolder.isValidName(bad), Comment(rawValue: bad)) }
+        for ok in ["a.md", "Untitled-1.md", "notes.txt", "x", "backlogs/parker.md", "a/b/c/deep.md", "a..b.md"] { #expect(NotesFolder.isValidName(ok), Comment(rawValue: ok)) }
+        for bad in ["", "a\\b.md", "..", "../x.md", ".hidden.md", "/etc/passwd", "sub/../x.md", "sub/.hidden.md", ".git/config", "a//b.md", "sub/"] { #expect(!NotesFolder.isValidName(bad), Comment(rawValue: bad)) }
     }
 
     @Test("dotfiles and our own temp files are not listed")
@@ -35,6 +35,18 @@ private func touch(_ folder: NotesFolder, _ name: String, _ text: String = "", m
         #expect(!NotesFolder.isListedNote(".DS_Store"))
         #expect(!NotesFolder.isListedNote("note.md.parker-tmp"))
         #expect(!NotesFolder.isListedNote("note.parker-tmp"))
+        #expect(NotesFolder.isListedNote("backlogs/parker.md"))
+        #expect(!NotesFolder.isListedNote(".git/HEAD"))
+        #expect(!NotesFolder.isListedNote("sub/.DS_Store"))
+    }
+
+    @Test("a name shows as its filename, and knows its folder")
+    func display() {
+        #expect(NotesFolder.displayName("backlogs/parker.md") == "parker.md")
+        #expect(NotesFolder.displayName("top.md") == "top.md")
+        #expect(NotesFolder.folderOf("backlogs/parker.md") == "backlogs/")
+        #expect(NotesFolder.folderOf("a/b/c.md") == "a/b/")
+        #expect(NotesFolder.folderOf("top.md") == "")
     }
 
     @Test("a new note's extension is alphanumerics only, md when nothing is left")
@@ -48,6 +60,29 @@ private func touch(_ folder: NotesFolder, _ name: String, _ text: String = "", m
 }
 
 @Suite("listing and writing") struct FolderTests {
+    @Test("lists notes at any depth, by relative name, skipping dot-folders and symlinked folders")
+    func nested() throws {
+        let f = try makeTempFolder()
+        let fm = FileManager.default
+        try fm.createDirectory(at: f.url.appendingPathComponent("backlogs/deeper"), withIntermediateDirectories: true)
+        try fm.createDirectory(at: f.url.appendingPathComponent(".git/refs"), withIntermediateDirectories: true)
+        try touch(f, "top.md", "a")
+        try touch(f, "backlogs/parker.md", "b")
+        try touch(f, "backlogs/deeper/x.txt", "c")
+        try touch(f, "backlogs/note.md.parker-tmp", "d")
+        try touch(f, ".git/HEAD", "e")
+        let outside = fm.temporaryDirectory.appendingPathComponent("outside-\(UUID().uuidString)", isDirectory: true)
+        try fm.createDirectory(at: outside, withIntermediateDirectories: true)
+        try Data("secret".utf8).write(to: outside.appendingPathComponent("secret.md"))
+        try fm.createSymbolicLink(at: f.url.appendingPathComponent("link"), withDestinationURL: outside)
+        #expect(try f.list().map(\.name).sorted() == ["backlogs/deeper/x.txt", "backlogs/parker.md", "top.md"])
+        #expect(try f.read("backlogs/parker.md") == "b")
+        // writing into a folder that does not exist yet makes it
+        try f.write("new/here.md", "z")
+        #expect(try f.read("new/here.md") == "z")
+        try? fm.removeItem(at: outside)
+    }
+
     @Test("lists notes newest first, skipping dotfiles, temp files and folders")
     func listing() throws {
         let f = try makeTempFolder()

@@ -1,9 +1,10 @@
-// The notes folder, exactly as the Mac treats it (src-tauri/src/lib.rs): a flat
-// directory of plain files, addressed by bare filename. Dotfiles are the OS's
-// business and `.parker-tmp` files are ours mid-write; everything else is a
-// note. Writes are atomic — temp file beside the target, then rename — with the
-// same temp naming, so a Mac watching the folder ignores our half-written files
-// and we ignore its.
+// The notes folder, exactly as the Mac treats it (src-tauri/src/lib.rs): plain
+// files at any depth, addressed by their path relative to the folder —
+// "note.md", or "backlogs/note.md" in a subfolder. Dotfiles and dot-folders
+// are the OS's business and `.parker-tmp` files are ours mid-write; everything
+// else is a note. Writes are atomic — temp file beside the target, then rename
+// — with the same temp naming, so a Mac watching the folder ignores our
+// half-written files and we ignore its.
 
 import Foundation
 
@@ -41,16 +42,33 @@ public struct NotesFolder: Sendable {
 
     // ---- Names --------------------------------------------------------------
 
-    /// validate_note_name: a plain filename living directly in the folder. A
-    /// separator, a "..", or a leading dot is not a note — it is an attempt to
-    /// reach out of the folder, or to write a file the app then refuses to list.
+    /// validate_note_name: a path relative to the folder. Anything that could
+    /// reach out of it, or name a file the app then refuses to list, is not a
+    /// note: a leading separator, a ".." segment, a segment starting with a
+    /// dot, an empty segment ("a//b"), a backslash.
     public static func isValidName(_ name: String) -> Bool {
-        !(name.isEmpty || name.contains("/") || name.contains("\\") || name.contains("..") || name.hasPrefix("."))
+        if name.isEmpty || name.hasPrefix("/") || name.hasSuffix("/") || name.contains("\\") { return false }
+        return !name.split(separator: "/", omittingEmptySubsequences: false)
+            .contains { $0.isEmpty || $0 == ".." || $0.hasPrefix(".") }
     }
 
     /// is_listed_note: whether a file in the folder is a note the app shows.
+    /// Every segment of the relative name is checked, so a file inside ".git"
+    /// is not a note either.
     public static func isListedNote(_ name: String) -> Bool {
-        !name.hasPrefix(".") && !name.hasSuffix(".parker-tmp")
+        !name.hasSuffix(".parker-tmp") && !name.split(separator: "/").contains { $0.hasPrefix(".") }
+    }
+
+    /// The name a tab or a list shows: the filename, whatever folder it is in.
+    public static func displayName(_ name: String) -> String {
+        name.split(separator: "/").last.map(String.init) ?? name
+    }
+
+    /// The folder part of a note's name, with its trailing slash — "backlogs/"
+    /// for "backlogs/note.md", "" for a note at the top.
+    public static func folderOf(_ name: String) -> String {
+        guard let i = name.lastIndex(of: "/") else { return "" }
+        return String(name[...i])
     }
 
     /// note_ext: alphanumerics only, "md" when nothing usable is left.
@@ -74,17 +92,31 @@ public struct NotesFolder: Sendable {
     }
 
     private func entries() throws -> [NoteMeta] {
-        let keys: Set<URLResourceKey> = [.isRegularFileKey, .contentModificationDateKey]
-        let items = try FileManager.default.contentsOfDirectory(
-            at: url, includingPropertiesForKeys: Array(keys), options: []
-        )
-        var out: [NoteMeta] = []
-        for item in items {
-            let name = item.lastPathComponent
-            guard Self.isListedNote(name) else { continue }
-            let values = try item.resourceValues(forKeys: keys)
-            guard values.isRegularFile == true else { continue }
-            out.append(NoteMeta(name: name, modified: values.contentModificationDate ?? Date(timeIntervalSince1970: 0)))
+        try walk().map { name, url in
+            let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            return NoteMeta(name: name, modified: modified ?? Date(timeIntervalSince1970: 0))
+        }
+    }
+
+    /// walk_notes: every note at any depth, as (relative name, url). Folders
+    /// starting with a dot are not entered; a symlinked folder is not
+    /// followed — a loop would never end, and a link out of the folder is out
+    /// of the folder.
+    func walk() throws -> [(String, URL)] {
+        let keys: Set<URLResourceKey> = [.isRegularFileKey, .isDirectoryKey, .isSymbolicLinkKey]
+        var out: [(String, URL)] = []
+        var stack: [(String, URL)] = [("", url)]
+        while let (prefix, dir) = stack.popLast() {
+            let items = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: Array(keys), options: [])
+            for item in items {
+                let base = item.lastPathComponent
+                if base.hasPrefix(".") { continue }
+                let name = prefix.isEmpty ? base : prefix + "/" + base
+                guard let v = try? item.resourceValues(forKeys: keys) else { continue }
+                if v.isSymbolicLink == true { continue }
+                if v.isDirectory == true { stack.append((name, item)) }
+                else if v.isRegularFile == true, Self.isListedNote(name) { out.append((name, item)) }
+            }
         }
         return out
     }
@@ -107,11 +139,9 @@ public struct NotesFolder: Sendable {
     /// many were requested.
     @discardableResult
     public func fetchAll() -> Int {
-        guard let items = try? FileManager.default.contentsOfDirectory(
-            at: url, includingPropertiesForKeys: [.ubiquitousItemDownloadingStatusKey], options: []
-        ) else { return 0 }
+        guard let items = try? walk().map(\.1) else { return 0 }
         var requested = 0
-        for item in items where Self.isListedNote(item.lastPathComponent) {
+        for item in items {
             guard let status = (try? item.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]))?.ubiquitousItemDownloadingStatus,
                   status != .current else { continue }
             if (try? FileManager.default.startDownloadingUbiquitousItem(at: item)) != nil { requested += 1 }
@@ -132,6 +162,8 @@ public struct NotesFolder: Sendable {
     /// then rename over it, so a reader never sees a half-written note.
     public func write(_ name: String, _ text: String) throws {
         let target = try path(name)
+        // "a/b.md" lives in a — made on the way if need be.
+        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
         try coordinateWriting(target) { url in
             try Self.atomicWrite(text, to: url)
         }
@@ -169,6 +201,7 @@ public struct NotesFolder: Sendable {
         let src = try path(from)
         let dst = try path(to)
         if FileManager.default.fileExists(atPath: dst.path) { throw NotesFolderError.alreadyExists(to) }
+        try FileManager.default.createDirectory(at: dst.deletingLastPathComponent(), withIntermediateDirectories: true)
         try FileManager.default.moveItem(at: src, to: dst)
     }
 

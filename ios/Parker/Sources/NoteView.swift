@@ -49,7 +49,7 @@ struct NoteView: View {
         }
         .background(theme.editorBg)
         .ignoresSafeArea(.container, edges: .bottom)
-        .navigationTitle(name.replacingOccurrences(of: ".md", with: ""))
+        .navigationTitle(NotesFolder.displayName(name).replacingOccurrences(of: ".md", with: ""))
         .navigationBarTitleDisplayMode(.inline)
         .task { if !loaded { text = await workspace.load(name); onDisk = text; loaded = true } }
         .onChange(of: workspace.notes) { _, _ in

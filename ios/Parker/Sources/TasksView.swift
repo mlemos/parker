@@ -66,8 +66,10 @@ struct TasksView: View {
                         ForEach(workspace.notes, id: \.name) { note in
                             let items = shown.filter { $0.note == note.name }
                             if !items.isEmpty {
-                                Section(note.name.replacingOccurrences(of: ".md", with: "")) {
+                                Section {
                                     ForEach(items, id: \.line) { item in row(item, above: nil, theme) }
+                                } header: {
+                                    NoteTitle(name: note.name, theme: theme, font: .subheadline)
                                 }
                             }
                         }
