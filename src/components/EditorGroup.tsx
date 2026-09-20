@@ -222,7 +222,7 @@ export function EditorGroup({
                 className={
                   "tab" +
                   (preview ? " preview" : "") +
-                  (id === active ? " active" : "") +
+                  (id === active && !group.unselected ? " active" : "") +
                   (i === dragIndex ? " dragging" : "") +
                   // App-wide `dragging` rather than this group's dragIndex, so
                   // a tab arriving from another pane also shows where it lands.
