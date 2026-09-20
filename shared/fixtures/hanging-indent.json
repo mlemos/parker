@@ -1,0 +1,26 @@
+{
+  "$comment": "The prefix a wrapped line hangs under: columns of indentation + marker, and whether a to-do box stands in for the tag. Read by src/lib/hanging-indent.test.ts and ios/ParkerCore/Tests/ParkerCoreTests/HangingIndentTests.swift.",
+  "cases": [
+    { "line": "- item", "cols": 2, "box": false },
+    { "line": "* item", "cols": 2, "box": false },
+    { "line": "+ item", "cols": 2, "box": false },
+    { "line": "12. item", "cols": 4, "box": false },
+    { "line": "3) item", "cols": 3, "box": false },
+    { "line": "  - detail", "cols": 4, "box": false },
+    { "line": "    - deeper", "cols": 6, "box": false },
+    { "line": "\t- tabbed", "cols": 3, "box": false },
+    { "line": "- [ ] task", "cols": 6, "box": false },
+    { "line": "- [x] done", "cols": 6, "box": false },
+    { "line": "> quoted", "cols": 2, "box": false },
+    { "line": "/TODO buy milk", "cols": 1, "box": true },
+    { "line": "/DONE!! shipped", "cols": 1, "box": true },
+    { "line": "  /WAIT on them", "cols": 3, "box": true },
+    { "line": "  continuation of the item above", "cols": 2, "box": false },
+    { "line": "Just a paragraph that wraps", "cols": null, "box": false },
+    { "line": "# Heading", "cols": null, "box": false },
+    { "line": "", "cols": null, "box": false },
+    { "line": "   ", "cols": null, "box": false },
+    { "line": "-not a list", "cols": null, "box": false },
+    { "line": "2024 was a year", "cols": null, "box": false }
+  ]
+}

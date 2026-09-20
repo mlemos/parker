@@ -124,6 +124,11 @@ enum NoteStorage {
         let doc = TextDocument(plainText(s))
         let owners = Todo.ownersForRange(doc, fromLine: 1, toLine: doc.lineCount)
 
+        // One column of the monospace face, for the hanging indent below. The
+        // box is an attachment with a width of its own (TodoAttachment.bounds).
+        let column = ("0" as NSString).size(withAttributes: [.font: font]).width
+        let boxWidth = 3 * (fontSize / 14) + fontSize * 0.95 + 1 * (fontSize / 14)
+
         let ns = s.string as NSString
         var location = 0
         var inFence = false
@@ -133,6 +138,18 @@ enum NoteStorage {
             location += length + 1
             guard length > 0, i < doc.lineCount else { continue }
             let fileLine = doc.line(i + 1).text
+            // A wrapped list item or to-do continues under its text, not at
+            // the margin — the Mac's rule, from the file's line. The paragraph
+            // range includes the newline, which is where TextKit reads the
+            // style of the line from.
+            if let prefix = HangingIndent.prefix(of: fileLine) {
+                let hang = NSMutableParagraphStyle()
+                hang.setParagraphStyle(para)
+                hang.firstLineHeadIndent = 0
+                hang.headIndent = CGFloat(prefix.cols) * column + (prefix.box ? boxWidth : 0)
+                let paraRange = NSRange(location: range.location, length: min(length + 1, s.length - range.location))
+                s.addAttribute(.paragraphStyle, value: hang, range: paraRange)
+            }
             // A fenced block: its fences and its text wear the code colour,
             // and nothing inside is markdown. (The Mac highlights a named
             // language properly; this is the plain-fence look for all of them.)
