@@ -225,11 +225,8 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* A preview tab: the eye where the dot would be, the name in italics — the
-   same note, seen rather than edited. */
-.tab.preview .tab-name {
-  font-style: italic;
-}
+/* A preview tab: the eye where the dot would be — the same note, seen rather
+   than edited. The name is set as any other tab's. */
 .tab-eye {
   flex: none;
   color: var(--muted);
