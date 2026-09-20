@@ -26,14 +26,14 @@ export function designTokens() {
     todo: {
       order: [...ORDER],
       aliases: ALIASES,
-      // The checkbox, as App.css draws it: a 0.95em square at the line's font
-      // size; inside, a 1.5px border with 4px radius at 0.7em, the svg 0.85em.
+      // The checkbox, as App.css draws it (--todo-box-*): a 0.8em square at
+      // the line's font size, laid out one text column wide and centred on
+      // it; a 1.5px border, the radius 0.3 of the side, the glyph 0.5em.
       box: {
-        size: "0.95em",
+        size: "0.8em",
         border: "1.5px",
-        radius: "4px",
-        glyphFontSize: "0.7em",
-        svgSize: "0.85em",
+        radius: "0.24em",
+        glyph: "0.5em",
       },
       // Lucide glyphs, verbatim, already scaled to one ink size and stroke —
       // the exact string the Mac's editor and preview both render.

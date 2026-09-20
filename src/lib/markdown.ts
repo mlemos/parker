@@ -16,17 +16,19 @@ md.use(todoPlugin);
 md.use(lineMapPlugin);
 
 // GFM-style task lists: markdown-it leaves "[ ]" / "[x]" as literal text, so
-// swap them for disabled checkboxes at the start of a list item.
+// swap them for disabled checkboxes at the start of a list item. No space
+// after the checkbox: its margin sets the gap (App.css li.task), so the text
+// lands in the same column as every other item's.
 // The <li> and <p> carry the line map's attribute, which rides along.
 function taskLists(html: string): string {
   return html
     .replace(
       /<li([^>]*)>\s*(<p[^>]*>)?\[ \]\s?/g,
-      '<li class="task"$1>$2<input type="checkbox" disabled> '
+      '<li class="task"$1>$2<input type="checkbox" disabled>'
     )
     .replace(
       /<li([^>]*)>\s*(<p[^>]*>)?\[[xX]\]\s?/g,
-      '<li class="task"$1>$2<input type="checkbox" checked disabled> '
+      '<li class="task"$1>$2<input type="checkbox" checked disabled>'
     );
 }
 

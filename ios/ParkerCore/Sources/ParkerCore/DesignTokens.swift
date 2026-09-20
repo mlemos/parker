@@ -42,8 +42,8 @@ public struct DesignTokens: Decodable, Sendable {
 
     /// Editor content roles.
     public struct Syntax: Decodable, Sendable {
-        public let plain, heading, bold, italic, list, inlineCode: String
-        public let keyword, string, number, `func`, comment, punct, link, invalid: String
+        public let plain, heading, bold, italic, boldItalic, list, inlineCode: String
+        public let keyword, string, number, `func`, comment, punct, link, url, quote, invalid: String
     }
 
     /// To-do state roles — named by the STATE, not the hue. TODO wears the body
@@ -72,7 +72,7 @@ public struct DesignTokens: Decodable, Sendable {
         public let glyphs: [String: String]
 
         public struct Box: Decodable, Sendable {
-            public let size, border, radius, glyphFontSize, svgSize: String
+            public let size, border, radius, glyph: String
         }
     }
 

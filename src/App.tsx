@@ -20,6 +20,7 @@ import { displayName, droppedExternals, isExternal, renamedIn } from "./lib/exte
 import { isFirstLaunch } from "./lib/session";
 import { PathLabel } from "./components/PathLabel";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
+import { alpha } from "./lib/palette";
 import { textWidthOf } from "./lib/text-width";
 import type { TextWidth } from "./lib/text-width";
 import {
@@ -392,6 +393,12 @@ export default function App() {
       "--priority-low": theme.priority.low,
       "--priority-mid": theme.priority.mid,
       "--priority-high": theme.priority.high,
+      // The markdown marks the stylesheet dresses (themes.ts monoStyles).
+      "--md-bold": theme.syntax.bold,
+      "--md-italic": theme.syntax.italic,
+      "--md-bold-italic": theme.syntax.boldItalic,
+      "--md-code": theme.syntax.inlineCode,
+      "--md-code-bg": alpha(theme.syntax.inlineCode, 0.14),
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;

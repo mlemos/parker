@@ -26,18 +26,21 @@
       },
       "syntax": {
         "plain": "#f4f4f5",
-        "heading": "#a78bfa",
-        "bold": "#fbbf24",
-        "italic": "#6ee7b7",
-        "list": "#22d3ee",
-        "inlineCode": "#e879f9",
+        "heading": "#e879f9",
+        "bold": "#e879f9",
+        "italic": "#fb7185",
+        "boldItalic": "#f472b6",
+        "list": "#e4e4e7",
+        "inlineCode": "#4ade80",
         "keyword": "#f472b6",
         "string": "#4ade80",
         "number": "#fb923c",
         "func": "#22d3ee",
         "comment": "#71717a",
         "punct": "#a1a1aa",
-        "link": "#38bdf8",
+        "link": "#22d3ee",
+        "url": "#60a5fa",
+        "quote": "#a1a1aa",
         "invalid": "#f87171"
       },
       "todo": {
@@ -80,18 +83,21 @@
       },
       "syntax": {
         "plain": "#18181b",
-        "heading": "#7c3aed",
-        "bold": "#d97706",
-        "italic": "#059669",
-        "list": "#0891b2",
-        "inlineCode": "#c026d3",
+        "heading": "#c026d3",
+        "bold": "#c026d3",
+        "italic": "#e11d48",
+        "boldItalic": "#db2777",
+        "list": "#3f3f46",
+        "inlineCode": "#15803d",
         "keyword": "#db2777",
         "string": "#16a34a",
         "number": "#ea580c",
         "func": "#0891b2",
         "comment": "#a1a1aa",
         "punct": "#71717a",
-        "link": "#0284c7",
+        "link": "#0891b2",
+        "url": "#2563eb",
+        "quote": "#71717a",
         "invalid": "#dc2626"
       },
       "todo": {
@@ -136,6 +142,7 @@
         "plain": "#24292f",
         "heading": "#0550ae",
         "bold": "#24292f",
+        "boldItalic": "#24292f",
         "italic": "#24292f",
         "list": "#6e7781",
         "inlineCode": "#0a3069",
@@ -146,6 +153,8 @@
         "comment": "#6e7781",
         "punct": "#24292f",
         "link": "#0969da",
+        "url": "#0969da",
+        "quote": "#0a3069",
         "invalid": "#cf222e"
       },
       "todo": {
@@ -190,6 +199,7 @@
         "plain": "#c9d1d9",
         "heading": "#79c0ff",
         "bold": "#c9d1d9",
+        "boldItalic": "#c9d1d9",
         "italic": "#c9d1d9",
         "list": "#8b949e",
         "inlineCode": "#a5d6ff",
@@ -200,6 +210,8 @@
         "comment": "#8b949e",
         "punct": "#c9d1d9",
         "link": "#58a6ff",
+        "url": "#58a6ff",
+        "quote": "#a5d6ff",
         "invalid": "#f85149"
       },
       "todo": {
@@ -244,6 +256,7 @@
         "plain": "#3d2f1e",
         "heading": "#bf641e",
         "bold": "#8f4a12",
+        "boldItalic": "#8f4a12",
         "italic": "#4f7373",
         "list": "#845947",
         "inlineCode": "#7a5c2e",
@@ -254,6 +267,8 @@
         "comment": "#8a7860",
         "punct": "#6b5a44",
         "link": "#2f6f6f",
+        "url": "#2f6f6f",
+        "quote": "#5b6b3a",
         "invalid": "#b3301c"
       },
       "todo": {
@@ -298,6 +313,7 @@
         "plain": "#ddd6ff",
         "heading": "#ff785a",
         "bold": "#ffb26b",
+        "boldItalic": "#ffb26b",
         "italic": "#5adcc8",
         "list": "#b9a8ff",
         "inlineCode": "#ff9ecb",
@@ -308,6 +324,8 @@
         "comment": "#8b83b5",
         "punct": "#9a92c4",
         "link": "#7fd1ff",
+        "url": "#7fd1ff",
+        "quote": "#5adcc8",
         "invalid": "#ff5a7a"
       },
       "todo": {
@@ -352,6 +370,7 @@
         "plain": "#7dffa4",
         "heading": "#00ff66",
         "bold": "#b6ffcc",
+        "boldItalic": "#b6ffcc",
         "italic": "#5fd68a",
         "list": "#2fbe5f",
         "inlineCode": "#9dffc0",
@@ -362,6 +381,8 @@
         "comment": "#2f8f4f",
         "punct": "#4a9c68",
         "link": "#00ffcc",
+        "url": "#00ffcc",
+        "quote": "#42ad46",
         "invalid": "#ff4f4f"
       },
       "todo": {
@@ -406,6 +427,7 @@
         "plain": "#dbe9ff",
         "heading": "#ffffff",
         "bold": "#ffffff",
+        "boldItalic": "#ffffff",
         "italic": "#a6d8ff",
         "list": "#94cdff",
         "inlineCode": "#cbe3ff",
@@ -416,6 +438,8 @@
         "comment": "#84a4cd",
         "punct": "#9fb8dd",
         "link": "#a6d8ff",
+        "url": "#a6d8ff",
+        "quote": "#a1bdc6",
         "invalid": "#ff9d8a"
       },
       "todo": {
@@ -456,11 +480,10 @@
       "DISMISSED": "CANCEL"
     },
     "box": {
-      "size": "0.95em",
+      "size": "0.8em",
       "border": "1.5px",
-      "radius": "4px",
-      "glyphFontSize": "0.7em",
-      "svgSize": "0.85em"
+      "radius": "0.24em",
+      "glyph": "0.5em"
     },
     "glyphs": {
       "TODO": "",

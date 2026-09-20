@@ -914,44 +914,35 @@ body.resizing {
    rule above dresses it here too. What is left is the block itself: the entry
    wears its state's colour, and the dimmed colour sits on the container so the
    nested lines inherit it — the same grouping the editor draws, arrived at by
-   letting colour cascade instead of decorating each line. */
+   letting colour cascade instead of decorating each line.
+
+   An entry is laid out exactly as a list item is: its text starts at the list
+   indent, the box hangs in the marker gutter where a bullet would be, and a
+   wrapped line continues under the text. So a note that mixes `- item` and
+   `/TODO item` reads as one list here as it does in the editor — the same
+   column for every marker, the same column for every text. */
 .md-body .todo {
-  /* The gap after the box, and the whole width the box occupies — the second
-     is what nested content indents by, so the two can never drift apart. */
-  --todo-box-gap: 0.35em;
-  --todo-box-span: calc(3px + 0.95em + var(--todo-box-gap));
+  padding-left: var(--list-indent);
   margin: 0.35em 0;
-}
-.md-body .todo .cm-todo-box {
-  cursor: default; /* not a control here — the preview is read-only */
-  /* In the editor the gap comes free: the space after the tag is still in the
-     document. Here the text is parsed away from it, so the box has to carry
-     its own. */
-  margin-right: var(--todo-box-gap);
-  /* The editor's -0.07em is tuned for its monospace face. In this one the box
-     lands ~0.8px above the text's optical centre, which reads as the text
-     sitting low. Measured against cap-height, not against the line box: the
-     line box has descender space under it, so centring on it is not centring
-     on what the eye sees. `vertical-align: middle` is worse here — it misses
-     by 1.3px. */
-  vertical-align: -0.12em;
 }
 .md-body .todo-head {
   display: block;
+  /* The first line starts back in the gutter, where the box goes; the box's
+     right margin then brings the text to the list indent. A wrapped line has
+     no indent and starts at the padding — under the text. */
+  text-indent: calc(var(--marker-inset) - var(--list-indent));
 }
-/* Everything nested under an entry starts where the entry's text starts: the
-   box's whole footprint. Lists get it as padding rather than margin, so their
-   markers hang in that same column — which is what the checkbox column is. */
-.md-body .todo > * {
-  margin-left: var(--todo-box-span);
+.md-body .todo .cm-todo-box {
+  cursor: default; /* not a control here — the preview is read-only */
+  /* In the editor the box's anchor is a text column and the square overflows
+     it into the space after the tag. There is no such space here — the text
+     is parsed away from it — so the anchor is the square's own size and the
+     gap to the text is a margin. */
+  width: var(--todo-box-size);
+  margin-right: calc(var(--list-indent) - var(--marker-inset) - var(--todo-box-size));
 }
-.md-body .todo > .todo-head {
-  margin-left: 0;
-}
-.md-body .todo > ul,
-.md-body .todo > ol {
-  margin-left: 0;
-  padding-left: var(--todo-box-span);
+.md-body .todo .cm-todo-glyph {
+  left: 0;
 }
 .md-body .todo-doing {
   color: color-mix(in srgb, var(--todo-doing) 55%, var(--editor-bg));
@@ -1042,6 +1033,15 @@ body.resizing {
   font-size: 15px;
   line-height: 1.7;
   color: var(--editor-fg);
+  /* The one indent every list-like block uses — bullets, numbers, to-do
+     entries, task checkboxes — so their texts share a column. The gutter
+     before it holds the marker, and every marker — bullet, box, checkbox —
+     is centred on `--marker-axis`, so they line up on one vertical line.
+     The bullets are drawn here rather than by the engine (whose marker sits
+     wherever it likes, differently per engine) so the axis is a fact. */
+  --list-indent: 1.6em;
+  --marker-axis: 0.65em;
+  --marker-inset: calc(var(--marker-axis) - var(--todo-box-size) / 2);
 }
 .md-body > :first-child {
   margin-top: 0;
@@ -1090,18 +1090,41 @@ body.resizing {
 }
 .md-body ul,
 .md-body ol {
-  padding-left: 1.6em;
+  padding-left: var(--list-indent);
 }
 .md-body li {
   margin: 0.25em 0;
 }
-.md-body li.task {
+.md-body ul {
   list-style: none;
-  margin-left: -1.3em;
 }
+.md-body ul > li {
+  position: relative;
+}
+/* The bullet: the engine's three shapes by depth, centred on the marker axis. */
+.md-body ul > li:not(.task)::before {
+  content: "•";
+  position: absolute;
+  top: 0;
+  left: calc(-1 * var(--list-indent));
+  width: calc(2 * var(--marker-axis));
+  text-align: center;
+}
+.md-body ul ul > li:not(.task)::before {
+  content: "◦";
+}
+.md-body ul ul ul > li:not(.task)::before {
+  content: "▪";
+}
+/* A GFM task (`- [ ]`) is drawn like a to-do entry: the checkbox hangs in
+   the gutter on the marker axis and the text stays in the text column. */
 .md-body li.task input {
-  margin-right: 0.5em;
-  vertical-align: middle;
+  font: inherit; /* an input's em is its own 13px otherwise — the sizes below are the text's */
+  width: var(--todo-box-size);
+  height: var(--todo-box-size);
+  margin: 0 calc(var(--list-indent) - var(--marker-inset) - var(--todo-box-size)) 0
+    calc(var(--marker-inset) - var(--list-indent));
+  vertical-align: var(--todo-box-drop);
   accent-color: var(--accent);
 }
 .md-body blockquote {
@@ -1346,51 +1369,63 @@ body.resizing {
   --todo-wait: #c084fc; /* purple-400 · WAIT, and conflict */
   --todo-fail: #ef4444; /* red-500    · the bad pole */
   --todo-ink: #10131a;
+  /* The square's geometry, shared by the editor and the preview (and mirrored
+     by the iPhone, TodoAttachment.swift). The square is centred on the column
+     a list marker takes, so a box and a `-` sit on one axis — it is wider
+     than the column, so it reaches a little into the padding before the line
+     and into the space after the tag. Of the two columns `/TODO ` takes, what
+     is left after the square is the gap to the text: any bigger a square and
+     the text touches it; any smaller and the box is a dot. The glyph is 0.85
+     of the square's inside, the radius 0.3 of its side — so the box keeps its
+     shape at any size. */
+  --todo-box-size: 0.8em;
+  --todo-glyph-size: 0.5em;
+  --todo-box-radius: calc(var(--todo-box-size) * 0.3);
+  --todo-box-drop: -0.05em;
 }
-/* inline-block + vertical-align: middle keeps alignment independent of the
-   box's content — a numeric/baseline align shifts when the glyph changes the
-   widget's internal baseline (empty vs ✓/✕), which is exactly the bug. The
-   glyph is absolutely centered so it can't affect layout at all. */
-/* The checkbox is laid out as a real inline box, one character-ish wide and
-   tall, sitting on the text baseline. It used to be a zero-height anchor with
-   the square drawn from it absolutely — which kept line heights stable but
-   broke two things: hit-testing found no box at the line's vertical middle, so
-   moving the cursor up or down into a to-do line landed *after* the marker
-   instead of at the start of the line, and the square was painted right where
-   the caret at column 0 goes, hiding it. A real box with a little breathing
-   room on the left fixes both, and lines stay exactly as tall as before. */
+/* The box occupies exactly one column of the monospace text — the width a
+   list marker (`-`) takes — so the text of a to-do starts where the text of a
+   list item starts, and a mixed list reads as one list: `/TODO x` and `- x`
+   both put their x at column two, and the square is centred on the column,
+   where the `-` is centred, so the two markers share one axis. The square is
+   wider than a column (a column-wide square would be a speck), so it is drawn
+   from that one-column anchor and overflows on both sides — into the padding
+   before the line and into the space that follows the tag, which is blank
+   anyway. The anchor is a real inline box, one column wide and as tall as the
+   square, so hit-testing at the line's vertical middle finds it (moving the
+   cursor into a to-do line lands at the start of the line, not after the
+   marker). The caret at column 0 draws over the square's left edge; that
+   position is rare and the caret shows through. The anchor has no in-flow
+   content, so its baseline is its bottom edge whatever the square holds — an
+   empty box and a box with a check sit at exactly the same height. */
 .cm-todo-box {
   display: inline-block;
+  position: relative;
   box-sizing: border-box;
-  width: 0.95em;
-  height: 0.95em;
-  margin-left: 3px; /* room for the caret before the marker */
-  margin-right: 1px;
-  /* overflow:hidden makes an inline-block take its baseline from its bottom
-     margin edge instead of from whatever it contains — without it the empty
-     TODO box aligns one way and the ones holding an icon another, so the
-     checkbox jumped 2.5px every time the state changed. */
-  overflow: hidden;
-  vertical-align: -0.07em; /* bottom sits 1px under the text baseline */
+  width: 1ch;
+  height: var(--todo-box-size);
+  vertical-align: var(--todo-box-drop); /* bottom sits just under the baseline */
   cursor: pointer;
   user-select: none;
 }
 .cm-todo-glyph {
+  position: absolute;
+  left: calc(0.5ch - var(--todo-box-size) / 2); /* centred on the column */
+  top: 0;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
+  width: var(--todo-box-size);
+  height: var(--todo-box-size);
   border: 1.5px solid var(--muted);
-  border-radius: 4px;
-  font-size: 0.7em;
+  border-radius: var(--todo-box-radius);
   line-height: 1;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
 .cm-todo-glyph svg {
-  width: 0.85em;
-  height: 0.85em;
+  width: var(--todo-glyph-size);
+  height: var(--todo-glyph-size);
   display: block;
 }
 .cm-todo-box-todo:hover .cm-todo-glyph {
@@ -1483,6 +1518,50 @@ body.resizing {
   color: var(--editor-bg);
 }
 
+/* ---- Markdown marks: bold, italic, inline code -------------------------- */
+
+/* These keep their own colour on every line: inside a list, on a to-do line
+   of any state, under one. The line rules above paint every span the state's
+   colour, so these are written to beat them (`.editor-wrap` + the class
+   outweighs `.cm-todo-line-x span`); the theme supplies the colours through
+   App.tsx (--md-*) because the classes come from themes.ts monoStyles, where
+   a class and a colour cannot both be set. A bold-italic run carries both
+   classes and has a colour of its own. */
+.editor-wrap .cm-md-em {
+  color: var(--md-italic);
+  font-style: italic;
+}
+.editor-wrap .cm-md-strong {
+  color: var(--md-bold);
+  font-weight: 700;
+}
+.editor-wrap .cm-md-em.cm-md-strong {
+  color: var(--md-bold-italic);
+}
+/* Inline code: terminal green on a wash of itself. No horizontal padding —
+   the editor is a grid of columns and a padded span would push the text off
+   it (the hanging indent counts columns). The wash is extended up and down a
+   little instead, so it reads as a chip and not as a highlight. */
+.editor-wrap .cm-md-code {
+  color: var(--md-code);
+  background: var(--md-code-bg);
+  border-radius: 3px;
+  box-shadow: 0 -1px 0 var(--md-code-bg), 0 1px 0 var(--md-code-bg);
+}
+/* Under a to-do, a mark is dimmed with the line it is on — same mix as the
+   .cm-todo-child-* rules — so a nested line stays a nested line. */
+.editor-wrap [class*="cm-todo-child-"] .cm-md-em {
+  color: color-mix(in srgb, var(--md-italic) 55%, var(--editor-bg));
+}
+.editor-wrap [class*="cm-todo-child-"] .cm-md-strong {
+  color: color-mix(in srgb, var(--md-bold) 55%, var(--editor-bg));
+}
+.editor-wrap [class*="cm-todo-child-"] .cm-md-em.cm-md-strong {
+  color: color-mix(in srgb, var(--md-bold-italic) 55%, var(--editor-bg));
+}
+.editor-wrap [class*="cm-todo-child-"] .cm-md-code {
+  color: color-mix(in srgb, var(--md-code) 55%, var(--editor-bg));
+}
 
 /* ---- Folding ------------------------------------------------------------ */
 

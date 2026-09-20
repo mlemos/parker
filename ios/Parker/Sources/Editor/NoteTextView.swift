@@ -37,7 +37,15 @@ struct NoteTextView: UIViewRepresentable {
     @Binding var command: EditorCommand?
 
     func makeUIView(context: Context) -> UITextView {
-        let tv = BoxTextView(usingTextLayoutManager: false) // TextKit 1: attachments and hit-testing behave
+        // TextKit 1 (attachments and hit-testing behave), with the layout
+        // manager that paints the boxes — see BoxLayoutManager.
+        let storage = NSTextStorage()
+        let layout = BoxLayoutManager()
+        storage.addLayoutManager(layout)
+        let container = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        layout.addTextContainer(container)
+        let tv = BoxTextView(frame: .zero, textContainer: container)
         tv.delegate = context.coordinator
         tv.backgroundColor = UIColor(theme.editorBg)
         tv.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 200, right: 8)
@@ -278,10 +286,11 @@ struct NoteTextView: UIViewRepresentable {
                tv.textStorage.attribute(.attachment, at: index - 1, effectiveRange: nil) is TodoAttachment { index -= 1 }
             guard index < tv.textStorage.length,
                   let a = tv.textStorage.attribute(.attachment, at: index, effectiveRange: nil) as? TodoAttachment else { return nil }
-            // the target is the whole line height, from the left edge to a little past the box
+            // the target is the whole line height, from the left edge to a little
+            // past the box — the box as drawn, which reaches past its one-column cell
             let glyphRect = tv.layoutManager.boundingRect(forGlyphRange: NSRange(location: index, length: 1), in: tv.textContainer)
             let target = CGRect(x: -tv.textContainerInset.left, y: glyphRect.minY - 6,
-                                width: glyphRect.maxX + tv.textContainerInset.left + 8, height: glyphRect.height + 12)
+                                width: glyphRect.minX + a.drawnWidth + tv.textContainerInset.left + 8, height: glyphRect.height + 12)
             guard target.contains(inContainer) else { return nil }
             return (index, a)
         }
@@ -305,7 +314,7 @@ struct NoteTextView: UIViewRepresentable {
             guard let tv = textView, index < tv.textStorage.length,
                   tv.textStorage.attribute(.attachment, at: index, effectiveRange: nil) is TodoAttachment else { return }
             if let state {
-                let replacement = TodoAttachment(state: state, bangs: bangs, em: NoteStorage.fontSize, theme: parent.theme)
+                let replacement = TodoAttachment(state: state, bangs: bangs, em: NoteStorage.fontSize, column: NoteStorage.column, theme: parent.theme)
                 tv.textStorage.replaceCharacters(in: NSRange(location: index, length: 1), with: NSAttributedString(attachment: replacement))
             } else {
                 // the tag and the one space after it, as the Mac's delete-into-box does

@@ -29,6 +29,17 @@ enum NoteStorage {
     static var italic: UIFont { geist("GeistMono-Italic", weight: .regular) }
     static var boldItalic: UIFont { geist("GeistMono-BoldItalic", weight: .bold) }
 
+    /// One column of the monospace face: what a list marker takes, and what a
+    /// to-do's box is laid out as (TodoAttachment). Measured once per size —
+    /// it is asked for on every to-do line of every note.
+    static var column: CGFloat {
+        if let c = columnCache, c.size == fontSize { return c.width }
+        let width = ("0" as NSString).size(withAttributes: [.font: font]).width
+        columnCache = (fontSize, width)
+        return width
+    }
+    nonisolated(unsafe) private static var columnCache: (size: CGFloat, width: CGFloat)?
+
     private static func geist(_ name: String, weight: UIFont.Weight) -> UIFont {
         guard let base = UIFont(name: name, size: fontSize) else { return .monospacedSystemFont(ofSize: fontSize, weight: weight) }
         let noLigatures: [UIFontDescriptor.FeatureKey: Int] = [.type: kLigaturesType, .selector: kCommonLigaturesOffSelector]
@@ -55,7 +66,7 @@ enum NoteStorage {
         if let tag = Todo.tag(of: line) {
             let rest = String(line.utf16.dropFirst(tag.length)) ?? ""
             let s = NSMutableAttributedString(string: tag.indent)
-            s.append(NSAttributedString(attachment: TodoAttachment(state: tag.state, bangs: tag.bangs, em: fontSize, theme: theme)))
+            s.append(NSAttributedString(attachment: TodoAttachment(state: tag.state, bangs: tag.bangs, em: fontSize, column: column, theme: theme)))
             s.append(NSAttributedString(string: rest))
             return s
         }
@@ -125,9 +136,9 @@ enum NoteStorage {
         let owners = Todo.ownersForRange(doc, fromLine: 1, toLine: doc.lineCount)
 
         // One column of the monospace face, for the hanging indent below. The
-        // box is an attachment with a width of its own (TodoAttachment.bounds).
-        let column = ("0" as NSString).size(withAttributes: [.font: font]).width
-        let boxWidth = 3 * (fontSize / 14) + fontSize * 0.95 + 1 * (fontSize / 14)
+        // box is laid out as one column too (TodoAttachment), like the list
+        // marker it stands in the place of.
+        let column = self.column
 
         let ns = s.string as NSString
         var location = 0
@@ -146,7 +157,7 @@ enum NoteStorage {
                 let hang = NSMutableParagraphStyle()
                 hang.setParagraphStyle(para)
                 hang.firstLineHeadIndent = 0
-                hang.headIndent = CGFloat(prefix.cols) * column + (prefix.box ? boxWidth : 0)
+                hang.headIndent = CGFloat(prefix.cols + (prefix.box ? 1 : 0)) * column
                 let paraRange = NSRange(location: range.location, length: min(length + 1, s.length - range.location))
                 s.addAttribute(.paragraphStyle, value: hang, range: paraRange)
             }
@@ -162,20 +173,25 @@ enum NoteStorage {
                 s.addAttribute(.foregroundColor, value: UIColor(Color(css: theme.def.syntax.inlineCode)), range: range)
                 continue
             }
+            var marksOnly = false, dim = false
             if let tag = Todo.tag(of: fileLine) {
                 let color = tag.state == .todo ? theme.editorFg : (tag.state == .cancel ? theme.muted : theme.stateColor(tag.state))
                 s.addAttribute(.foregroundColor, value: UIColor(color), range: range)
+                marksOnly = tag.state != .todo // an open to-do is body text, and keeps everything
             } else if let owner = owners[i] {
                 // a nested line wears its to-do's colour, 55% into the background — App.css
-                // .cm-todo-child-*, whose colour wins over the marks inside the line
+                // .cm-todo-child-* — and so do the marks inside it, each its own colour dimmed
+                // the same way, so bold is still bold's colour and the line still nested
                 let base = owner == .cancel ? theme.muted : theme.stateColor(owner)
                 s.addAttribute(.foregroundColor, value: UIColor(base).blended(with: UIColor(theme.editorBg), t: 0.45), range: range)
-                continue
+                marksOnly = true
+                dim = true
             }
-            // marks keep their own colours inside a to-do line, as the Mac's syntax spans
-            // do — matched on the STORAGE line, whose offsets are the range's (a box is
-            // one character where the file has the whole tag)
-            markdown(storageLine, in: range, of: s, theme: theme)
+            // marks keep their own colours on every line — inside a list, on a to-do line
+            // of any state, under one — as the Mac's do (App.css .cm-md-*); matched on the
+            // STORAGE line, whose offsets are the range's (a box is one character where
+            // the file has the whole tag)
+            markdown(storageLine, in: range, of: s, theme: theme, marksOnly: marksOnly, dim: dim)
         }
         _ = ns
     }
@@ -193,18 +209,26 @@ enum NoteStorage {
         static let code = try! NSRegularExpression(pattern: "`[^`\\n]+`")
         // [text](url) only: a bare url is plain text on the Mac too
         static let link = try! NSRegularExpression(pattern: "\\[[^\\]]+\\]\\([^)]+\\)")
+        // the (url) part of a link, coloured on its own after the whole link is
+        static let linkUrl = try! NSRegularExpression(pattern: "(?<=\\])\\([^)]+\\)")
     }
 
     /// A little of the Mac's markdown tint: headings, list markers, bold, italic, inline code, links.
-    private static func markdown(_ line: String, in range: NSRange, of s: NSMutableAttributedString, theme: Theme) {
+    /// On a to-do line, or under one, the line's colour is the state's and only bold, italic
+    /// and inline code keep their own (`marksOnly`, App.css .cm-md-*); `dim` blends those into
+    /// the background the way a nested line's text is.
+    private static func markdown(_ line: String, in range: NSRange, of s: NSMutableAttributedString, theme: Theme, marksOnly: Bool = false, dim: Bool = false) {
         let ns = line as NSString
+        let ink = { (c: Color) -> UIColor in dim ? UIColor(c).blended(with: UIColor(theme.editorBg), t: 0.45) : UIColor(c) }
         // The Mac's rules (themes.ts syntaxStyles): marks (#, **, [], ()) wear
         // the colour of what they mark, bold-italic is bold's colour in italic.
-        func paint(_ re: NSRegularExpression, _ color: Color, bold: Bool = false, italic: Bool = false, underline: Bool = false) {
+        func paint(_ re: NSRegularExpression, _ color: Color, bold: Bool = false, italic: Bool = false, underline: Bool = false, wash: Bool = false) {
             for m in re.matches(in: line, range: NSRange(location: 0, length: ns.length)) {
                 let r = NSRange(location: range.location + m.range.location, length: min(m.range.length, range.length - m.range.location))
                 guard r.length > 0 else { continue }
-                s.addAttribute(.foregroundColor, value: UIColor(color), range: r)
+                s.addAttribute(.foregroundColor, value: ink(color), range: r)
+                // inline code sits on a wash of its own colour (App.css --md-code-bg)
+                if wash { s.addAttribute(.codeWash, value: UIColor(color).withAlphaComponent(0.14), range: r) }
                 if bold || italic {
                     let wasItalic = (s.attribute(.font, at: r.location, effectiveRange: nil) as? UIFont).map { $0.fontDescriptor.symbolicTraits.contains(.traitItalic) } ?? false
                     let wasBold = (s.attribute(.font, at: r.location, effectiveRange: nil) as? UIFont).map { $0.fontDescriptor.symbolicTraits.contains(.traitBold) } ?? false
@@ -214,14 +238,19 @@ enum NoteStorage {
                 if underline { s.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: r) }
             }
         }
-        if line.hasPrefix("#") { paint(Re.heading, theme.heading, bold: true); return }
-        paint(Re.quote, Color(css: theme.def.syntax.string))
-        paint(Re.list, theme.list)
-        paint(Re.boldItalic, Color(css: theme.def.syntax.bold), bold: true, italic: true)
+        if !marksOnly {
+            if line.hasPrefix("#") { paint(Re.heading, theme.heading, bold: true); return }
+            paint(Re.quote, Color(css: theme.def.syntax.quote))
+            paint(Re.list, theme.list)
+        }
+        paint(Re.boldItalic, Color(css: theme.def.syntax.boldItalic), bold: true, italic: true)
         paint(Re.italic, Color(css: theme.def.syntax.italic), italic: true)
         paint(Re.bold, Color(css: theme.def.syntax.bold), bold: true)
-        paint(Re.code, Color(css: theme.def.syntax.inlineCode))
-        paint(Re.link, Color(css: theme.def.syntax.link), underline: true)
+        paint(Re.code, Color(css: theme.def.syntax.inlineCode), wash: true)
+        if !marksOnly {
+            paint(Re.link, Color(css: theme.def.syntax.link), underline: true)
+            paint(Re.linkUrl, Color(css: theme.def.syntax.url), underline: true)
+        }
     }
 }
 

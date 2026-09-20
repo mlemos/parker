@@ -42,7 +42,7 @@ import Testing
                 if let c { #expect(c.hasPrefix("#") || c.hasPrefix("rgba("), Comment(rawValue: c)) }
             }
         }
-        #expect(t.todo.box.size == "0.95em")
+        #expect(t.todo.box.size == "0.8em")
     }
 
     @Test("carries the priority ramp for every theme, four distinct colours")

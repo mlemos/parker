@@ -6,7 +6,7 @@
 // The editor (CodeMirror) content theme is derived from the same tokens for
 // Parker's native themes, so chrome and content stay in sync.
 import { createTheme } from "@uiw/codemirror-themes";
-import { tags as t } from "@lezer/highlight";
+import { Tag, tags as t } from "@lezer/highlight";
 import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
 import type { Extension } from "@uiw/react-codemirror";
 import { tw, alpha } from "./palette";
@@ -96,8 +96,9 @@ const MONO =
 export interface SyntaxColors {
   plain: string; // body text / identifiers
   heading: string; // markdown headings
-  bold: string; // **bold** (bold-italic uses this color too)
+  bold: string; // **bold**
   italic: string; // *italic*
+  boldItalic: string; // ***bold-italic***
   list: string; // list markers (*, -, 1.)
   inlineCode: string; // `inline code` / plain code fences
   keyword: string; // keywords, tags
@@ -106,9 +107,16 @@ export interface SyntaxColors {
   func: string; // function / type / class names
   comment: string; // comments, block quotes
   punct: string; // operators, punctuation, brackets
-  link: string; // links / urls
+  link: string; // a link's text
+  url: string; // the url itself (and a bare one)
+  quote: string; // > block quotes
   invalid: string; // errors
 }
+
+/** Inline code, as a tag of its own under monospace — so it can carry a class
+    the fenced code text (also monospace) does not. Attached to the node in
+    lang.ts (mdTags). */
+export const inlineCodeTag = Tag.define(t.monospace);
 
 function monoStyles(p: SyntaxColors) {
   return [
@@ -177,12 +185,23 @@ function monoStyles(p: SyntaxColors) {
       color: p.heading,
       fontWeight: "700",
     },
-    // emphasis before strong so a bold-italic node (both classes) resolves to
-    // strong's color — bold-italic = bold color + italic.
-    { tag: [t.emphasis], color: p.italic, fontStyle: "italic" },
-    { tag: [t.strong], color: p.bold, fontWeight: "700" },
-    { tag: [t.link, t.url], color: p.link, textDecoration: "underline" },
-    { tag: [t.quote], color: p.string },
+    // Bold, italic and inline code are fixed classes, dressed in App.css from
+    // the --md-* variables (App.tsx sets them from this theme's colours). A
+    // to-do line paints every span its state's colour, and a mark can only win
+    // its own colour back with a rule that names it — which a generated class
+    // cannot be part of. A bold-italic node carries both classes; the
+    // stylesheet gives it a colour of its own.
+    { tag: [t.emphasis], class: "cm-md-em" },
+    { tag: [t.strong], class: "cm-md-strong" },
+    { tag: [inlineCodeTag], class: "cm-md-code" },
+    // Before the links, so a link inside a quote is still a link: a quote's
+    // colour covers its children, and the later rule wins on a span both
+    // cover. The url after a link's text is the same case — its own node
+    // inside the link's, coloured by the rule that comes after.
+    { tag: [t.quote], color: p.quote },
+    { tag: [t.link], color: p.link, textDecoration: "underline" },
+    { tag: [t.url], color: p.url, textDecoration: "underline" },
+    // The text of a plain fence (no language): the code colour, no background.
     { tag: [t.monospace], color: p.inlineCode },
     // NOTE: intentionally NO rule for processingInstruction/meta so markdown
     // marks (#, [], (), **) inherit the color of what they mark (heading, link,
@@ -209,6 +228,9 @@ function editorTheme(
       lineHighlight: ui.currentLine,
       gutterBackground: ui.editorBg,
       gutterForeground: ui.muted,
+      // The current line's number in the accent: the one number that answers
+      // "where am I" should not wear the colour of the ones that do not.
+      gutterActiveForeground: ui.accent,
       fontFamily: MONO,
     },
     styles: monoStyles(syntax),
@@ -300,35 +322,46 @@ const vercelDayUI: ThemeUI = {
 // Vivid / neon content palette — the chrome stays monochrome, the writing pops.
 const nightSyntax: SyntaxColors = {
   plain: tw.zinc[100], // near-white body
-  heading: tw.violet[400],
-  bold: tw.amber[400],
-  italic: tw.emerald[300],
-  list: tw.cyan[400],
-  inlineCode: tw.fuchsia[400],
+  // Structure and emphasis in one family — fuchsia, pink, rose — so a note
+  // reads as text with accents, not as a syntax rainbow. Decided 2026-09-20.
+  heading: tw.fuchsia[400],
+  bold: tw.fuchsia[400],
+  italic: tw.rose[400],
+  boldItalic: tw.pink[400],
+  // A list is body text, a shade off — a hue would read as meaning, and cyan
+  // in particular is what a /DOING to-do wears.
+  list: tw.zinc[200],
+  // Terminal green, on a wash of itself (App.css --md-code-bg).
+  inlineCode: tw.green[400],
   keyword: tw.pink[400],
   string: tw.green[400],
   number: tw.orange[400],
   func: tw.cyan[400],
   comment: tw.zinc[500],
   punct: tw.zinc[400],
-  link: tw.sky[400],
+  link: tw.cyan[400],
+  url: tw.blue[400],
+  quote: tw.zinc[400], // a step under the body: an aside, not a shout
   invalid: tw.red[400],
 };
 
 const daySyntax: SyntaxColors = {
   plain: tw.zinc[900],
-  heading: tw.violet[600],
-  bold: tw.amber[600],
-  italic: tw.emerald[600],
-  list: tw.cyan[600],
-  inlineCode: tw.fuchsia[600],
+  heading: tw.fuchsia[600],
+  bold: tw.fuchsia[600],
+  italic: tw.rose[600],
+  boldItalic: tw.pink[600],
+  list: tw.zinc[700],
+  inlineCode: tw.green[700],
   keyword: tw.pink[600],
   string: tw.green[600],
   number: tw.orange[600],
   func: tw.cyan[600],
   comment: tw.zinc[400],
   punct: tw.zinc[500],
-  link: tw.sky[600],
+  link: tw.cyan[600],
+  url: tw.blue[600],
+  quote: tw.zinc[500],
   invalid: tw.red[600],
 };
 
@@ -380,6 +413,7 @@ const githubLightSyntax: SyntaxColors = {
   plain: "#24292f",
   heading: "#0550ae",
   bold: "#24292f",
+  boldItalic: "#24292f",
   italic: "#24292f",
   list: "#6e7781",
   inlineCode: "#0a3069",
@@ -390,6 +424,8 @@ const githubLightSyntax: SyntaxColors = {
   comment: "#6e7781",
   punct: "#24292f",
   link: "#0969da",
+  url: "#0969da",
+  quote: "#0a3069",
   invalid: "#cf222e",
 };
 
@@ -397,6 +433,7 @@ const githubDarkSyntax: SyntaxColors = {
   plain: "#c9d1d9",
   heading: "#79c0ff",
   bold: "#c9d1d9",
+  boldItalic: "#c9d1d9",
   italic: "#c9d1d9",
   list: "#8b949e",
   inlineCode: "#a5d6ff",
@@ -407,6 +444,8 @@ const githubDarkSyntax: SyntaxColors = {
   comment: "#8b949e",
   punct: "#c9d1d9",
   link: "#58a6ff",
+  url: "#58a6ff",
+  quote: "#a5d6ff",
   invalid: "#f85149",
 };
 
@@ -449,6 +488,7 @@ const playaSyntax: SyntaxColors = {
   plain: "#3d2f1e",
   heading: "#bf641e",
   bold: "#8f4a12",
+  boldItalic: "#8f4a12",
   italic: "#4f7373",
   list: "#845947",
   inlineCode: "#7a5c2e",
@@ -459,6 +499,8 @@ const playaSyntax: SyntaxColors = {
   comment: "#8a7860",
   punct: "#6b5a44",
   link: "#2f6f6f",
+  url: "#2f6f6f",
+  quote: "#5b6b3a",
   invalid: "#b3301c",
 };
 
@@ -489,6 +531,7 @@ const playaNightSyntax: SyntaxColors = {
   plain: "#ddd6ff",
   heading: "#ff785a",
   bold: "#ffb26b",
+  boldItalic: "#ffb26b",
   italic: "#5adcc8",
   list: "#b9a8ff",
   inlineCode: "#ff9ecb",
@@ -499,6 +542,8 @@ const playaNightSyntax: SyntaxColors = {
   comment: "#8b83b5",
   punct: "#9a92c4",
   link: "#7fd1ff",
+  url: "#7fd1ff",
+  quote: "#5adcc8",
   invalid: "#ff5a7a",
 };
 
@@ -530,6 +575,7 @@ const matrixSyntax: SyntaxColors = {
   plain: "#7dffa4",
   heading: "#00ff66",
   bold: "#b6ffcc",
+  boldItalic: "#b6ffcc",
   italic: "#5fd68a",
   list: "#2fbe5f",
   inlineCode: "#9dffc0",
@@ -540,6 +586,8 @@ const matrixSyntax: SyntaxColors = {
   comment: "#2f8f4f",
   punct: "#4a9c68",
   link: "#00ffcc",
+  url: "#00ffcc",
+  quote: "#42ad46",
   invalid: "#ff4f4f",
 };
 
@@ -572,6 +620,7 @@ const blueprintSyntax: SyntaxColors = {
   plain: "#dbe9ff",
   heading: "#ffffff",
   bold: "#ffffff",
+  boldItalic: "#ffffff",
   italic: "#a6d8ff",
   list: "#94cdff",
   inlineCode: "#cbe3ff",
@@ -582,6 +631,8 @@ const blueprintSyntax: SyntaxColors = {
   comment: "#84a4cd",
   punct: "#9fb8dd",
   link: "#a6d8ff",
+  url: "#a6d8ff",
+  quote: "#a1bdc6",
   invalid: "#ff9d8a",
 };
 
