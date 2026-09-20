@@ -28,7 +28,9 @@ describe("hangingIndent on a real view", () => {
     expect(styles[2]).toMatch(/padding-left: calc\((2ch \+ 6px|6px \+ 2ch)\)/);
     expect(styles[3]).toMatch(/padding-left: calc\((4ch \+ 6px|6px \+ 4ch)\)/);
     expect(styles[4]).toBe("");
-    expect(styles[5]).toContain("0.95em + 4px");
+    // `/TODO task`: the box is one column and the space after it another —
+    // the same two columns `- ` takes, so the two kinds of item hang alike.
+    expect(styles[5]).toMatch(/padding-left: calc\((2ch \+ 6px|6px \+ 2ch)\)/);
   });
 
   it("follows an edit that adds or removes the marker", () => {

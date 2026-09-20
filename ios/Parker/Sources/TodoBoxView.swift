@@ -1,7 +1,11 @@
-// The checkbox, exactly as the Mac draws it: a 0.95em square, a 1.5px border
-// with 4px radius, the state's colour as fill, the glyph knocked out in the
-// editor's background — and, on the empty box, the priority as the border's
-// colour. The glyph is the Mac's own SVG, parsed by ParkerCore.GlyphSVG.
+// The checkbox in the task list, drawn as the Mac draws its box: a 1.5px
+// border with 4px radius, the state's colour as fill, the glyph knocked out
+// in the editor's background — and, on the empty box, the priority as the
+// border's colour. The glyph is the Mac's own SVG, parsed by
+// ParkerCore.GlyphSVG. The size is the list's own, 0.95em of the row's text:
+// a row is hit with a thumb, and nothing in a list has to line up with a
+// text column. The editor's box is smaller (TodoAttachment), because there
+// it has to fit the column a list marker takes.
 
 import ParkerCore
 import SwiftUI

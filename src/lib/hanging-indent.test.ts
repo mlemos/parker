@@ -20,9 +20,9 @@ describe("hangingStyle", () => {
       "padding-left: calc(6px + 2ch); text-indent: calc(-1 * (2ch));"
     );
   });
-  it("adds the box's width for a to-do", () => {
+  it("adds the box's column for a to-do — one, like a list marker's", () => {
     expect(hangingStyle({ cols: 1, box: true })).toBe(
-      "padding-left: calc(6px + calc(1ch + 0.95em + 4px)); text-indent: calc(-1 * (calc(1ch + 0.95em + 4px)));"
+      "padding-left: calc(6px + calc(1ch + 1ch)); text-indent: calc(-1 * (calc(1ch + 1ch)));"
     );
   });
 });

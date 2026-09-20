@@ -37,20 +37,20 @@ describe("renderMarkdown / untrusted input", () => {
 describe("renderMarkdown / task lists", () => {
   it("turns GFM checkboxes into disabled inputs", () => {
     const html = renderMarkdown("- [ ] milk\n- [x] bread");
-    expect(html).toContain('<li class="task" data-line="1"><input type="checkbox" disabled> milk</li>');
+    expect(html).toContain('<li class="task" data-line="1"><input type="checkbox" disabled>milk</li>');
     expect(html).toContain(
-      '<li class="task" data-line="2"><input type="checkbox" checked disabled> bread</li>'
+      '<li class="task" data-line="2"><input type="checkbox" checked disabled>bread</li>'
     );
   });
 
   it("accepts an upper-case X and ordered lists", () => {
-    expect(renderMarkdown("1. [X] one")).toContain('checked disabled> one');
+    expect(renderMarkdown("1. [X] one")).toContain('checked disabled>one');
   });
 
   it("handles loose list items, where the text is wrapped in a paragraph", () => {
     const html = renderMarkdown("- [ ] a\n\n- [ ] b");
     expect(html).toContain(
-      '<li class="task" data-line="1"><p data-line="1"><input type="checkbox" disabled> a</p>'
+      '<li class="task" data-line="1"><p data-line="1"><input type="checkbox" disabled>a</p>'
     );
   });
 

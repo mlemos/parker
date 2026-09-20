@@ -8,9 +8,9 @@
 // Done with CSS, per line: padding-left the width of the prefix and a
 // text-indent of minus the same, so the first row starts at the margin and
 // every row after it starts at the text. The editor is monospace, so the
-// prefix is measured in `ch` and needs no DOM measurement — except the to-do
-// box, which is a widget with a width of its own (App.css .cm-todo-box), added
-// as the calc it is.
+// prefix is measured in `ch` and needs no DOM measurement — the to-do box
+// included: the widget is laid out one column wide, like the list marker it
+// stands in the place of (App.css .cm-todo-box).
 
 import { Decoration, EditorView, ViewPlugin } from "@uiw/react-codemirror";
 import type { DecorationSet, ViewUpdate } from "@uiw/react-codemirror";
@@ -19,8 +19,8 @@ import { LINE_TAG } from "./todo-model";
 
 /** Base left padding CodeMirror gives every .cm-line. */
 const LINE_PAD = "6px";
-/** The to-do box widget's width: 0.95em plus 3px + 1px of margins. */
-const BOX = "0.95em + 4px";
+/** The to-do box widget's width: one column, like a list marker (App.css .cm-todo-box). */
+const BOX = "1ch";
 
 /** The leading part of a line the continuation should hang under: the
  *  indentation, then a list marker (`- `, `* `, `+ `, `1. `, `1) `), a quote

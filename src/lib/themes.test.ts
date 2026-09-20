@@ -20,9 +20,10 @@ const UI_ROLES = {
 } satisfies Record<keyof ThemeUI, true>;
 
 const SYNTAX_ROLES = {
-  plain: true, heading: true, bold: true, italic: true, list: true,
-  inlineCode: true, keyword: true, string: true, number: true, func: true,
-  comment: true, punct: true, link: true, invalid: true,
+  plain: true, heading: true, bold: true, italic: true, boldItalic: true,
+  list: true, inlineCode: true, keyword: true, string: true, number: true,
+  func: true, comment: true, punct: true, link: true, url: true, quote: true,
+  invalid: true,
 } satisfies Record<keyof SyntaxColors, true>;
 
 const TODO_ROLES = {
