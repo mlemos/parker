@@ -1,51 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { hangingPrefix, hangingStyle } from "./hanging-indent.ts";
 
+import fixtures from "../../shared/fixtures/hanging-indent.json";
+
+// The prefix rule is shared with the iPhone (ios/ParkerCore HangingIndent):
+// both suites read the same cases, so the two editors hang the same lines
+// under the same column.
 describe("hangingPrefix", () => {
-  it("hangs a list item under its text", () => {
-    expect(hangingPrefix("- item")).toEqual({ cols: 2, box: false });
-    expect(hangingPrefix("* item")).toEqual({ cols: 2, box: false });
-    expect(hangingPrefix("+ item")).toEqual({ cols: 2, box: false });
-    expect(hangingPrefix("12. item")).toEqual({ cols: 4, box: false });
-    expect(hangingPrefix("3) item")).toEqual({ cols: 3, box: false });
-  });
-
-  it("counts the indentation of a nested item", () => {
-    expect(hangingPrefix("  - detail")).toEqual({ cols: 4, box: false });
-    expect(hangingPrefix("    - deeper")).toEqual({ cols: 6, box: false });
-    expect(hangingPrefix("\t- tabbed")).toEqual({ cols: 3, box: false });
-  });
-
-  it("includes a task checkbox in the prefix", () => {
-    expect(hangingPrefix("- [ ] task")).toEqual({ cols: 6, box: false });
-    expect(hangingPrefix("- [x] done")).toEqual({ cols: 6, box: false });
-  });
-
-  it("hangs a quote under its text", () => {
-    expect(hangingPrefix("> quoted")).toEqual({ cols: 2, box: false });
-  });
-
-  it("stands the to-do box in for the tag, and keeps the space", () => {
-    expect(hangingPrefix("/TODO buy milk")).toEqual({ cols: 1, box: true });
-    expect(hangingPrefix("/DONE!! shipped")).toEqual({ cols: 1, box: true });
-    expect(hangingPrefix("  /WAIT on them")).toEqual({ cols: 3, box: true });
-  });
-
-  it("hangs indented plain text under its own start", () => {
-    expect(hangingPrefix("  continuation of the item above")).toEqual({ cols: 2, box: false });
-  });
-
-  it("leaves a paragraph, a heading and a blank line alone", () => {
-    expect(hangingPrefix("Just a paragraph that wraps")).toBeNull();
-    expect(hangingPrefix("# Heading")).toBeNull();
-    expect(hangingPrefix("")).toBeNull();
-    expect(hangingPrefix("   ")).toBeNull();
-  });
-
-  it("does not take a dash in prose for a marker", () => {
-    expect(hangingPrefix("-not a list")).toBeNull();
-    expect(hangingPrefix("2024 was a year")).toBeNull();
-  });
+  for (const c of fixtures.cases) {
+    it(`${JSON.stringify(c.line)} → ${c.cols === null ? "no prefix" : `${c.cols} cols${c.box ? " + box" : ""}`}`, () => {
+      expect(hangingPrefix(c.line)).toEqual(c.cols === null ? null : { cols: c.cols, box: c.box });
+    });
+  }
 });
 
 describe("hangingStyle", () => {
