@@ -8,9 +8,13 @@ import SwiftUI
 struct NoteView: View {
     @Environment(Workspace.self) private var workspace
     @Environment(\.colorScheme) private var scheme
-    let name: String
+    @Environment(\.scenePhase) private var scenePhase
+    let ref: NoteRef
     /// A line to land on when the note opens (1-based), from the Tasks tab.
     var focusLine: Int? = nil
+
+    init(name: String, focusLine: Int? = nil) { self.ref = .note(name); self.focusLine = focusLine }
+    init(ref: NoteRef, focusLine: Int? = nil) { self.ref = ref; self.focusLine = focusLine }
     @State private var text = ""
     @State private var loaded = false
     @State private var onDisk = ""
@@ -20,13 +24,19 @@ struct NoteView: View {
 
     var body: some View {
         let theme = Theme.current(scheme)
-        Group {
+        VStack(spacing: 0) {
+            // A file from outside the folder says so, the way the Mac does:
+            // a pink band no other surface uses, the file's folder, and a
+            // way to it in Files.
+            if case .external(let file) = ref {
+                ExternalBand(file: file)
+            }
             if loaded {
                 NoteTextView(text: $text, theme: theme, focusLine: focusLine, onChange: { new in
                     saveTask?.cancel()
                     saveTask = Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(500))
-                        if !Task.isCancelled { workspace.write(name, new); onDisk = new }
+                        if !Task.isCancelled { workspace.write(ref, new); onDisk = new }
                     }
                 }, onBoxLongPress: { index, box in
                     pressed = PressedBox(index: index, state: box.state, bangs: box.bangs)
@@ -41,7 +51,7 @@ struct NoteView: View {
                 // Only a note still in the cloud takes long enough to be seen here.
                 VStack(spacing: 10) {
                     ProgressView()
-                    Text(workspace.isLocal(name) ? "Opening…" : "Downloading from iCloud…")
+                    Text(workspace.isLocal(ref) ? "Opening…" : "Downloading from iCloud…")
                         .font(.footnote).foregroundStyle(theme.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -49,19 +59,57 @@ struct NoteView: View {
         }
         .background(theme.editorBg)
         .ignoresSafeArea(.container, edges: .bottom)
-        .navigationTitle(NotesFolder.displayName(name).replacingOccurrences(of: ".md", with: ""))
+        .navigationTitle(ref.title)
         .navigationBarTitleDisplayMode(.inline)
-        .task { if !loaded { text = await workspace.load(name); onDisk = text; loaded = true } }
+        // Opaque, or the bar takes the band's pink through its translucency.
+        .toolbarBackground(theme.editorBg, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .task { if !loaded { text = await workspace.load(ref); onDisk = text; loaded = true } }
         .onChange(of: workspace.notes) { _, _ in
             // the folder changed underneath: take the disk's version when we have nothing unsaved
-            if loaded, saveTask == nil || saveTask?.isCancelled == true {
-                let disk = workspace.read(name)
-                if disk != text { text = disk; onDisk = disk }
-            }
+            if case .note = ref { takeDisk() }
+        }
+        // An outside file has no watcher; coming back to the app is when it
+        // is looked at again.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, case .external = ref { takeDisk() }
         }
         // Only a changed note is written: rewriting an untouched one would
         // bump its date and make every synced device fetch it again.
-        .onDisappear { saveTask?.cancel(); if loaded, text != onDisk { workspace.write(name, text); onDisk = text } }
+        .onDisappear { saveTask?.cancel(); if loaded, text != onDisk { workspace.write(ref, text); onDisk = text } }
+    }
+
+    private func takeDisk() {
+        guard loaded, saveTask == nil || saveTask?.isCancelled == true else { return }
+        let disk = workspace.read(ref)
+        if disk != text { text = disk; onDisk = disk }
+    }
+}
+
+/// The Mac's pink band: this file is not in your notes folder — not backed
+/// up, not in search — and here is where it is. Tapping opens Files there.
+struct ExternalBand: View {
+    let file: ExternalFile
+
+    var body: some View {
+        Button {
+            // Files opens at a path given as shareddocuments://<path>.
+            if let url = URL(string: "shareddocuments://" + file.url.path) { UIApplication.shared.open(url) }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "folder.badge.minus").font(.footnote.weight(.bold))
+                Text("External").font(.footnote.weight(.bold))
+                Text(file.folderLabel + " › " + file.displayName).font(.footnote).lineLimit(1).truncationMode(.head)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.caption2.weight(.bold)).opacity(0.8)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14).padding(.vertical, 7)
+            .frame(maxWidth: .infinity)
+            .background(Color(red: 0.925, green: 0.282, blue: 0.6)) // pink-500, the Mac's --outside
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("External file, outside your notes folder. Opens in Files.")
     }
 }
 

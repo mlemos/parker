@@ -71,6 +71,20 @@ public struct NotesFolder: Sendable {
         return String(name[...i])
     }
 
+    /// note_name_of: the name the app knows a file by, if it lives in this
+    /// folder — at any depth. nil for anything outside, or for a file that is
+    /// not a listed note. Paths are compared resolved, so a symlinked folder
+    /// and the /private prefix do not fool it.
+    public func noteName(of file: URL) -> String? {
+        let root = url.standardizedFileURL.resolvingSymlinksInPath().path
+        let target = file.standardizedFileURL.resolvingSymlinksInPath().path
+        let prefix = root.hasSuffix("/") ? root : root + "/"
+        guard target.hasPrefix(prefix) else { return nil }
+        let name = String(target.dropFirst(prefix.count))
+        guard !name.isEmpty, Self.isValidName(name), Self.isListedNote(name) else { return nil }
+        return name
+    }
+
     /// note_ext: alphanumerics only, "md" when nothing usable is left.
     public static func noteExt(_ ext: String?) -> String {
         let clean = (ext ?? "").unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }

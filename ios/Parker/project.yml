@@ -43,6 +43,23 @@ targets:
         # container is set up with the signing account.
         LSSupportsOpeningDocumentsInPlace: true
         UIFileSharingEnabled: true
+        # Markdown and text files open in Parker from Files ("Open in Parker",
+        # or a tap when Parker is the handler) — in place, where they are, as
+        # the Mac does. Markdown has no system UTI; it is declared below.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Markdown
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [net.daringfireball.markdown]
+          - CFBundleTypeName: Plain text
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.plain-text]
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: net.daringfireball.markdown
+            UTTypeDescription: Markdown document
+            UTTypeConformsTo: [public.plain-text]
+            UTTypeTagSpecification:
+              public.filename-extension: [md, markdown, mdown, mkd]
+              public.mime-type: [text/markdown]
         ITSAppUsesNonExemptEncryption: false
         # Geist Mono, the Mac editor's face (SIL OFL 1.1; license beside the files).
         UIAppFonts: [GeistMono-Variable.ttf, GeistMono-Italic-Variable.ttf]
