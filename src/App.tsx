@@ -30,6 +30,7 @@ import {
   firstGroup,
   centerDivider,
   makeGroup,
+  noteOf,
   pruneLayout,
   resizeSplit,
 } from "./lib/layout";
@@ -159,7 +160,8 @@ export default function App() {
   // Focused group + its active buffer (drives the header/status bar).
   const groups = allGroups(layout);
   const focusedGroup = ws.focusedGroup({ buffers, layout, focusedId });
-  const activeName = focusedGroup.active;
+  // The note in front of the focused pane — whether its editor or its preview.
+  const activeName = focusedGroup.active ? noteOf(focusedGroup.active) : null;
   const activeBuf = buffers.find((b) => b.name === activeName) ?? null;
   const multiGroup = groups.length > 1;
   const activeContent = activeBuf?.content ?? null;
@@ -534,9 +536,10 @@ export default function App() {
   );
 
   const closeTab = useCallback(
-    async (groupId: string, name: string) => {
+    async (groupId: string, id: string) => {
+      const name = noteOf(id);
       await flushSave(name);
-      const after = apply((w) => ws.closeTab(w, groupId, name));
+      const after = apply((w) => ws.closeTab(w, groupId, id));
       // The echo record outlives the buffer otherwise, holding a copy of a note
       // nothing has open any more.
       if (!after.buffers.some((b) => b.name === name)) lastWrite.current.delete(name);
@@ -575,7 +578,7 @@ export default function App() {
   const previewToSide = useCallback(
     (groupId: string) => {
       const g = findGroup(stateRef.current.layout, groupId);
-      if (!g || !g.active || !isMarkdown(g.active)) return;
+      if (!g || !g.active || !isMarkdown(noteOf(g.active))) return;
       apply((w) => ws.previewToSide(w, groupId));
     },
     [apply]
@@ -728,8 +731,8 @@ export default function App() {
 
   const startRename = useCallback((name?: string) => {
     const s = stateRef.current;
-    const n =
-      name ?? (findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout)).active;
+    const id = name ?? (findGroup(s.layout, s.focusedId) ?? firstGroup(s.layout)).active;
+    const n = id ? noteOf(id) : null;
     // A file from outside the folder keeps its name: Parker edits it where it
     // is and does nothing else to it.
     if (n && !isExternal(n)) setRenamingName(n);
@@ -827,7 +830,7 @@ export default function App() {
       } else if (k === "s") {
         e.preventDefault();
         const g = findGroup(stateRef.current.layout, fid);
-        if (g?.active) flushSave(g.active);
+        if (g?.active) flushSave(noteOf(g.active));
       } else if (e.shiftKey && (k === "]" || k === "}")) {
         e.preventDefault();
         switchByOffset(1); // ⌘⇧] next tab (Safari/Chrome style)
@@ -1079,6 +1082,7 @@ export default function App() {
   const handlers: LayoutHandlers = {
     onFocus: focusGroup,
     onSelectTab: selectTab,
+    onDeselectTab: (groupId) => apply((w) => ws.deselectTab(w, groupId)),
     onCloseTab: closeTab,
     onNewTab: newTab,
     onChange,

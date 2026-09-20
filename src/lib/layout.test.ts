@@ -58,7 +58,7 @@ describe("asLayout", () => {
 
   it("accepts a minimal group and fills in the defaults", () => {
     const n = asLayout({ kind: "group", tabs: ["a.md"], active: "a.md" });
-    expect(n).toMatchObject({ kind: "group", tabs: ["a.md"], active: "a.md", mode: "edit" });
+    expect(n).toMatchObject({ kind: "group", tabs: ["a.md"], active: "a.md" });
     expect(typeof n!.id).toBe("string");
   });
 
@@ -75,13 +75,15 @@ describe("asLayout", () => {
     expect((asLayout({ kind: "group", tabs: [], active: 7 }) as Group).active).toBeNull();
   });
 
-  it("keeps only 'preview' as a non-default mode", () => {
-    const mode = (x: unknown) =>
-      (asLayout({ kind: "group", tabs: [], active: null, mode: x }) as Group).mode;
-    expect(mode("preview")).toBe("preview");
-    expect(mode("edit")).toBe("edit");
-    expect(mode("bogus")).toBe("edit");
-    expect(mode(undefined)).toBe("edit");
+  // The preview used to be a mode of the pane; a saved session from then
+  // comes back with the pane's active note as a preview tab.
+  it("turns an old pane in preview mode into a pane with a preview tab", () => {
+    const g = asLayout({ kind: "group", tabs: ["a.md", "b.md"], active: "a.md", mode: "preview" }) as Group;
+    expect(g.tabs).toEqual(["preview:a.md", "b.md"]);
+    expect(g.active).toBe("preview:a.md");
+    const plain = asLayout({ kind: "group", tabs: ["a.md"], active: "a.md", mode: "edit" }) as Group;
+    expect(plain.tabs).toEqual(["a.md"]);
+    expect("mode" in plain).toBe(false);
   });
 
   it("rejects a split with no children", () => {
@@ -368,8 +370,8 @@ describe("tree helpers", () => {
 
   it("patches one group and copies the rest", () => {
     const { root, b, c } = nested();
-    const out = updateGroup(root, b.id, { active: "z.md", mode: "preview" });
-    expect(findGroup(out, b.id)).toMatchObject({ active: "z.md", mode: "preview" });
+    const out = updateGroup(root, b.id, { active: "z.md" });
+    expect(findGroup(out, b.id)).toMatchObject({ active: "z.md" });
     expect(findGroup(out, c.id)).toEqual(c);
   });
 

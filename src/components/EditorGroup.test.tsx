@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { makeGroup } from "../lib/layout.ts";
+import { makeGroup, noteOf } from "../lib/layout.ts";
 import type { Buffer } from "../lib/layout.ts";
 import { themeById } from "../lib/themes.ts";
 import { EditorGroup } from "./EditorGroup.tsx";
@@ -13,7 +13,7 @@ import type { GroupCallbacks } from "./EditorGroup.tsx";
 vi.mock("./Editor", () => ({
   Editor: ({ tab }: { tab: string }) => <div data-testid="editor" data-tab={tab} />,
 }));
-vi.mock("./MarkdownPreview", () => ({ MarkdownPreview: () => <div /> }));
+vi.mock("./MarkdownPreview", () => ({ MarkdownPreview: () => <div data-testid="preview" /> }));
 vi.mock("../lib/lang", () => ({ languageForName: async () => [] }));
 
 afterEach(cleanup);
@@ -26,6 +26,7 @@ function setup(tabs: string[], active: string, extra: Partial<Buffer>[] = []) {
   const cb: GroupCallbacks = {
     onFocus: vi.fn(),
     onSelectTab: vi.fn(),
+    onDeselectTab: vi.fn(),
     onCloseTab: vi.fn(),
     onNewTab: vi.fn(),
     onChange: vi.fn(),
@@ -44,7 +45,8 @@ function setup(tabs: string[], active: string, extra: Partial<Buffer>[] = []) {
     onResolveConflict: vi.fn(),
     onReveal: vi.fn(),
   };
-  const buffers = tabs.map((t) => ({ ...buf(t), ...extra.find((e) => e.name === t) }));
+  const notes = [...new Set(tabs.map(noteOf))];
+  const buffers = notes.map((t) => ({ ...buf(t), ...extra.find((e) => e.name === t) }));
   const view = render(
     <EditorGroup
       group={makeGroup(tabs, active)}
@@ -115,6 +117,38 @@ describe("a note in a subfolder", () => {
   it("is not an outside file: no band", () => {
     const { container } = setup(["backlogs/parker.md"], "backlogs/parker.md");
     expect(container.querySelector(".outside-bar")).toBeNull();
+  });
+});
+
+describe("a preview tab", () => {
+  it("shows the note rendered, wears the eye, and is named after the note", () => {
+    const { container } = setup(["a.md", "preview:a.md"], "preview:a.md", [
+      { name: "a.md", content: "# Title" },
+    ]);
+    expect(container.querySelector('[data-testid="preview"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="editor"]')).toBeNull();
+    const tab = container.querySelector(".tab.preview")!;
+    expect(tab.querySelector(".tab-eye")).not.toBeNull();
+    expect(tab.querySelector(".tab-name")!.textContent).toBe("a.md");
+    expect(tab.getAttribute("title")).toBe("Preview of a.md");
+  });
+
+  it("closes by its own id, not the note's", () => {
+    const { cb, container } = setup(["a.md", "preview:a.md"], "a.md");
+    fireEvent.click(container.querySelector(".tab.preview .tab-close")!);
+    expect(cb.onCloseTab).toHaveBeenCalledWith("preview:a.md");
+  });
+});
+
+describe("the tab strip", () => {
+  it("puts no tab in front when its empty space is clicked", () => {
+    const { cb, container } = setup(["a.md"], "a.md");
+    fireEvent.click(container.querySelector(".tabs")!);
+    expect(cb.onDeselectTab).toHaveBeenCalled();
+    // a click on a tab is a select, never a deselect
+    fireEvent.click(screen.getByText("a.md").closest(".tab")!);
+    expect(cb.onDeselectTab).toHaveBeenCalledTimes(1);
+    expect(cb.onSelectTab).toHaveBeenCalledWith("a.md");
   });
 });
 

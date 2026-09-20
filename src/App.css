@@ -225,6 +225,18 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* A preview tab: the eye where the dot would be, the name in italics — the
+   same note, seen rather than edited. */
+.tab.preview .tab-name {
+  font-style: italic;
+}
+.tab-eye {
+  flex: none;
+  color: var(--muted);
+}
+.tab.preview.active .tab-eye {
+  color: var(--accent);
+}
 
 /* Status left of the name, the close button right of it: one side says what the
    note is, the other acts on it.

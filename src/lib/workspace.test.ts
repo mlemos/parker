@@ -103,17 +103,12 @@ describe("selectTab", () => {
     expect(findGroup(out.layout, right.id)!.active).toBe("c.md");
   });
 
-  // Preview is a view of the note you are on, not a mode the pane sits in.
-  it("drops back to the editor when the note changes", () => {
-    const g = makeGroup(["a.md", "b.md"], "a.md", "preview");
-    const w: Workspace = { buffers: [buf("a.md"), buf("b.md")], layout: g, focusedId: g.id };
-    expect((ws.selectTab(w, g.id, "b.md").layout as Group).mode).toBe("edit");
-  });
-
-  it("stays in preview when you re-select the note already showing", () => {
-    const g = makeGroup(["a.md"], "a.md", "preview");
-    const w: Workspace = { buffers: [buf("a.md")], layout: g, focusedId: g.id };
-    expect((ws.selectTab(w, g.id, "a.md").layout as Group).mode).toBe("preview");
+  it("can put no tab in front, keeping the tabs", () => {
+    const { w, g } = single();
+    const out = ws.deselectTab(w, g.id);
+    expect((out.layout as Group).active).toBeNull();
+    expect((out.layout as Group).tabs).toEqual(["a.md", "b.md", "c.md"]);
+    expect(out.focusedId).toBe(g.id);
   });
 });
 
@@ -393,7 +388,7 @@ describe("previewToSide", () => {
     const { w, g } = single();
     const out = ws.previewToSide(w, g.id);
     expect(groupAt(out, 0).tabs).toEqual(["a.md", "b.md", "c.md"]); // editor keeps it
-    expect(groupAt(out, 1)).toMatchObject({ tabs: ["a.md"], mode: "preview" });
+    expect(groupAt(out, 1)).toMatchObject({ tabs: ["preview:a.md"], active: "preview:a.md" });
     expect(out.focusedId).toBe(g.id);
   });
 
@@ -463,12 +458,99 @@ describe("focusPaneByOffset", () => {
   });
 });
 
-describe("toggleMode", () => {
-  it("flips between the editor and the preview", () => {
+// The preview is a tab of its own, "preview:<note>", not a mode of the pane —
+// so it can be dragged, reordered and closed like any tab. One editor and one
+// preview per note in the whole workspace.
+describe("preview tabs", () => {
+  it("toggling turns the tab into its preview, in place, and back", () => {
     const { w, g } = single();
     const preview = ws.toggleMode(w, g.id);
-    expect((preview.layout as Group).mode).toBe("preview");
-    expect((ws.toggleMode(preview, g.id).layout as Group).mode).toBe("edit");
+    expect(tabsOf(preview, g.id)).toEqual(["preview:a.md", "b.md", "c.md"]);
+    expect(findGroup(preview.layout, g.id)!.active).toBe("preview:a.md");
+    expect(names(preview)).toEqual(["a.md", "b.md", "c.md"]); // the buffer is still referenced
+    const back = ws.toggleMode(preview, g.id);
+    expect(tabsOf(back, g.id)).toEqual(["a.md", "b.md", "c.md"]);
+  });
+
+  it("does nothing with no tab in front", () => {
+    const { w, g } = single();
+    expect(ws.toggleMode(ws.deselectTab(w, g.id), g.id).layout).toEqual(ws.deselectTab(w, g.id).layout);
+  });
+
+  it("preview to the side opens the preview tab in a new pane, focus staying", () => {
+    const { w, g } = single();
+    const out = ws.previewToSide(w, g.id);
+    const groups = allGroups(out.layout);
+    expect(groups).toHaveLength(2);
+    expect(groups[1].tabs).toEqual(["preview:a.md"]);
+    expect(groups[1].active).toBe("preview:a.md");
+    expect(out.focusedId).toBe(g.id);
+    expect(tabsOf(out, g.id)).toEqual(["a.md", "b.md", "c.md"]); // the editor stays
+  });
+
+  it("a second preview to the side shows the one there is", () => {
+    const { w, g } = single();
+    const once = ws.previewToSide(w, g.id);
+    const twice = ws.previewToSide(once, g.id);
+    expect(allGroups(twice.layout)).toHaveLength(2);
+    expect(twice.layout).toEqual(once.layout);
+  });
+
+  it("toggling in place pulls the preview over from another pane", () => {
+    const { w, g } = single();
+    const side = ws.previewToSide(w, g.id);
+    const sideId = allGroups(side.layout)[1].id;
+    const out = ws.toggleMode(side, g.id);
+    expect(tabsOf(out, g.id)).toEqual(["preview:a.md", "b.md", "c.md"]);
+    expect(findGroup(out.layout, sideId)!.tabs).toEqual([]);
+  });
+
+  it("a preview tab moves between panes like any tab, and shows as a preview there", () => {
+    const { w, g } = single();
+    const side = ws.previewToSide(w, g.id);
+    const sideId = allGroups(side.layout)[1].id;
+    const moved = ws.dropTab(side, { from: sideId, name: "preview:a.md" }, g.id, 1);
+    expect(tabsOf(moved, g.id)).toEqual(["a.md", "preview:a.md", "b.md", "c.md"]);
+    expect(findGroup(moved.layout, sideId)).toBeNull(); // the emptied pane collapses, as for any tab
+  });
+
+  it("closing the preview tab leaves the note open in its editor", () => {
+    const { w, g } = single();
+    const side = ws.previewToSide(w, g.id);
+    const sideId = allGroups(side.layout)[1].id;
+    const out = ws.closeTab(side, sideId, "preview:a.md");
+    expect(names(out)).toContain("a.md");
+    expect(allGroups(out.layout)).toHaveLength(1); // the emptied pane went
+  });
+
+  it("opening a note open in another pane shows it there instead of twice", () => {
+    const { w, left, right } = pair();
+    const out = ws.openNote(w, right.id, buf("a.md"));
+    expect(tabsOf(out, right.id)).toEqual(["c.md"]);
+    expect(findGroup(out.layout, left.id)!.active).toBe("a.md");
+    expect(out.focusedId).toBe(left.id);
+  });
+
+  it("renaming and forgetting a note carry its preview tab along", () => {
+    const { w, g } = single();
+    const side = ws.previewToSide(w, g.id);
+    const sideId = allGroups(side.layout)[1].id;
+    const renamed = ws.renameNote(side, "a.md", "z.md");
+    expect(findGroup(renamed.layout, sideId)!.tabs).toEqual(["preview:z.md"]);
+    expect(findGroup(renamed.layout, sideId)!.active).toBe("preview:z.md");
+    const gone = ws.forgetNote(side, "a.md");
+    expect(findGroup(gone.layout, sideId)!.tabs).toEqual([]);
+    expect(tabsOf(gone, g.id)).toEqual(["b.md", "c.md"]);
+  });
+
+  it("splits empty from a pane with no tab in front", () => {
+    const { w, g } = single();
+    const out = ws.splitPane(ws.deselectTab(w, g.id), g.id, "row");
+    const groups = allGroups(out.layout);
+    expect(groups).toHaveLength(2);
+    expect(groups[1].tabs).toEqual([]);
+    expect(tabsOf(out, g.id)).toEqual(["a.md", "b.md", "c.md"]);
+    expect(out.focusedId).toBe(groups[1].id);
   });
 });
 
