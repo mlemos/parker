@@ -233,17 +233,30 @@ export function unseenChanges(buffers: Buffer[]): string[] {
 export function selectTab(ws: Workspace, groupId: string, id: string): Workspace {
   return {
     ...ws,
-    layout: updateGroup(ws.layout, groupId, { active: id }),
+    layout: updateGroup(ws.layout, groupId, { active: id, unselected: false }),
     focusedId: groupId,
   };
 }
 
-/** Put no tab in front: the tabs stay, the pane shows nothing. A click on
- *  the strip's empty space does this, and a split from here is born empty. */
+/** Select no tab, keeping the view: the note in front stays on screen, the
+ *  strip just stops marking it. A click on the strip's empty space does
+ *  this, and a split from here is born empty instead of taking the tab. */
 export function deselectTab(ws: Workspace, groupId: string): Workspace {
   return {
     ...ws,
-    layout: updateGroup(ws.layout, groupId, { active: null }),
+    layout: updateGroup(ws.layout, groupId, { unselected: true }),
+    focusedId: groupId,
+  };
+}
+
+/** Focusing a pane — a click anywhere in it — makes its shown tab selected
+ *  again; the empty-strip click is the one that comes after and undoes it. */
+export function focusGroupSelecting(ws: Workspace, groupId: string): Workspace {
+  const g = findGroup(ws.layout, groupId);
+  if (!g) return ws;
+  return {
+    ...ws,
+    layout: g.unselected ? updateGroup(ws.layout, groupId, { unselected: false }) : ws.layout,
     focusedId: groupId,
   };
 }
@@ -410,7 +423,7 @@ export function splitPane(
 
   let base = ws.layout;
   let fresh: Group;
-  if (g.active) {
+  if (g.active && !g.unselected) {
     const active = g.active;
     const idx = g.tabs.indexOf(active);
     const remaining = g.tabs.filter((t) => t !== active);
@@ -422,7 +435,9 @@ export function splitPane(
     });
     fresh = makeGroup([active], active);
   } else {
-    fresh = makeGroup([], null); // splitting an empty pane gives another one
+    // An empty pane, or one with no tab selected: the new pane is born empty.
+    fresh = makeGroup([], null);
+    if (g.unselected) base = updateGroup(base, groupId, { unselected: false });
   }
 
   return {

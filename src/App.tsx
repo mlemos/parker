@@ -512,7 +512,12 @@ export default function App() {
     [scheduleSave]
   );
 
-  const focusGroup = useCallback((id: string) => setFocusedId(id), []);
+  // A click anywhere in a pane focuses it and, if its tab had been
+  // unselected by a click on the strip's empty space, selects it again.
+  const focusGroup = useCallback(
+    (id: string) => apply((w) => ws.focusGroupSelecting(w, id)),
+    [apply]
+  );
 
   const selectTab = useCallback(
     (groupId: string, name: string) => {

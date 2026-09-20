@@ -103,12 +103,16 @@ describe("selectTab", () => {
     expect(findGroup(out.layout, right.id)!.active).toBe("c.md");
   });
 
-  it("can put no tab in front, keeping the tabs", () => {
+  it("can select no tab while keeping the view", () => {
     const { w, g } = single();
     const out = ws.deselectTab(w, g.id);
-    expect((out.layout as Group).active).toBeNull();
+    expect((out.layout as Group).active).toBe("a.md"); // still shown
+    expect((out.layout as Group).unselected).toBe(true);
     expect((out.layout as Group).tabs).toEqual(["a.md", "b.md", "c.md"]);
     expect(out.focusedId).toBe(g.id);
+    // selecting anything, or focusing the pane, ends it
+    expect((ws.selectTab(out, g.id, "b.md").layout as Group).unselected).toBe(false);
+    expect((ws.focusGroupSelecting(out, g.id).layout as Group).unselected).toBe(false);
   });
 });
 
@@ -472,9 +476,10 @@ describe("preview tabs", () => {
     expect(tabsOf(back, g.id)).toEqual(["a.md", "b.md", "c.md"]);
   });
 
-  it("does nothing with no tab in front", () => {
-    const { w, g } = single();
-    expect(ws.toggleMode(ws.deselectTab(w, g.id), g.id).layout).toEqual(ws.deselectTab(w, g.id).layout);
+  it("does nothing in an empty pane", () => {
+    const g = makeGroup([], null);
+    const w: Workspace = { buffers: [], layout: g, focusedId: g.id };
+    expect(ws.toggleMode(w, g.id)).toBe(w);
   });
 
   it("preview to the side opens the preview tab in a new pane, focus staying", () => {
@@ -493,7 +498,7 @@ describe("preview tabs", () => {
     const once = ws.previewToSide(w, g.id);
     const twice = ws.previewToSide(once, g.id);
     expect(allGroups(twice.layout)).toHaveLength(2);
-    expect(twice.layout).toEqual(once.layout);
+    expect(allGroups(twice.layout).map((x) => x.tabs)).toEqual(allGroups(once.layout).map((x) => x.tabs));
   });
 
   it("toggling in place pulls the preview over from another pane", () => {
@@ -543,13 +548,14 @@ describe("preview tabs", () => {
     expect(tabsOf(gone, g.id)).toEqual(["b.md", "c.md"]);
   });
 
-  it("splits empty from a pane with no tab in front", () => {
+  it("splits empty from a pane with no tab selected, keeping its view", () => {
     const { w, g } = single();
     const out = ws.splitPane(ws.deselectTab(w, g.id), g.id, "row");
     const groups = allGroups(out.layout);
     expect(groups).toHaveLength(2);
     expect(groups[1].tabs).toEqual([]);
     expect(tabsOf(out, g.id)).toEqual(["a.md", "b.md", "c.md"]);
+    expect(findGroup(out.layout, g.id)).toMatchObject({ active: "a.md", unselected: false });
     expect(out.focusedId).toBe(groups[1].id);
   });
 });

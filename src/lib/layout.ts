@@ -36,9 +36,13 @@ export interface Group {
    *  Both are strings, so everything that moves tabs between panes moves
    *  either without knowing. */
   tabs: string[];
-  /** The tab in front, or null: a pane can have tabs and none selected,
-   *  which is how a split is asked for empty. */
+  /** The tab in front — what the pane shows. */
   active: string | null;
+  /** The tab in front is shown but not *selected*: a click on the strip's
+   *  empty space did this. The strip marks no tab, and a split from here
+   *  takes nothing along. Any selection ends it. Not saved: it is a gesture,
+   *  not a state of the notes. */
+  unselected?: boolean;
 }
 
 // ---- Tab ids ----------------------------------------------------------------
@@ -174,7 +178,7 @@ export function firstGroup(node: LayoutNode): Group {
 export function updateGroup(
   node: LayoutNode,
   id: string,
-  patch: Partial<Pick<Group, "tabs" | "active">>
+  patch: Partial<Pick<Group, "tabs" | "active" | "unselected">>
 ): LayoutNode {
   if (node.kind === "group") {
     return node.id === id ? { ...node, ...patch } : node;
