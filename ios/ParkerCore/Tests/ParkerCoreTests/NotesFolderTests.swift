@@ -83,6 +83,19 @@ private func touch(_ folder: NotesFolder, _ name: String, _ text: String = "", m
         try? fm.removeItem(at: outside)
     }
 
+    @Test("knows a file of its own by its relative name, at any depth, and nothing else")
+    func noteNameOf() throws {
+        let f = try makeTempFolder()
+        try FileManager.default.createDirectory(at: f.url.appendingPathComponent("backlogs"), withIntermediateDirectories: true)
+        try touch(f, "top.md"); try touch(f, "backlogs/parker.md")
+        #expect(f.noteName(of: f.url.appendingPathComponent("top.md")) == "top.md")
+        #expect(f.noteName(of: f.url.appendingPathComponent("backlogs/parker.md")) == "backlogs/parker.md")
+        #expect(f.noteName(of: f.url.appendingPathComponent(".git/HEAD")) == nil)
+        #expect(f.noteName(of: URL(fileURLWithPath: "/tmp/elsewhere.md")) == nil)
+        // a sibling folder whose name merely starts with ours is not inside
+        #expect(f.noteName(of: URL(fileURLWithPath: f.url.path + "-other/x.md")) == nil)
+    }
+
     @Test("lists notes newest first, skipping dotfiles, temp files and folders")
     func listing() throws {
         let f = try makeTempFolder()

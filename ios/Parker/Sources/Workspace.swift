@@ -15,10 +15,19 @@ final class Workspace {
     private var watcher: FolderWatcher?
     private var accessing = false
 
+    /// Files from outside the folder, open in place. Kept across launches by
+    /// bookmark; the list is the "Files" section of Notes.
+    private(set) var externals: [ExternalFile] = []
+    /// Something the OS asked Parker to open (a tap in Files); the Notes tab
+    /// takes it and clears it.
+    var openRequest: NoteRef?
+
     private static let bookmarkKey = "notesFolderBookmark"
+    private static let externalsKey = "externalFiles"
 
     init() {
         restore()
+        restoreExternals()
     }
 
     // ---- Naming a folder -----------------------------------------------------------
@@ -218,6 +227,104 @@ final class Workspace {
         write(Self.inboxNote, body)
         refresh()
         return Self.inboxNote
+    }
+
+    // ---- Files from outside the folder -----------------------------------------------
+
+    /// Open a file the OS or the picker handed over. One of ours — at any
+    /// depth in the notes folder — opens as the note it is; anything else is
+    /// admitted as an external file, its access kept by bookmark.
+    @discardableResult
+    func open(fileAt url: URL) -> NoteRef? {
+        if let name = folder?.noteName(of: url) { return .note(name) }
+        if let known = externals.first(where: { $0.url.path == url.path }) { return .external(known) }
+        // The URL from Files is security-scoped: access must be claimed before
+        // the bookmark can be made, and stays claimed while the file is open.
+        let claimed = url.startAccessingSecurityScopedResource()
+        guard let bookmark = try? url.bookmarkData() else {
+            if claimed { url.stopAccessingSecurityScopedResource() }
+            lastError = "Couldn\u{2019}t keep access to that file."
+            return nil
+        }
+        let file = ExternalFile(url: url, bookmark: bookmark)
+        externals.insert(file, at: 0)
+        saveExternals()
+        return .external(file)
+    }
+
+    /// Forget an external file: its bookmark goes, and so does our claim on it.
+    func close(external file: ExternalFile) {
+        externals.removeAll { $0.id == file.id }
+        file.url.stopAccessingSecurityScopedResource()
+        saveExternals()
+    }
+
+    private func saveExternals() {
+        UserDefaults.standard.set(externals.map(\.bookmark), forKey: Self.externalsKey)
+    }
+
+    /// Resolve the kept bookmarks; one whose file is gone is dropped in silence.
+    private func restoreExternals() {
+        guard let list = UserDefaults.standard.array(forKey: Self.externalsKey) as? [Data] else { return }
+        var out: [ExternalFile] = []
+        var changed = false
+        for data in list {
+            var stale = false
+            guard let url = try? URL(resolvingBookmarkData: data, bookmarkDataIsStale: &stale),
+                  url.startAccessingSecurityScopedResource() else { changed = true; continue }
+            guard FileManager.default.fileExists(atPath: url.path) else { url.stopAccessingSecurityScopedResource(); changed = true; continue }
+            let bookmark = stale ? ((try? url.bookmarkData()) ?? data) : data
+            if bookmark != data { changed = true }
+            out.append(ExternalFile(url: url, bookmark: bookmark))
+        }
+        externals = out
+        if changed { saveExternals() }
+    }
+
+    func read(external file: ExternalFile) -> String {
+        var err: NSError?
+        var text = ""
+        NSFileCoordinator().coordinate(readingItemAt: file.url, options: [], error: &err) { url in
+            text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        }
+        if let err { lastError = err.localizedDescription }
+        return text
+    }
+
+    func write(external file: ExternalFile, _ text: String) {
+        var err: NSError?
+        NSFileCoordinator().coordinate(writingItemAt: file.url, options: .forReplacing, error: &err) { url in
+            do { try Data(text.utf8).write(to: url, options: .atomic) } catch { lastError = error.localizedDescription }
+        }
+        if let err { lastError = err.localizedDescription }
+    }
+
+    // ---- Any note, by reference ---------------------------------------------------------
+
+    func load(_ ref: NoteRef) async -> String {
+        switch ref {
+        case .note(let name): return await load(name)
+        case .external(let f): return await Task.detached(priority: .userInitiated) { [self] in await self.read(external: f) }.value
+        }
+    }
+
+    func read(_ ref: NoteRef) -> String {
+        switch ref {
+        case .note(let name): return read(name)
+        case .external(let f): return read(external: f)
+        }
+    }
+
+    func write(_ ref: NoteRef, _ text: String) {
+        switch ref {
+        case .note(let name): write(name, text)
+        case .external(let f): write(external: f, text)
+        }
+    }
+
+    func isLocal(_ ref: NoteRef) -> Bool {
+        if case .note(let name) = ref { return isLocal(name) }
+        return true
     }
 
     static let welcomeNote = """
