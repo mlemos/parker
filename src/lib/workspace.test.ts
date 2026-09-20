@@ -365,12 +365,25 @@ describe("splitPane", () => {
     expect(out.focusedId).toBe(after.id);
   });
 
-  it("leaves the original pane empty when it held only that note", () => {
+  it("keeps a pane's only note and opens an empty pane beside it", () => {
     const g = makeGroup(["a.md"], "a.md");
     const w: Workspace = { buffers: [buf("a.md")], layout: g, focusedId: g.id };
     const out = ws.splitPane(w, g.id, "col");
-    expect(groupAt(out, 0).tabs).toEqual([]);
-    expect(groupAt(out, 0).active).toBeNull();
+    expect(groupAt(out, 0).tabs).toEqual(["a.md"]);
+    expect(groupAt(out, 0).active).toBe("a.md");
+    expect(groupAt(out, 1).tabs).toEqual([]);
+    expect(out.focusedId).toBe(groupAt(out, 1).id);
+  });
+
+  it("always puts the new pane after the one split — right, or below", () => {
+    const { w, g } = single();
+    for (const dir of ["row", "col"] as const) {
+      const out = ws.splitPane(w, g.id, dir);
+      expect(groupAt(out, 0).id).toBe(g.id);
+      expect(groupAt(out, 0).tabs).toEqual(["b.md", "c.md"]);
+      expect(groupAt(out, 1).tabs).toEqual(["a.md"]);
+      expect((out.layout as SplitNode).dir).toBe(dir);
+    }
   });
 
   it("gives an empty pane another empty one", () => {

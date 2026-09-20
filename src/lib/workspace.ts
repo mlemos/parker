@@ -421,9 +421,14 @@ export function splitPane(
   const g = findGroup(ws.layout, groupId);
   if (!g) return ws;
 
+  // The selected tab goes across to the new pane — but never the last one:
+  // a pane that would be left empty keeps its note, and the new pane is born
+  // empty beside it. The new pane is always to the right, or below; what
+  // moves is the only variable, and a split must not read as "my pane
+  // went away".
   let base = ws.layout;
   let fresh: Group;
-  if (g.active && !g.unselected) {
+  if (g.active && !g.unselected && g.tabs.length > 1) {
     const active = g.active;
     const idx = g.tabs.indexOf(active);
     const remaining = g.tabs.filter((t) => t !== active);
@@ -435,7 +440,8 @@ export function splitPane(
     });
     fresh = makeGroup([active], active);
   } else {
-    // An empty pane, or one with no tab selected: the new pane is born empty.
+    // An empty pane, a pane with no tab selected, or one holding a single
+    // note: the new pane is born empty.
     fresh = makeGroup([], null);
     if (g.unselected) base = updateGroup(base, groupId, { unselected: false });
   }
