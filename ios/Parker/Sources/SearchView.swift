@@ -33,7 +33,7 @@ struct SearchView: View {
         NavigationLink(value: hit.name) {
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
-                    Text(hit.name.replacingOccurrences(of: ".md", with: "")).font(.headline).lineLimit(1)
+                    NoteTitle(name: hit.name, theme: theme, font: .headline)
                     Spacer()
                     Text(hit.modified, style: .relative).font(.caption).foregroundStyle(theme.muted)
                 }

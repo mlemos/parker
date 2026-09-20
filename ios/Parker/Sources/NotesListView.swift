@@ -13,7 +13,7 @@ struct NotesListView: View {
                 ForEach(workspace.notes, id: \.name) { note in
                     NavigationLink(value: note.name) {
                         HStack {
-                            Text(note.name.replacingOccurrences(of: ".md", with: "")).lineLimit(1)
+                            NoteTitle(name: note.name, theme: theme)
                             Spacer()
                             Text(note.modified, style: .relative).font(.subheadline).foregroundStyle(theme.muted)
                         }

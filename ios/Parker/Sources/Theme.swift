@@ -3,7 +3,23 @@
 // Vercel Day, dark follows Vercel Night, like the Mac's defaults.
 
 import ParkerCore
+import ParkerCore
 import SwiftUI
+
+/// A note's name for a list: its folder quietly before it, when it has one,
+/// and the ".md" left off — the folder is part of what tells notes apart.
+struct NoteTitle: View {
+    let name: String
+    let theme: Theme
+    var font: Font = .body
+
+    var body: some View {
+        let folder = NotesFolder.folderOf(name)
+        let file = NotesFolder.displayName(name).replacingOccurrences(of: ".md", with: "")
+        (folder.isEmpty ? Text(file) : Text(folder).foregroundStyle(theme.muted) + Text(file))
+            .font(font).lineLimit(1)
+    }
+}
 
 struct Theme {
     let def: DesignTokens.Theme
