@@ -2188,6 +2188,9 @@ body.resizing {
   flex-direction: column;
   gap: 2px;
 }
+.picker-dir {
+  color: var(--muted);
+}
 .picker-name {
   overflow: hidden;
   text-overflow: ellipsis;

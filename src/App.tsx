@@ -16,7 +16,7 @@ import { api } from "./lib/api";
 import { changedLines } from "./lib/linediff";
 import { changeRecord, whitespaceOnly } from "./lib/external-change";
 import { prettyPath } from "./lib/path";
-import { displayName, droppedExternals, isExternal } from "./lib/external";
+import { displayName, droppedExternals, isExternal, renamedIn } from "./lib/external";
 import { isFirstLaunch } from "./lib/session";
 import { PathLabel } from "./components/PathLabel";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
@@ -738,8 +738,11 @@ export default function App() {
   const commitRename = useCallback(
     async (oldName: string, raw: string) => {
       setRenamingName(null);
-      const newName = raw.trim();
-      if (!newName || newName === oldName || isExternal(oldName)) return;
+      const typed = raw.trim();
+      if (!typed || isExternal(oldName)) return;
+      // A bare filename stays in the note's folder; a slash moves it.
+      const newName = renamedIn(oldName, typed);
+      if (newName === oldName) return;
       try {
         await flushSave(oldName);
         await api.renameNote(oldName, newName);

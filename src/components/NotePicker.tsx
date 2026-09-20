@@ -3,6 +3,7 @@ import { Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import type { NoteHit } from "../lib/api";
 import { fmtSize } from "../lib/size";
+import { displayName, folderOf } from "../lib/external";
 
 function relTime(secs: number): string {
   if (!secs) return "";
@@ -159,7 +160,14 @@ export function NotePicker({
             >
               <div className="picker-main">
                 <span className="picker-name">
-                  <Highlight text={n.name} query={query} />
+                  {/* The folder, quietly, before the name: it is part of
+                      what you typed to find it, so it is highlighted too. */}
+                  {folderOf(n.name) && (
+                    <span className="picker-dir">
+                      <Highlight text={folderOf(n.name)} query={query} />
+                    </span>
+                  )}
+                  <Highlight text={displayName(n.name)} query={query} />
                 </span>
                 {n.snippet && (
                   <span className="picker-snippet">
