@@ -110,9 +110,8 @@ describe("selectTab", () => {
     expect((out.layout as Group).unselected).toBe(true);
     expect((out.layout as Group).tabs).toEqual(["a.md", "b.md", "c.md"]);
     expect(out.focusedId).toBe(g.id);
-    // selecting anything, or focusing the pane, ends it
+    // selecting a tab ends it; nothing else does
     expect((ws.selectTab(out, g.id, "b.md").layout as Group).unselected).toBe(false);
-    expect((ws.focusGroupSelecting(out, g.id).layout as Group).unselected).toBe(false);
   });
 });
 
@@ -559,6 +558,16 @@ describe("preview tabs", () => {
     const gone = ws.forgetNote(side, "a.md");
     expect(findGroup(gone.layout, sideId)!.tabs).toEqual([]);
     expect(tabsOf(gone, g.id)).toEqual(["b.md", "c.md"]);
+  });
+
+  it("splits empty from a pane showing a preview with no tab selected — the case from the screenshot", () => {
+    const g = makeGroup(["README.md", "preview:xlight.md"], "preview:xlight.md");
+    const w: Workspace = { buffers: [buf("README.md"), buf("xlight.md")], layout: g, focusedId: g.id };
+    const out = ws.splitPane(ws.deselectTab(w, g.id), g.id, "row");
+    const groups = allGroups(out.layout);
+    expect(groups[0].tabs).toEqual(["README.md", "preview:xlight.md"]);
+    expect(groups[0].active).toBe("preview:xlight.md");
+    expect(groups[1].tabs).toEqual([]);
   });
 
   it("splits empty from a pane with no tab selected, keeping its view", () => {
