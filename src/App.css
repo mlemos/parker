@@ -925,6 +925,11 @@ body.resizing {
   padding-left: var(--list-indent);
   margin: 0.35em 0;
 }
+/* A child paragraph or list is a block with a paragraph's bottom margin;
+   inside a to-do that margin opened a gap before the next entry. */
+.md-body .todo > :last-child {
+  margin-bottom: 0;
+}
 .md-body .todo-head {
   display: block;
   /* The first line starts back in the gutter, where the box goes; the box's
