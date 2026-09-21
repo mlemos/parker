@@ -59,6 +59,63 @@
       }
     },
     {
+      "id": "parker-night",
+      "label": "Parker Night",
+      "mode": "dark",
+      "ui": {
+        "editorBg": "#000000",
+        "editorFg": "#ffffff",
+        "currentLine": "rgba(34, 197, 94, 0.2)",
+        "selection": "rgba(34, 197, 94, 0.33)",
+        "headerBg": "#27272a",
+        "fieldBg": "#09090b",
+        "tabbarBg": "#18181b",
+        "tabActiveBg": "#27272a",
+        "statusBg": "#18181b",
+        "popoverBg": "#18181b",
+        "text": "#f4f4f5",
+        "secondary": "#a1a1aa",
+        "muted": "#71717a",
+        "border": "#27272a",
+        "accent": "#10b981",
+        "onAccent": "#022c22",
+        "danger": "#f87171"
+      },
+      "syntax": {
+        "plain": "#f4f4f5",
+        "heading": "#6366f1",
+        "bold": "#bef264",
+        "italic": "#bef264",
+        "boldItalic": "#d9f99d",
+        "list": "#e4e4e7",
+        "inlineCode": "#4ade80",
+        "keyword": "#f472b6",
+        "string": "#4ade80",
+        "number": "#fb923c",
+        "func": "#22d3ee",
+        "comment": "#71717a",
+        "punct": "#a1a1aa",
+        "link": "#3b82f6",
+        "url": "#d946ef",
+        "quote": "#a1a1aa",
+        "invalid": "#f87171"
+      },
+      "todo": {
+        "doing": "#22d3ee",
+        "pause": "#60a5fa",
+        "wait": "#c084fc",
+        "attn": "#fbbf24",
+        "done": "#4ade80",
+        "fail": "#ef4444"
+      },
+      "priority": {
+        "base": "#4ade80",
+        "low": "#facc15",
+        "mid": "#fb923c",
+        "high": "#ef4444"
+      }
+    },
+    {
       "id": "vercel-day",
       "label": "Vercel Day",
       "mode": "light",
