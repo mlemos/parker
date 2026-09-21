@@ -1,0 +1,10 @@
+name: Parker theme editor
+id: parker-theme-editor
+kind: server
+type: tool
+description: Vite dev server with the theme editor harness (real editor + preview, pick every colour, export to themes.ts)
+tags: [parker, vite, themes]
+run: pnpm dev
+port: 1420
+url: http://localhost:${PORT}/src/harness.local/theme.html
+ready: "ready in"

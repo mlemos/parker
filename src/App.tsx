@@ -1011,13 +1011,34 @@ export default function App() {
       try {
         disk = await readText(name);
       } catch (e) {
-        setBuffers((prev) =>
-          ws.setError(prev, name, `Could not read: ${e instanceof Error ? e.message : e}`)
-        );
-        return;
+        // A tool that saves by writing a temp file and renaming it into place
+        // — most editors, most agents — leaves a moment with no file at the
+        // path, and the watcher fires inside it. That is not a missing note;
+        // it is one being replaced. Look again before saying anything.
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/No such file|os error 2\b/.test(msg)) {
+          await new Promise((r) => setTimeout(r, 250));
+          try {
+            disk = await readText(name);
+          } catch (e2) {
+            const m2 = e2 instanceof Error ? e2.message : String(e2);
+            api.logChange(JSON.stringify({ ts: new Date().toISOString(), name, verdict: "read-error", error: m2 })).catch(() => {});
+            setBuffers((prev) => ws.setError(prev, name, `Could not read: ${m2}`));
+            return;
+          }
+        } else {
+          api.logChange(JSON.stringify({ ts: new Date().toISOString(), name, verdict: "read-error", error: msg })).catch(() => {});
+          setBuffers((prev) => ws.setError(prev, name, `Could not read: ${msg}`));
+          return;
+        }
       }
       const now = stateRef.current.buffers.find((b) => b.name === name);
       if (!now) return;
+      // The file is readable: whatever a read said before is over. Only a
+      // write used to clear the error, so a moment's absence stayed red.
+      if (now.error?.startsWith("Could not read")) {
+        setBuffers((prev) => ws.setError(prev, name, undefined));
+      }
       // Parker's own writing, which the disk baseline alone cannot always
       // recognise — see isOwnWrite.
       if (ws.isOwnWrite(lastWrite.current.get(name), disk, seqAtRead)) return;
