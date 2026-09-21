@@ -925,8 +925,13 @@ body.resizing {
   padding-left: var(--list-indent);
   margin: 0.35em 0;
 }
-/* A child paragraph or list is a block with a paragraph's bottom margin;
-   inside a to-do that margin opened a gap before the next entry. */
+/* A to-do's children — a note under it, a sub-list — are blocks, and a block
+   brings a paragraph's 1em bottom margin with it: a gap between the note and
+   the sub-list, and another before the next entry. Inside a to-do they keep
+   a list's rhythm instead, and the last one none at all. */
+.md-body .todo > * {
+  margin-bottom: 0.25em;
+}
 .md-body .todo > :last-child {
   margin-bottom: 0;
 }
