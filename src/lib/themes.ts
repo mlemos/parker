@@ -212,7 +212,7 @@ function monoStyles(p: SyntaxColors) {
 }
 
 // Build a CodeMirror theme from a theme's UI tokens + a mono syntax palette.
-function editorTheme(
+export function editorTheme(
   ui: ThemeUI,
   mode: "light" | "dark",
   syntax: SyntaxColors
@@ -363,6 +363,30 @@ const daySyntax: SyntaxColors = {
   url: tw.blue[600],
   quote: tw.zinc[500],
   invalid: tw.red[600],
+};
+
+// Parker Night — Vercel Night's chrome and ground, with a content palette of
+// its own: structure in indigo, emphasis in one family (lime, and a lighter
+// lime where bold and italic meet), a link's text in blue and its address in
+// fuchsia — two things, two colours. Picked in the theme editor, 2026-09-20.
+const parkerNightSyntax: SyntaxColors = {
+  plain: tw.zinc[100],
+  heading: tw.indigo[500],
+  bold: tw.lime[300],
+  italic: tw.lime[300],
+  boldItalic: tw.lime[200],
+  list: tw.zinc[200],
+  inlineCode: tw.green[400],
+  keyword: tw.pink[400],
+  string: tw.green[400],
+  number: tw.orange[400],
+  func: tw.cyan[400],
+  comment: tw.zinc[500],
+  punct: tw.zinc[400],
+  link: tw.blue[500],
+  url: tw.fuchsia[500],
+  quote: tw.zinc[400],
+  invalid: tw.red[400],
 };
 
 // GitHub & Tokyo — "guest" themes: their own palettes (not Tailwind), kept for
@@ -697,6 +721,16 @@ export const THEMES: ThemeDef[] = [
     cm: editorTheme(vercelNightUI, "dark", nightSyntax),
     ui: vercelNightUI,
     syntax: nightSyntax,
+    todo: darkTodo,
+    priority: darkPriority,
+  },
+  {
+    id: "parker-night",
+    label: "Parker Night",
+    mode: "dark",
+    cm: editorTheme(vercelNightUI, "dark", parkerNightSyntax),
+    ui: vercelNightUI,
+    syntax: parkerNightSyntax,
     todo: darkTodo,
     priority: darkPriority,
   },
