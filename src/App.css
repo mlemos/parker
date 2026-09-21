@@ -1079,7 +1079,8 @@ body.resizing {
   margin: 0 0 1em;
 }
 .md-body a {
-  color: var(--accent);
+  /* The theme's link colour — the same one the editor paints [text](…) in. */
+  color: var(--md-link);
   text-decoration: none;
 }
 .md-body a:hover {
@@ -1132,6 +1133,11 @@ body.resizing {
   border-left: 3px solid var(--border);
   color: var(--secondary);
 }
+/* The paragraph inside keeps its bottom margin otherwise, and the bar runs
+   on below the text by a line. */
+.md-body blockquote > :last-child {
+  margin-bottom: 0;
+}
 .md-body hr {
   border: none;
   border-top: 1px solid var(--border);
@@ -1143,7 +1149,10 @@ body.resizing {
   font-size: 0.88em;
   padding: 0.15em 0.4em;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--text) 10%, transparent);
+  /* Inline code wears the theme's code colour on a wash of itself, as in the
+     editor (--md-code / --md-code-bg, set from the theme in App.tsx). */
+  color: var(--md-code);
+  background: var(--md-code-bg);
 }
 .md-body pre {
   padding: 14px 16px;
@@ -1155,6 +1164,7 @@ body.resizing {
 .md-body pre code {
   padding: 0;
   background: none;
+  color: inherit;
   font-size: 0.86em;
   line-height: 1.55;
 }

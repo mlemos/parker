@@ -399,6 +399,7 @@ export default function App() {
       "--md-bold-italic": theme.syntax.boldItalic,
       "--md-code": theme.syntax.inlineCode,
       "--md-code-bg": alpha(theme.syntax.inlineCode, 0.14),
+      "--md-link": theme.syntax.link,
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
