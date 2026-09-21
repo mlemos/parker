@@ -389,6 +389,30 @@ const parkerNightSyntax: SyntaxColors = {
   invalid: tw.red[400],
 };
 
+// Parker Day — the same palette on Vercel Day's paper, stepped down to the
+// 600s the way daySyntax steps down from nightSyntax; the lighter lime that
+// marks bold-italic after dark becomes the darker one here, because on white
+// "more" is darker.
+const parkerDaySyntax: SyntaxColors = {
+  plain: tw.zinc[900],
+  heading: tw.indigo[600],
+  bold: tw.lime[600],
+  italic: tw.lime[600],
+  boldItalic: tw.lime[700],
+  list: tw.zinc[700],
+  inlineCode: tw.green[700],
+  keyword: tw.pink[600],
+  string: tw.green[600],
+  number: tw.orange[600],
+  func: tw.cyan[600],
+  comment: tw.zinc[400],
+  punct: tw.zinc[500],
+  link: tw.blue[600],
+  url: tw.fuchsia[600],
+  quote: tw.zinc[500],
+  invalid: tw.red[600],
+};
+
 // GitHub & Tokyo — "guest" themes: their own palettes (not Tailwind), kept for
 // their editor syntax highlighting, expressed through the same named roles.
 const githubLightUI: ThemeUI = {
@@ -714,16 +738,7 @@ const blueprintTodo: TodoColors = {
 };
 
 export const THEMES: ThemeDef[] = [
-  {
-    id: "vercel-night",
-    label: "Vercel Night",
-    mode: "dark",
-    cm: editorTheme(vercelNightUI, "dark", nightSyntax),
-    ui: vercelNightUI,
-    syntax: nightSyntax,
-    todo: darkTodo,
-    priority: darkPriority,
-  },
+  // The house pair first: they are the defaults, and ⌘⇧T starts from here.
   {
     id: "parker-night",
     label: "Parker Night",
@@ -731,6 +746,26 @@ export const THEMES: ThemeDef[] = [
     cm: editorTheme(vercelNightUI, "dark", parkerNightSyntax),
     ui: vercelNightUI,
     syntax: parkerNightSyntax,
+    todo: darkTodo,
+    priority: darkPriority,
+  },
+  {
+    id: "parker-day",
+    label: "Parker Day",
+    mode: "light",
+    cm: editorTheme(vercelDayUI, "light", parkerDaySyntax),
+    ui: vercelDayUI,
+    syntax: parkerDaySyntax,
+    todo: lightTodo,
+    priority: lightPriority,
+  },
+  {
+    id: "vercel-night",
+    label: "Vercel Night",
+    mode: "dark",
+    cm: editorTheme(vercelNightUI, "dark", nightSyntax),
+    ui: vercelNightUI,
+    syntax: nightSyntax,
     todo: darkTodo,
     priority: darkPriority,
   },
@@ -806,7 +841,7 @@ export const THEMES: ThemeDef[] = [
   },
 ];
 
-export const DEFAULT_THEME_ID = "vercel-night";
+export const DEFAULT_THEME_ID = "parker-night";
 
 export function themeById(id?: string | null): ThemeDef {
   return THEMES.find((th) => th.id === id) ?? THEMES[0];

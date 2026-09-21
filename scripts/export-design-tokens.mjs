@@ -1,4 +1,4 @@
-// Write shared/design-tokens.json — the eight themes, the to-do grammar and the
+// Write shared/design-tokens.json — the themes, the to-do grammar and the
 // to-do glyphs — for the iPhone companion to paint from. The tokens themselves
 // are assembled in src/lib/design-tokens.ts from the same tables the Mac
 // renders; this only loads that TypeScript through Vite and writes the file.

@@ -1,6 +1,6 @@
 // The design tokens, as the phone paints them: colours by role from the same
 // JSON the Mac generates (shared/design-tokens.json, bundled). Light follows
-// Vercel Day, dark follows Vercel Night, like the Mac's defaults.
+// Parker Day, dark follows Parker Night, like the Mac's defaults.
 
 import ParkerCore
 import ParkerCore
@@ -31,7 +31,7 @@ struct Theme {
     }()
 
     static func current(_ scheme: ColorScheme) -> Theme {
-        let id = scheme == .dark ? "vercel-night" : "vercel-day"
+        let id = scheme == .dark ? "parker-night" : "parker-day"
         return Theme(def: tokens.theme(id: id) ?? tokens.themes[0], tokens: tokens)
     }
 

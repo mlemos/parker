@@ -1,4 +1,4 @@
-// The design tokens as one plain object: the eight themes (ui / syntax / to-do
+// The design tokens as one plain object: the themes (ui / syntax / to-do
 // roles), the to-do grammar's order and aliases, and the to-do glyphs. This is
 // the contract the iPhone companion paints note content from, written to
 // shared/design-tokens.json by scripts/export-design-tokens.mjs and checked

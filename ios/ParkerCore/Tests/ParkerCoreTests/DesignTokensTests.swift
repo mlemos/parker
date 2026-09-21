@@ -12,11 +12,13 @@ import Testing
         .deletingLastPathComponent().deletingLastPathComponent()
         .appendingPathComponent("shared/design-tokens.json")
 
-    @Test("decodes, with the nine themes and a default that exists")
+    @Test("decodes, with the ten themes and a default that exists")
     func decodes() throws {
         let t = try DesignTokens.load(from: Self.url)
-        #expect(t.themes.count == 9)
+        #expect(t.themes.count == 10)
         #expect(t.theme(id: t.defaultThemeId) != nil)
+        #expect(t.theme(id: "parker-day")?.mode == .light)
+        #expect(t.theme(id: "parker-night")?.mode == .dark)
         #expect(t.theme(id: "vercel-day")?.mode == .light)
         #expect(t.theme(id: "vercel-night")?.mode == .dark)
     }
