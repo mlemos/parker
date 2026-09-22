@@ -107,6 +107,10 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
   const sessionRestored = useRef(false);
   const [renamingName, setRenamingName] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Mirrored for the window-level key handler, which is registered once and
+  // runs in the capture phase — before the picker's own input sees the key.
+  const pickerOpenRef = useRef(false);
+  pickerOpenRef.current = pickerOpen;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [perfOpen, setPerfOpen] = useState(false);
   // ⌘Q / menu / tray asked to quit — waiting on the user's answer.
@@ -670,11 +674,13 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
     [apply, flushSave]
   );
 
+  // `folder`: where the note is made — the picker asks for one inside the
+  // folder it is showing.
   const newTab = useCallback(
-    async (groupId?: string) => {
+    async (groupId?: string, folder?: string) => {
       const gid = groupId ?? stateRef.current.focusedId;
       try {
-        const name = await api.createNote("md");
+        const name = await api.createNote("md", folder);
         if (single) {
           await replaceNote(name);
           return;
@@ -1114,6 +1120,8 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
         e.preventDefault();
         openPicker();
       } else if (k === "n") {
+        // With the picker open, ⌘N is the picker's: a note where it is.
+        if (pickerOpenRef.current) return;
         e.preventDefault();
         newTab(fid); // ⌘N — new note
       } else if (k === "w") {
@@ -1568,6 +1576,10 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
           onOpen={(name) => {
             setPickerOpen(false);
             openNote(name);
+          }}
+          onNewNote={(folder) => {
+            setPickerOpen(false);
+            newTab(undefined, folder);
           }}
           onDeleted={onNoteDeleted}
           onClose={() => setPickerOpen(false)}

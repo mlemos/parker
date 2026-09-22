@@ -474,21 +474,69 @@ fn note_ext(ext: Option<String>) -> String {
     }
 }
 
-/// Create a new empty note "Untitled-N.<ext>" (ext defaults to "md") and
-/// return its name. N is the first integer that doesn't collide.
+/// Create a new empty note "Untitled-N.<ext>" (ext defaults to "md") — in
+/// `folder` when one is given ("cos/desks", made on the way if need be) —
+/// and return its name. N is the first integer that doesn't collide.
 #[tauri::command]
-fn create_note(ext: Option<String>) -> Result<String, String> {
+fn create_note(ext: Option<String>, folder: Option<String>) -> Result<String, String> {
     let ext = note_ext(ext);
+    let prefix = folder_prefix(folder.as_deref())?;
     let dir = notes_dir();
     for n in 1..100_000 {
-        let name = format!("Untitled-{n}.{ext}");
+        let name = format!("{prefix}Untitled-{n}.{ext}");
         let path = dir.join(&name);
         if !path.exists() {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
             atomic_write(&path, "")?;
             return Ok(name);
         }
     }
     Err("could not allocate a new note name".to_string())
+}
+
+/// "cos/desks" or "cos/desks/" → "cos/desks/"; nothing → "". The folder is
+/// held to the same rules as a note name, so a new note can never land
+/// outside the notes folder or inside a dot folder.
+fn folder_prefix(folder: Option<&str>) -> Result<String, String> {
+    let f = folder.unwrap_or("").trim().trim_matches('/');
+    if f.is_empty() {
+        return Ok(String::new());
+    }
+    validate_note_name(f)?;
+    Ok(format!("{f}/"))
+}
+
+/// Every folder in the notes folder, at any depth, as relative paths
+/// ("cos", "cos/desks") — the empty ones included, which is what the walk
+/// over notes cannot tell. Dot folders are not entered, symlinks not followed.
+#[tauri::command]
+fn list_folders() -> Vec<String> {
+    walk_folders(&notes_dir())
+}
+
+fn walk_folders(dir: &PathBuf) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut stack = vec![(String::new(), dir.clone())];
+    while let Some((prefix, d)) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&d) else { continue };
+        for entry in entries.flatten() {
+            let Ok(ft) = entry.file_type() else { continue };
+            if !ft.is_dir() {
+                continue;
+            }
+            let Some(base) = entry.file_name().to_str().map(str::to_string) else { continue };
+            if base.starts_with('.') {
+                continue;
+            }
+            let name = if prefix.is_empty() { base } else { format!("{prefix}/{base}") };
+            stack.push((name.clone(), entry.path()));
+            out.push(name);
+        }
+    }
+    out.sort();
+    out
 }
 
 #[tauri::command]
@@ -1674,6 +1722,7 @@ pub fn run() {
             notes_dir_path,
             home_dir_path,
             list_notes,
+            list_folders,
             search_notes,
             read_note,
             write_note,
@@ -1745,6 +1794,33 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ---- New notes in folders ----------------------------------------------
+
+    #[test]
+    fn a_folder_prefix_is_normalised_and_held_to_the_note_name_rules() {
+        assert_eq!(folder_prefix(None).unwrap(), "");
+        assert_eq!(folder_prefix(Some("")).unwrap(), "");
+        assert_eq!(folder_prefix(Some("cos")).unwrap(), "cos/");
+        assert_eq!(folder_prefix(Some("cos/desks/")).unwrap(), "cos/desks/");
+        assert_eq!(folder_prefix(Some("/cos/")).unwrap(), "cos/");
+        assert!(folder_prefix(Some("../x")).is_err());
+        assert!(folder_prefix(Some(".git")).is_err());
+        assert!(folder_prefix(Some("a//b")).is_err());
+    }
+
+    #[test]
+    fn folders_are_walked_at_any_depth_and_the_empty_ones_count() {
+        let root = std::env::temp_dir().join(format!("parker-folders-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("cos/desks")).unwrap();
+        fs::create_dir_all(root.join("empty")).unwrap();
+        fs::create_dir_all(root.join(".git/objects")).unwrap();
+        fs::write(root.join("cos/a.md"), "").unwrap();
+        let got = walk_folders(&root);
+        assert_eq!(got, vec!["cos", "cos/desks", "empty"]);
+        let _ = fs::remove_dir_all(&root);
+    }
 
     // ---- Writing ------------------------------------------------------------
 
