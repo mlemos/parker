@@ -207,3 +207,77 @@ private func touch(_ folder: NotesFolder, _ name: String, _ text: String = "", m
         #expect(folder.fetchAll() == 0)
     }
 }
+
+@Suite("folders in the list") struct FolderListTests {
+    private func meta(_ name: String, _ t: TimeInterval) -> NoteMeta { NoteMeta(name: name, modified: Date(timeIntervalSince1970: t)) }
+    private var notes: [NoteMeta] {
+        [meta("inbox.md", 100), meta("cos/README.md", 50), meta("cos/charter.md", 80), meta("cos/desks/README.md", 30),
+         meta("desks/parker.md", 90), meta("desks/itau.md", 20), meta("archive/changelog/2026-09.md", 10)]
+    }
+    // The walk knows a folder no note is in yet.
+    private let walked = ["archive", "archive/changelog", "cos", "cos/desks", "desks", "empty"]
+
+    @Test("names a scope and steps out of it")
+    func scopes() {
+        #expect(Folders.name(of: "cos/desks/") == "desks")
+        #expect(Folders.name(of: "desks/") == "desks")
+        #expect(Folders.parent(of: "cos/desks/") == "cos/")
+        #expect(Folders.parent(of: "cos/") == "")
+        #expect(Folders.parent(of: "") == "")
+    }
+
+    @Test("lists the folders directly under the root, alphabetically, with what they hold")
+    func children() {
+        let rows = Folders.children(folders: walked, notes: notes, scope: "")
+        #expect(rows.map(\.path) == ["archive/", "cos/", "desks/", "empty/"])
+        let cos = rows.first { $0.path == "cos/" }!
+        #expect(cos.count == 3)
+        #expect(cos.modified == Date(timeIntervalSince1970: 80))
+        let empty = rows.first { $0.path == "empty/" }!
+        #expect(empty.count == 0)
+        #expect(empty.modified == nil)
+    }
+
+    @Test("lists only the next level inside a folder, and knows a folder from a note's name alone")
+    func nested() {
+        #expect(Folders.children(folders: walked, notes: notes, scope: "cos/").map(\.path) == ["cos/desks/"])
+        #expect(Folders.children(folders: walked, notes: notes, scope: "cos/desks/").isEmpty)
+        #expect(Folders.children(folders: [], notes: notes, scope: "").map(\.path) == ["archive/", "cos/", "desks/"])
+    }
+
+    @Test("finds folders at any depth by their own name, never the scope itself")
+    func matching() {
+        #expect(Folders.matching(folders: walked, notes: notes, scope: "", query: "des").map(\.path) == ["cos/desks/", "desks/"])
+        #expect(Folders.matching(folders: walked, notes: notes, scope: "", query: "cos").map(\.path) == ["cos/"])
+        #expect(Folders.matching(folders: walked, notes: notes, scope: "cos/", query: "cos").isEmpty)
+        #expect(Folders.matching(folders: walked, notes: notes, scope: "", query: "").isEmpty)
+    }
+
+    @Test("tells a folder's own notes from everything under it")
+    func ownAndUnder() {
+        #expect(Folders.own(notes: notes, scope: "cos/").map(\.name) == ["cos/README.md", "cos/charter.md"])
+        #expect(Folders.under(notes: notes, scope: "cos/").count == 3)
+        #expect(Folders.own(notes: notes, scope: "").map(\.name) == ["inbox.md"])
+    }
+
+    @Test("walks folders at any depth, the empty ones included, skipping dot folders")
+    func walk() throws {
+        let f = try makeTempFolder()
+        try FileManager.default.createDirectory(at: f.url.appendingPathComponent("cos/desks"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: f.url.appendingPathComponent("empty"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: f.url.appendingPathComponent(".git/objects"), withIntermediateDirectories: true)
+        try touch(f, "cos/a.md")
+        #expect(try f.folders() == ["cos", "cos/desks", "empty"])
+    }
+
+    @Test("creates a note inside a folder, making the folder on the way, and refuses one that reaches out")
+    func createIn() throws {
+        let f = try makeTempFolder()
+        #expect(try f.create(in: "cos/desks") == "cos/desks/Untitled-1.md")
+        #expect(try f.create(in: "cos/desks/") == "cos/desks/Untitled-2.md")
+        #expect(try f.create(in: "") == "Untitled-1.md")
+        #expect(try f.create() == "Untitled-2.md")
+        #expect(throws: NotesFolderError.invalidName("../x")) { try f.create(in: "../x") }
+        #expect(throws: NotesFolderError.invalidName(".git")) { try f.create(in: ".git") }
+    }
+}

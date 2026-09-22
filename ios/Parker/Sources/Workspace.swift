@@ -10,6 +10,9 @@ import ParkerCore
 final class Workspace {
     private(set) var folder: NotesFolder?
     private(set) var notes: [NoteMeta] = []
+    /// Every folder in the notes folder, any depth ("cos", "cos/desks") — the
+    /// empty ones too, so a folder made in Files or on the Mac shows up.
+    private(set) var folders: [String] = []
     private(set) var folderLabel = ""
     private(set) var lastError: String?
     private var watcher: FolderWatcher?
@@ -149,6 +152,7 @@ final class Workspace {
     func refresh() {
         guard let folder else { return }
         do { notes = try folder.list() } catch { lastError = error.localizedDescription }
+        folders = (try? folder.folders()) ?? []
         // A synced folder lists notes before their bytes arrive: ask for all
         // of them now, off the main thread, so opening one never waits.
         Task.detached(priority: .utility) { folder.fetchAll() }
@@ -175,9 +179,10 @@ final class Workspace {
         do { try folder.write(name, text) } catch { lastError = error.localizedDescription }
     }
 
-    func create() -> String? {
+    /// A new note — inside `scope` ("cos/desks/") when one is given.
+    func create(in scope: String = "") -> String? {
         guard let folder else { return nil }
-        do { let name = try folder.create(); refresh(); return name } catch { lastError = error.localizedDescription; return nil }
+        do { let name = try folder.create(in: scope.isEmpty ? nil : scope); refresh(); return name } catch { lastError = error.localizedDescription; return nil }
     }
 
     func search(_ query: String) -> [NoteHit] {
