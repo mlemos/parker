@@ -2439,10 +2439,99 @@ body.resizing {
   color: var(--muted);
 }
 .picker-hint {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
   padding: 8px 14px;
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 11px;
+}
+.picker-hint-count {
+  flex: none;
+}
+
+/* ---- Folders in the picker ---------------------------------------------- */
+
+/* The field row: the chips for where you are, then the input. The input's
+   own bottom border moves up to the row so chips and text share one line. */
+.picker-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.picker-field .picker-input {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none;
+  padding-left: 4px;
+}
+.picker-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.picker-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  padding: 0 8px 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  cursor: pointer;
+}
+.picker-crumb:hover {
+  border-color: var(--accent);
+}
+/* The way back to everything: an icon, no fill. */
+.picker-crumb.root {
+  padding: 0 6px;
+  color: var(--secondary);
+  background: transparent;
+}
+.picker-crumb-sep {
+  color: var(--muted);
+}
+
+/* A folder row: icon, name, how many notes, when the newest changed. The
+   chevron at the end shows only on the row you are on — it says "→". */
+.picker-folder .picker-name {
+  flex: 1;
+}
+.picker-folder-icon {
+  flex: none;
+  color: var(--secondary);
+}
+.picker-folder.sel .picker-folder-icon {
+  color: var(--accent);
+}
+.picker-folder-go {
+  flex: none;
+  color: var(--muted);
+  opacity: 0;
+}
+.picker-folder.sel .picker-folder-go,
+.picker-folder:hover .picker-folder-go {
+  opacity: 1;
+}
+.picker-folder.up .picker-name {
+  color: var(--muted);
+}
+/* The first note after the folders opens a new block. */
+.picker-folder + .picker-item:not(.picker-folder) {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
 }
 
 /* ---- Performance monitor overlay (⌘⇧D) ---------------------------------- */

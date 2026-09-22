@@ -9,12 +9,13 @@ import { NotePicker } from "./NotePicker.tsx";
 // single seam over every `invoke`, so mocking it is all it takes to run the
 // component with no Tauri underneath.
 vi.mock("../lib/api", () => ({
-  api: { searchNotes: vi.fn(), deleteNote: vi.fn() },
+  api: { searchNotes: vi.fn(), deleteNote: vi.fn(), listFolders: vi.fn() },
 }));
 import { api } from "../lib/api.ts";
 
 const searchNotes = vi.mocked(api.searchNotes);
 const deleteNote = vi.mocked(api.deleteNote);
+const listFolders = vi.mocked(api.listFolders);
 
 const hit = (name: string, over: Partial<NoteHit> = {}): NoteHit => ({
   name,
@@ -32,21 +33,24 @@ afterEach(cleanup);
 beforeEach(() => {
   searchNotes.mockResolvedValue(HITS);
   deleteNote.mockResolvedValue(undefined);
+  listFolders.mockResolvedValue([]);
 });
 
 function setup(openNames: string[] = []) {
   const onOpen = vi.fn();
   const onDeleted = vi.fn();
   const onClose = vi.fn();
+  const onNewNote = vi.fn();
   render(
     <NotePicker
       openNames={openNames}
       onOpen={onOpen}
+      onNewNote={onNewNote}
       onDeleted={onDeleted}
       onClose={onClose}
     />
   );
-  return { onOpen, onDeleted, onClose, user: userEvent.setup() };
+  return { onOpen, onDeleted, onClose, onNewNote, user: userEvent.setup() };
 }
 
 const rows = () => Array.from(document.querySelectorAll(".picker-item"));
@@ -83,11 +87,13 @@ describe("NotePicker", () => {
   it("shows a note's folder before its name, quietly", async () => {
     searchNotes.mockResolvedValue([hit("backlogs/parker.md"), hit("top.md")]);
     setup();
-    await listed(2);
-    const dir = document.querySelector(".picker-dir")!;
+    // Two notes, and the folder row the first one implies.
+    await listed(3);
+    const dir = document.querySelector(".picker-main .picker-dir")!;
     expect(dir.textContent).toBe("backlogs/");
     expect(dir.parentElement!.textContent).toBe("backlogs/parker.md");
-    expect(document.querySelectorAll(".picker-dir")).toHaveLength(1);
+    // Only the one note in a folder says so; the folder row has its own slash.
+    expect(document.querySelectorAll(".picker-main .picker-dir")).toHaveLength(1);
   });
 
   it("says so when nothing matches", async () => {
@@ -296,5 +302,118 @@ describe("NotePicker", () => {
         expect(mark?.textContent).toBe("pha"); // matched case-insensitively
       });
     });
+  });
+});
+
+// ---- Folders ------------------------------------------------------------------
+
+describe("NotePicker with folders", () => {
+  const TREE = [
+    hit("inbox.md", { modified: 100 }),
+    hit("cos/charter.md", { modified: 90 }),
+    hit("cos/desks/README.md", { modified: 30 }),
+    hit("desks/parker.md", { modified: 80 }),
+    hit("desks/itau.md", { modified: 20 }),
+  ];
+  const folderRows = () => Array.from(document.querySelectorAll(".picker-folder"));
+  const noteRows = () => Array.from(document.querySelectorAll(".picker-item:not(.picker-folder)"));
+  const crumbs = () => Array.from(document.querySelectorAll(".picker-crumb")).map((c) => c.textContent);
+  // The placeholder changes with the scope; the field is the same.
+  const field = () => document.querySelector<HTMLInputElement>(".picker-input")!;
+
+  beforeEach(() => {
+    // A search answers with what is inside the scope; the component filters.
+    searchNotes.mockImplementation(async (q: string) =>
+      q ? TREE.filter((n) => n.name.toLowerCase().includes(q.toLowerCase())) : TREE
+    );
+    listFolders.mockResolvedValue(["cos", "cos/desks", "desks", "empty"]);
+  });
+
+  it("puts the folders first at the root, then every recent note", async () => {
+    setup();
+    await waitFor(() => expect(folderRows()).toHaveLength(3));
+    expect(folderRows().map((r) => r.textContent)).toEqual([
+      expect.stringContaining("cos/"),
+      expect.stringContaining("desks/"),
+      expect.stringContaining("empty/"),
+    ]);
+    expect(folderRows()[0].textContent).toContain("2 notes");
+    expect(folderRows()[2].textContent).toContain("empty");
+    expect(noteRows()).toHaveLength(5); // from everywhere, as before
+  });
+
+  it("steps into a folder with →, shows its notes bare, and steps out with ⌫", async () => {
+    const { user } = setup();
+    await waitFor(() => expect(folderRows()).toHaveLength(3));
+    await user.keyboard("{ArrowRight}"); // first row: cos/
+    await waitFor(() => expect(crumbs()).toEqual(["", "cos"]));
+    expect(screen.getByPlaceholderText("Search in cos…")).toBeTruthy();
+    // "..", the subfolder, then cos's own note without the "cos/" prefix
+    expect(folderRows().map((r) => r.textContent)).toEqual([
+      expect.stringContaining(".."),
+      expect.stringContaining("desks/"),
+    ]);
+    expect(noteRows()).toHaveLength(1);
+    expect(noteRows()[0].textContent).toContain("charter.md");
+    expect(noteRows()[0].textContent).not.toContain("cos/");
+    await user.keyboard("{Backspace}");
+    await waitFor(() => expect(crumbs()).toEqual([]));
+    expect(noteRows()).toHaveLength(5);
+  });
+
+  it("walks into a folder when its name and a slash are typed", async () => {
+    const { user } = setup();
+    await waitFor(() => expect(folderRows()).toHaveLength(3));
+    await user.type(field(), "desks/");
+    await waitFor(() => expect(crumbs()).toEqual(["", "desks"]));
+    expect(field().value).toBe("");
+    expect(noteRows().map((r) => r.textContent)).toEqual([
+      expect.stringContaining("parker.md"),
+      expect.stringContaining("itau.md"),
+    ]);
+  });
+
+  it("lists the folders a search matches above the notes, at any depth", async () => {
+    const { user } = setup();
+    await waitFor(() => expect(folderRows()).toHaveLength(3));
+    await user.type(field(), "des");
+    await waitFor(() => expect(folderRows().map((r) => r.textContent)).toEqual([
+      expect.stringContaining("cos/desks/"),
+      expect.stringContaining("desks/"),
+    ]));
+    // and, once the search has answered, only the notes under them
+    await waitFor(() => expect(noteRows()).toHaveLength(3));
+    expect(noteRows().every((r) => r.textContent!.includes("desks"))).toBe(true);
+  });
+
+  it("keeps a search inside the folder it is in", async () => {
+    const { user } = setup();
+    await waitFor(() => expect(folderRows()).toHaveLength(3));
+    await user.type(field(), "cos/");
+    await waitFor(() => expect(crumbs()).toEqual(["", "cos"]));
+    await user.type(field(), "README");
+    await waitFor(() => expect(noteRows()).toHaveLength(1));
+    expect(noteRows()[0].textContent).toContain("desks/README.md");
+  });
+
+  it("opens a note with ↵, but ↵ on a folder goes in", async () => {
+    const { user, onOpen } = setup();
+    await waitFor(() => expect(folderRows()).toHaveLength(3));
+    await user.keyboard("{Enter}"); // cos/
+    await waitFor(() => expect(crumbs()).toEqual(["", "cos"]));
+    expect(onOpen).not.toHaveBeenCalled();
+    await user.keyboard("{ArrowDown}{ArrowDown}{Enter}"); // .., desks/, charter.md
+    expect(onOpen).toHaveBeenCalledWith("cos/charter.md");
+  });
+
+  it("makes a new note where it is with ⌘N", async () => {
+    const { user, onNewNote } = setup();
+    await waitFor(() => expect(folderRows()).toHaveLength(3));
+    await user.keyboard("{Meta>}n{/Meta}");
+    expect(onNewNote).toHaveBeenLastCalledWith("");
+    await user.type(field(), "cos/");
+    await waitFor(() => expect(crumbs()).toEqual(["", "cos"]));
+    await user.keyboard("{Meta>}n{/Meta}");
+    expect(onNewNote).toHaveBeenLastCalledWith("cos");
   });
 });
