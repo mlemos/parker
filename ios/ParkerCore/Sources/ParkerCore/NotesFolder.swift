@@ -112,6 +112,27 @@ public struct NotesFolder: Sendable {
         }
     }
 
+    /// list_folders: every folder at any depth, as relative paths ("cos",
+    /// "cos/desks"), sorted — the empty ones included, which the walk over
+    /// notes cannot tell. Dot folders are not entered, symlinks not followed.
+    public func folders() throws -> [String] {
+        let keys: Set<URLResourceKey> = [.isDirectoryKey, .isSymbolicLinkKey]
+        var out: [String] = []
+        var stack: [(String, URL)] = [("", url)]
+        while let (prefix, dir) = stack.popLast() {
+            let items = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: Array(keys), options: [])
+            for item in items {
+                let base = item.lastPathComponent
+                if base.hasPrefix(".") { continue }
+                guard let v = try? item.resourceValues(forKeys: keys), v.isSymbolicLink != true, v.isDirectory == true else { continue }
+                let name = prefix.isEmpty ? base : prefix + "/" + base
+                out.append(name)
+                stack.append((name, item))
+            }
+        }
+        return out.sorted()
+    }
+
     /// walk_notes: every note at any depth, as (relative name, url). Folders
     /// starting with a dot are not entered; a symlinked folder is not
     /// followed — a loop would never end, and a link out of the folder is out
@@ -196,12 +217,14 @@ public struct NotesFolder: Sendable {
         }
     }
 
-    /// create_note: a new empty "Untitled-N.<ext>", N being the first integer
-    /// that doesn't collide. Returns the name.
-    public func create(ext: String? = nil) throws -> String {
+    /// create_note: a new empty "Untitled-N.<ext>" — in `folder` ("cos/desks",
+    /// made on the way if need be) when one is given — N being the first
+    /// integer that doesn't collide. Returns the name.
+    public func create(ext: String? = nil, in folder: String? = nil) throws -> String {
         let ext = Self.noteExt(ext)
+        let prefix = try Self.folderPrefix(folder)
         for n in 1..<100_000 {
-            let name = "Untitled-\(n).\(ext)"
+            let name = "\(prefix)Untitled-\(n).\(ext)"
             let target = try path(name)
             if !FileManager.default.fileExists(atPath: target.path) {
                 try write(name, "")
@@ -209,6 +232,16 @@ public struct NotesFolder: Sendable {
             }
         }
         throw NotesFolderError.noFreeName
+    }
+
+    /// "cos/desks" or "cos/desks/" → "cos/desks/"; nothing → "". Held to the
+    /// note-name rules, so a new note never lands outside the folder.
+    static func folderPrefix(_ folder: String?) throws -> String {
+        let f = (folder ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        if f.isEmpty { return "" }
+        guard isValidName(f) else { throw NotesFolderError.invalidName(f) }
+        return f + "/"
     }
 
     public func rename(_ from: String, to: String) throws {

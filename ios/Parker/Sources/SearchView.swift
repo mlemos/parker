@@ -12,9 +12,20 @@ struct SearchView: View {
         // search itself lists files, which Observation cannot see.
         let _ = workspace.notes
         let hits = workspace.search(query)
+        let folders = Folders.matching(folders: workspace.folders, notes: workspace.notes, scope: "", query: query)
         NavigationStack {
             List {
                 let named = hits.filter(\.inName), inBody = hits.filter { !$0.inName }
+                // Folders whose name matches: a way in, above the notes.
+                if !folders.isEmpty {
+                    Section("Folders") {
+                        ForEach(folders, id: \.path) { f in
+                            NavigationLink(value: FolderRef(path: f.path)) {
+                                FolderRowView(row: f, theme: theme, parentLabel: Folders.parent(of: f.path))
+                            }
+                        }
+                    }
+                }
                 if !named.isEmpty {
                     Section(query.isEmpty ? "All notes" : "Notes") { ForEach(named, id: \.name) { hit in row(hit, theme) } }
                 }
@@ -26,6 +37,7 @@ struct SearchView: View {
             .navigationTitle("Search")
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search notes")
             .navigationDestination(for: String.self) { name in NoteView(name: name) }
+            .navigationDestination(for: FolderRef.self) { ref in NotesListView(scope: ref.path) }
         }
     }
 
