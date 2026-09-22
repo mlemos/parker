@@ -400,6 +400,7 @@ export default function App() {
       "--md-code": theme.syntax.inlineCode,
       "--md-code-bg": alpha(theme.syntax.inlineCode, 0.14),
       "--md-link": theme.syntax.link,
+      "--md-url": theme.syntax.url,
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
@@ -782,6 +783,12 @@ export default function App() {
       if (k === ",") {
         e.preventDefault();
         setSettingsOpen((v) => !v);
+      } else if (e.code === "Slash" && e.shiftKey) {
+        // ⌘? — the Mac's own key for help. ⌘K used to be this; it is the
+        // editor's now, for links (lib/format.ts). The menu item carries the
+        // same accelerator for the record; this handler is what answers it.
+        e.preventDefault();
+        api.openHelp();
       } else if (e.code === "Backslash" && !e.shiftKey) {
         // ⌃⌘\ split right, ⌃⌥⌘\ split down (matched by physical key so the
         // Option char doesn't matter). Ctrl isn't required — plain ⌘\ still
@@ -1247,7 +1254,7 @@ export default function App() {
         <button
           className="status-help"
           onClick={() => api.openHelp()}
-          title="Keyboard shortcuts (Cmd+K)"
+          title="Keyboard shortcuts (Cmd+?)"
           aria-label="Keyboard shortcuts"
         >
           <CircleQuestionMark size={16} strokeWidth={2} aria-hidden="true" />

@@ -15,6 +15,7 @@ import {
 } from "../lib/external-change";
 import { foldMarkers, folding } from "../lib/fold";
 import { hangingIndent } from "../lib/hanging-indent";
+import { followLinks } from "../lib/links";
 import { selectionGutter } from "../lib/selection-gutter";
 import { hybridSelection } from "../lib/selection";
 import { textWidth } from "../lib/text-width";
@@ -174,6 +175,8 @@ export function Editor({
         c.lang.of(langExt),
         todoHighlighter,
         todoKeymap,
+        // ⌘-click opens a link in the browser; in any file, not just markdown.
+        followLinks,
         // Wrapped list items and to-dos continue under their text.
         hangingIndent,
         folding,
