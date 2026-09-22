@@ -1379,9 +1379,10 @@ fn build_menu<R: tauri::Runtime>(
         .build(handle)?;
     // Our own About panel (with the beta disclaimer) instead of the OS default.
     let about = MenuItemBuilder::with_id("about", "About Parker").build(handle)?;
-    // Keyboard shortcuts help overlay.
+    // Keyboard shortcuts help overlay. ⌘? (⌘⇧/) is the Mac's key for help;
+    // ⌘K, which this used to be, belongs to the editor now — it makes a link.
     let help = MenuItemBuilder::with_id("help", "Keyboard Shortcuts")
-        .accelerator("CmdOrCtrl+K")
+        .accelerator("CmdOrCtrl+Shift+/")
         .build(handle)?;
 
     let app_menu = SubmenuBuilder::new(handle, variant::TITLE)

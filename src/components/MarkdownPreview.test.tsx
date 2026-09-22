@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { act, cleanup, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { forgetPosition, postCursor, postViewport } from "../lib/preview-sync.ts";
 import { MarkdownPreview } from "./MarkdownPreview.tsx";
+import { openExternal } from "../lib/open.ts";
 
 afterEach(cleanup);
 // The bus remembers the last position per note across renders — which is the
@@ -59,5 +60,28 @@ describe("MarkdownPreview following the editor", () => {
     act(() => postCursor({ name: "n.md", line: 7, from: 7, to: 7 }));
     rerender(<MarkdownPreview content={DOC + "\nMore.\n"} name="n.md" sync />);
     expect(container.querySelector(".md-cursor")?.textContent).toBe("Para two.");
+  });
+});
+
+vi.mock("../lib/open.ts", () => ({ openExternal: vi.fn(() => true) }));
+
+describe("links in the preview", () => {
+  it("open outside the app instead of navigating the webview", () => {
+    const spy = vi.mocked(openExternal);
+    const { container } = render(
+      <MarkdownPreview content="see [Parker](https://getparker.dev)" name="n.md" sync={false} />
+    );
+    const a = container.querySelector("a")!;
+    expect(a.getAttribute("title")).toBe("https://getparker.dev");
+    const followed = fireEvent.click(a);
+    expect(followed).toBe(false); // default prevented: the webview stays put
+    expect(spy).toHaveBeenCalledWith("https://getparker.dev");
+  });
+
+  it("leave a plain click on text alone", () => {
+    const { container } = render(
+      <MarkdownPreview content="just text" name="n.md" sync={false} />
+    );
+    expect(fireEvent.click(container.querySelector("p")!)).toBe(true);
   });
 });

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { renderMarkdown } from "../lib/markdown";
+import { openExternal } from "../lib/open";
 import { LINE_ATTR, blockAt, blocksBetween, blocksWithLines } from "../lib/line-map";
 import { cursorOf, onCursor, onViewport, viewportOf } from "../lib/preview-sync";
 import type { CursorPos, Viewport } from "../lib/preview-sync";
@@ -30,6 +31,16 @@ export function MarkdownPreview({
   const html = useMemo(() => renderMarkdown(content), [content]);
   const root = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
+
+  /** A link opens in the browser. Left to the webview it would navigate —
+   *  and the page would replace Parker. Anything that isn't an address to
+   *  the outside (a relative path, an anchor) is left alone, for now. */
+  const followLink = (e: React.MouseEvent<HTMLDivElement>) => {
+    const a = (e.target as HTMLElement).closest("a[href]");
+    if (!a) return;
+    e.preventDefault();
+    openExternal(a.getAttribute("href") ?? "");
+  };
 
   /** The mapped blocks, read off the DOM as it is right now. Not cached: the
    *  DOM under `body` is React's to replace, and a list taken at one commit
@@ -123,6 +134,7 @@ export function MarkdownPreview({
         className="md-body"
         // Safe: markdown-it runs with html:false and validates link schemes.
         dangerouslySetInnerHTML={{ __html: html }}
+        onClick={followLink}
       />
     </div>
   );

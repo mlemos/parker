@@ -24,7 +24,13 @@ describe("renderMarkdown / untrusted input", () => {
 
   it("still builds ordinary links", () => {
     expect(renderMarkdown("[ok](https://example.org)")).toContain(
-      '<a href="https://example.org">ok</a>'
+      '<a href="https://example.org" title="https://example.org">ok</a>'
+    );
+  });
+
+  it("keeps a link's own title over the address", () => {
+    expect(renderMarkdown('[ok](https://example.org "Home")')).toContain(
+      '<a href="https://example.org" title="Home">ok</a>'
     );
   });
 

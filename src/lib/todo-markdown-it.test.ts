@@ -95,7 +95,7 @@ describe("to-do entries in the preview", () => {
   it("renders inline markup on the entry", () => {
     const out = html("/TODO Run `pnpm test` and see [docs](https://example.org)");
     expect(out).toContain("<code>pnpm test</code>");
-    expect(out).toContain('<a href="https://example.org">docs</a>');
+    expect(out).toContain('<a href="https://example.org" title="https://example.org">docs</a>');
   });
 });
 

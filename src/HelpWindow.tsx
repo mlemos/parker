@@ -68,7 +68,7 @@ const APP: Section[] = [
       ["Cycle theme", ["⌘⇧T"]],
       ["Commit & push (quick)", ["⌘⇧S"]],
       ["Settings", ["⌘,"]],
-      ["This help", ["⌘K"]],
+      ["This help", ["⌘?"]],
       ["Quit (asks first)", ["⌘Q"]],
     ],
   },
@@ -87,6 +87,16 @@ const EDITOR: Section[] = [
       ["Copy line up / down", ["⇧⌥↑", "⇧⌥↓"]],
       ["Add cursor above / below", ["⌘⌥↑", "⌘⌥↓"]],
       ["Move line up / down", ["⌥↑", "⌥↓"]],
+    ],
+  },
+  {
+    title: "Formatting (markdown)",
+    rows: [
+      ["Bold / italic — the selection, or the word at the caret", ["⌘B", "⌘I"]],
+      ["Inline code", ["⌘E"]],
+      ["Strikethrough", ["⌘⇧X"]],
+      ["Link — a selected address becomes the target", ["⌘K"]],
+      ["Open a link in the browser", ["⌘Click"]],
     ],
   },
   {

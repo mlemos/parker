@@ -1096,6 +1096,26 @@ body.resizing {
 .md-body a:hover {
   text-decoration: underline;
 }
+
+/* Links in the editor (lib/links.ts). `[text](url)` is painted by the theme
+   itself; a bare url, which the parser doesn't see, is painted here in the
+   theme's url colour so it reads as a link too. Hovering any of them tints
+   the span — there is something to open here — and holding ⌘ turns the
+   pointer into a hand, because that is the click that opens it. */
+.cm-editor .cm-ext-url {
+  color: var(--md-url);
+  text-decoration: underline;
+}
+.cm-editor .cm-ext-link {
+  border-radius: 3px;
+  transition: background-color 80ms ease-out;
+}
+.cm-editor .cm-ext-link:hover {
+  background-color: color-mix(in srgb, currentColor 14%, transparent);
+}
+.cm-editor.cm-meta .cm-ext-link {
+  cursor: pointer;
+}
 .md-body strong {
   font-weight: 650;
 }

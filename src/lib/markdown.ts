@@ -15,6 +15,17 @@ md.use(todoPlugin);
 // Every block carries the source line it starts on, for the preview to follow.
 md.use(lineMapPlugin);
 
+// A link's address on hover. Clicking opens the browser (MarkdownPreview), and
+// there is no status bar here to say where a click would take you.
+const linkOpen =
+  md.renderer.rules.link_open ??
+  ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
+md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+  const t = tokens[idx];
+  if (!t.attrGet("title")) t.attrSet("title", t.attrGet("href") ?? "");
+  return linkOpen(tokens, idx, options, env, self);
+};
+
 // GFM-style task lists: markdown-it leaves "[ ]" / "[x]" as literal text, so
 // swap them for disabled checkboxes at the start of a list item. No space
 // after the checkbox: its margin sets the gap (App.css li.task), so the text
