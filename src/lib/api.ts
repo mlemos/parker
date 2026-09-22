@@ -21,6 +21,8 @@ export interface Session {
   theme: string | null;
   layout?: unknown; // serialized split layout tree (frontend-owned schema)
   focused?: string | null; // focused group id within the layout
+  /** Note windows — Rust's part of the session; the frontend never sends it. */
+  windows?: unknown[];
 }
 
 export interface SettingsInfo {
@@ -133,4 +135,20 @@ export const api = {
   revealFile: (path: string) => invoke<void>("reveal_file", { path }),
   openHelp: () => invoke<void>("open_help"),
   quit: () => invoke<void>("quit"),
+  // Note windows — a note in a window of its own (src-tauri/src/windows.rs).
+  /** Open, or bring forward, the window for this note — on its preview when
+   *  `preview`, under the pointer when `atCursor`. Returns its label. */
+  openNoteWindow: (name: string, preview: boolean, atCursor: boolean) =>
+    invoke<string>("open_note_window", { name, preview, atCursor }),
+  /** This note window now shows another note, or the same one the other way. */
+  setNoteWindowNote: (name: string, preview: boolean) =>
+    invoke<void>("set_note_window_note", { name, preview }),
+  setWindowOnTop: (onTop: boolean) => invoke<void>("set_window_on_top", { onTop }),
+  /** True when another window shows the note and was brought forward. */
+  focusNote: (name: string) => invoke<boolean>("focus_note", { name }),
+  /** Hand this window's note back to the main window and close. */
+  dockNote: (name: string, preview: boolean) => invoke<void>("dock_note", { name, preview }),
+  closeNoteWindow: () => invoke<void>("close_note_window"),
+  /** Is the pointer outside this window right now? For the end of a drag. */
+  pointerOutsideWindow: () => invoke<boolean>("pointer_outside_window"),
 };

@@ -22,7 +22,14 @@ const buf = (name: string, content = ""): Buffer => ({ name, content, disk: cont
 
 const OUTSIDE = "/Volumes/work/repo/README.md";
 
-function setup(tabs: string[], active: string, extra: Partial<Buffer>[] = []) {
+type NoteWindow = { onTop: boolean; onToggleTop: () => void; onDockBack: () => void };
+
+function setup(
+  tabs: string[],
+  active: string,
+  extra: Partial<Buffer>[] = [],
+  noteWindow?: NoteWindow
+) {
   const cb: GroupCallbacks = {
     onFocus: vi.fn(),
     onSelectTab: vi.fn(),
@@ -44,6 +51,8 @@ function setup(tabs: string[], active: string, extra: Partial<Buffer>[] = []) {
     onCloseGroup: vi.fn(),
     onResolveConflict: vi.fn(),
     onReveal: vi.fn(),
+    onPopOut: vi.fn(),
+    onDragOut: vi.fn(),
   };
   const notes = [...new Set(tabs.map(noteOf))];
   const buffers = notes.map((t) => ({ ...buf(t), ...extra.find((e) => e.name === t) }));
@@ -63,6 +72,7 @@ function setup(tabs: string[], active: string, extra: Partial<Buffer>[] = []) {
       previewSync
       renamingName={null}
       homeDir="/Volumes/work"
+      noteWindow={noteWindow}
       cb={cb}
     />
   );
@@ -201,5 +211,78 @@ describe("a file dragged over the pane", () => {
       dataTransfer: { ...files, getData: () => "" },
     });
     expect(cb.onDropTab).not.toHaveBeenCalled();
+  });
+});
+
+// ---- A window of its own ------------------------------------------------------
+
+describe("a tab dragged out of the window", () => {
+  const nowhere = { types: ["application/x-parker-tab"], dropEffect: "none" };
+
+  it("is reported when the drag ends with nothing taking it", () => {
+    const { cb } = setup(["a.md", "b.md"], "a.md");
+    fireEvent.dragEnd(screen.getByText("b.md").closest(".tab")!, { dataTransfer: nowhere });
+    expect(cb.onDragOut).toHaveBeenCalledWith("b.md");
+    expect(cb.onTabDragEnd).toHaveBeenCalled();
+  });
+
+  it("is not reported when something took the drop", () => {
+    const { cb } = setup(["a.md"], "a.md");
+    fireEvent.dragEnd(screen.getByText("a.md").closest(".tab")!, {
+      dataTransfer: { ...nowhere, dropEffect: "move" },
+    });
+    expect(cb.onDragOut).not.toHaveBeenCalled();
+  });
+});
+
+describe("the pane of a note window", () => {
+  const win = () => ({ onTop: false, onToggleTop: vi.fn(), onDockBack: vi.fn() });
+
+  it("has the one tab, and no way to add, split or drag", () => {
+    const { container } = setup(["a.md"], "a.md", [], win());
+    expect(container.querySelector(".tab-new")).toBeNull();
+    expect(screen.queryByLabelText(/split/i)).toBeNull();
+    expect(screen.queryByLabelText("Open in new window")).toBeNull();
+    expect(screen.getByText("a.md").closest(".tab")!.getAttribute("draggable")).toBe("false");
+    expect(screen.getByTitle("Close window (Cmd+W)")).toBeTruthy();
+  });
+
+  it("carries the window's own controls: preview, pin, and the way back", () => {
+    const w = win();
+    const { cb } = setup(["a.md"], "a.md", [], w);
+    expect(screen.getByLabelText("Preview")).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("Keep on top"));
+    expect(w.onToggleTop).toHaveBeenCalled();
+    fireEvent.click(screen.getByLabelText("Move back to the main window"));
+    expect(w.onDockBack).toHaveBeenCalled();
+    expect(cb.onSplit).not.toHaveBeenCalled();
+  });
+
+  it("shows the pin pressed while the window is on top", () => {
+    setup(["a.md"], "a.md", [], { ...win(), onTop: true });
+    const pin = screen.getByLabelText("Keep on top");
+    expect(pin.getAttribute("aria-pressed")).toBe("true");
+    expect(pin.className).toContain("on");
+  });
+
+  it("never reports a drag out: there is nowhere for the tab to go", () => {
+    const { cb } = setup(["a.md"], "a.md", [], win());
+    fireEvent.dragEnd(screen.getByText("a.md").closest(".tab")!, {
+      dataTransfer: { types: [], dropEffect: "none" },
+    });
+    expect(cb.onDragOut).not.toHaveBeenCalled();
+  });
+});
+
+describe("the pane of the main window", () => {
+  it("offers to open the note in a window of its own", () => {
+    const { cb } = setup(["a.md"], "a.md");
+    fireEvent.click(screen.getByLabelText("Open in new window"));
+    expect(cb.onPopOut).toHaveBeenCalled();
+  });
+
+  it("has nothing to pop out when it is empty", () => {
+    setup([], "");
+    expect(screen.queryByLabelText("Open in new window")).toBeNull();
   });
 });

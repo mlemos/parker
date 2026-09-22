@@ -32,6 +32,17 @@ export interface LayoutHandlers {
   onReveal: (name: string) => void;
   onResize: (splitId: string, index: number, delta: number) => void;
   onEqualize: (splitId: string, index: number) => void;
+  /** Move the pane's note to a window of its own (main window only). */
+  onPopOut: (groupId: string) => void;
+  /** A tab was dragged out of the window and let go of there. */
+  onDragOut: (groupId: string, id: string) => void;
+}
+
+/** What a pane does when it is the one pane of a note window. */
+export interface NoteWindowControls {
+  onTop: boolean;
+  onToggleTop: () => void;
+  onDockBack: () => void;
 }
 
 interface Common {
@@ -48,6 +59,7 @@ interface Common {
   altHeld: boolean;
   dragging: boolean;
   fileDragging: boolean;
+  noteWindow?: NoteWindowControls;
   h: LayoutHandlers;
 }
 
@@ -79,6 +91,8 @@ export function LayoutView({
       onCloseGroup: () => common.h.onCloseGroup(g.id),
       onResolveConflict: common.h.onResolveConflict,
       onReveal: common.h.onReveal,
+      onPopOut: () => common.h.onPopOut(g.id),
+      onDragOut: (id) => common.h.onDragOut(g.id, id),
     };
     return (
       <EditorGroup
@@ -96,6 +110,7 @@ export function LayoutView({
         previewSync={common.previewSync}
         renamingName={common.renamingName}
         homeDir={common.homeDir}
+        noteWindow={common.noteWindow}
         cb={cb}
       />
     );

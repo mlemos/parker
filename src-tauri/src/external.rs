@@ -224,6 +224,17 @@ pub fn admit_session(app: &tauri::AppHandle, open: &[String]) {
     }
 }
 
+/// Admit one file by absolute path — for a note window about to read it, or
+/// the main window taking it back. Not a file any more: nothing happens, and
+/// the read that follows says so.
+pub fn admit_path(app: &tauri::AppHandle, path: &str) {
+    let st = state(app);
+    let Ok(mut ext) = st.0.lock() else { return };
+    if let Err(e) = ext.admit(Some(app), Path::new(path)) {
+        eprintln!("note window: {e}");
+    }
+}
+
 // ---- Commands -------------------------------------------------------------
 
 #[tauri::command]
@@ -248,7 +259,14 @@ pub async fn write_file(app: tauri::AppHandle, path: String, content: String) ->
 
 /// The webview closed the last tab showing this file.
 #[tauri::command]
-pub fn close_file(app: tauri::AppHandle, path: String) {
+pub fn close_file(app: tauri::AppHandle, window: tauri::Window, path: String) {
+    // A note window that took this file over still needs it readable — the
+    // main window letting go of its tab is not the file being closed.
+    if let Some(holder) = crate::windows::locate_note(&app, &path) {
+        if holder != window.label() {
+            return;
+        }
+    }
     if let Ok(mut ext) = state(&app).0.lock() {
         ext.release(Path::new(&path));
     }
