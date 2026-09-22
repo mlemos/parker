@@ -391,7 +391,10 @@ h1 {
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  animation: phone-frames 20s ease-in-out infinite both;
+  /* No fill mode: while a frame waits out its delay it must stay at the
+     base opacity 0 — with `both` every frame showed at once and the last
+     one covered the rest, so nothing appeared to move. */
+  animation: phone-frames 20s ease-in-out infinite;
 }
 .phone .screen img:nth-child(1) { animation-delay: 0s; }
 .phone .screen img:nth-child(2) { animation-delay: 4s; }
