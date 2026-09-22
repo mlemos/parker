@@ -192,9 +192,15 @@
 
       <div class="sc-shot reveal">
         <figure class="shot-frame">
-          <img src="/brand/shots/parker-split-preview.webp" width="1400" height="1089"
+          <img src="/brand/shots/parker-note-window.webp" width="1400" height="982"
                decoding="async" loading="lazy"
-               alt="Screenshot: three panes — a Markdown note, its live preview, and a second note." />
+               alt="Screenshot: the main window with a note and its live preview side by side, and a second note floating in a window of its own, pinned on top." />
+        </figure>
+        <figure class="shot-frame shot-second">
+          <img src="/brand/shots/parker-preview-sync.webp" width="1400" height="1089"
+               decoding="async" loading="lazy"
+               alt="Screenshot: two lines selected in the editor, and the same two items lit in the preview beside it." />
+          <figcaption>The preview follows the editor — cursor, selection and scroll.</figcaption>
         </figure>
       </div>
     </section>
@@ -211,6 +217,9 @@
           <strong>cancelled</strong> is not the same as <strong>failed</strong>.
         </p>
         <p>
+          Add bangs for priority — <code>/TODO!</code>, <code>/TODO!!</code>, <code>/TODO!!!</code> —
+          and the box's border says how loud, yellow to red; <kbd aria-label="Control Command Up arrow"><svg class="ki" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg><svg class="ki" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/></svg><svg class="ki" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg></kbd> and
+          <kbd aria-label="Control Command Down arrow"><svg class="ki" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg><svg class="ki" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/></svg><svg class="ki" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg></kbd> turn it up and down without touching the text.
           Press <kbd aria-label="Command Return"><svg class="ki" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/></svg><svg class="ki" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4v7a4 4 0 0 1-4 4H4"/><path d="m9 10-5 5 5 5"/></svg></kbd> to rotate a line, click a box to complete it, ⌥-click to pick
           a state. And it's still one word of plain text in the file — greppable, diffable,
           and <strong>legible to the agent working in the same note</strong>.
@@ -232,6 +241,18 @@
             <div class="todo-row" data-state="todo">
               <div class="todo-src"><span class="todo-tag">/TODO</span></div>
               <button class="todo-out" type="button"><span class="tbox"><span class="tglyph"></span></span>Write the launch post</button>
+            </div>
+            <div class="todo-row" data-state="todo" data-priority="1">
+              <div class="todo-src"><span class="todo-tag">/TODO!</span></div>
+              <button class="todo-out" type="button"><span class="tbox"><span class="tglyph"></span></span>Reply to the beta testers</button>
+            </div>
+            <div class="todo-row" data-state="todo" data-priority="2">
+              <div class="todo-src"><span class="todo-tag">/TODO!!</span></div>
+              <button class="todo-out" type="button"><span class="tbox"><span class="tglyph"></span></span>Fix the picker on a narrow window</button>
+            </div>
+            <div class="todo-row" data-state="todo" data-priority="3">
+              <div class="todo-src"><span class="todo-tag">/TODO!!!</span></div>
+              <button class="todo-out" type="button"><span class="tbox"><span class="tglyph"></span></span>Renew the certificate before Friday</button>
             </div>
             <div class="todo-row" data-state="doing">
               <div class="todo-src"><span class="todo-tag">/DOING</span></div>
@@ -369,7 +390,7 @@
         <figure class="shot-frame">
           <img src="/brand/shots/parker-note-picker.webp" width="1400" height="1089"
                decoding="async" loading="lazy"
-               alt="Screenshot: Parker's note picker open, searching by name and content." />
+               alt="Screenshot: the note picker searching “pro” — the projects and prompts folders first, then the notes, with the hit highlighted." />
         </figure>
       </div>
     </section>

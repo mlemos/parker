@@ -88,7 +88,9 @@
       var next = ORDER[(ORDER.indexOf(row.getAttribute("data-state")) + 1) % ORDER.length];
       row.setAttribute("data-state", next);
       row.querySelector(".tglyph").innerHTML = G[next];
-      row.querySelector(".todo-tag").textContent = TAG[next];
+      // The bangs ride along: priority is part of the tag, whatever the state.
+      var bangs = "!".repeat(Number(row.getAttribute("data-priority") || 0));
+      row.querySelector(".todo-tag").textContent = TAG[next] + bangs;
     });
   })();
 
