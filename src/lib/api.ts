@@ -86,7 +86,12 @@ export const api = {
   readNote: (name: string) => invoke<string>("read_note", { name }),
   writeNote: (name: string, content: string) =>
     invoke<void>("write_note", { name, content }),
-  createNote: (ext?: string) => invoke<string>("create_note", { ext }),
+  /** A new empty note — inside `folder` ("cos/desks") when given. */
+  createNote: (ext?: string, folder?: string) =>
+    invoke<string>("create_note", { ext, folder: folder || null }),
+  /** Every folder in the notes folder, any depth, "cos/desks" style — the
+   *  empty ones too. */
+  listFolders: () => invoke<string[]>("list_folders"),
   renameNote: (from: string, to: string) =>
     invoke<void>("rename_note", { from, to }),
   deleteNote: (name: string) => invoke<void>("delete_note", { name }),
