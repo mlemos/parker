@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeGroup, newId, allGroups, findGroup } from "./layout.ts";
+import { makeGroup, newId, allGroups, findGroup, previewTab } from "./layout.ts";
 import type { Buffer, Group, LayoutNode, SplitNode } from "./layout.ts";
 import * as ws from "./workspace.ts";
 import type { Workspace } from "./workspace.ts";
@@ -609,6 +609,16 @@ describe("forgetNote", () => {
     expect(tabsOf(out, right.id)).toEqual([]);
     expect(findGroup(out.layout, right.id)!.active).toBeNull();
     expect(tabsOf(out, left.id)).toEqual(["a.md", "b.md"]);
+  });
+
+  // The tab in front was the note's preview — the note going means the pane
+  // must pick another tab, not keep pointing at one that is gone.
+  it("hands the front over when the note's preview was in front", () => {
+    const g = makeGroup(["a.md", previewTab("b.md")], previewTab("b.md"));
+    const w: Workspace = { buffers: [buf("a.md"), buf("b.md")], layout: g, focusedId: g.id };
+    const out = ws.forgetNote(w, "b.md");
+    expect(tabsOf(out, g.id)).toEqual(["a.md"]);
+    expect(findGroup(out.layout, g.id)!.active).toBe("a.md");
   });
 });
 

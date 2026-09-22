@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { EditorView } from "@uiw/react-codemirror";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen, emit } from "@tauri-apps/api/event";
 import { api } from "./lib/api";
 import { changedLines } from "./lib/linediff";
@@ -30,8 +31,10 @@ import {
   findGroup,
   firstGroup,
   centerDivider,
+  isPreviewTab,
   makeGroup,
   noteOf,
+  previewTab,
   pruneLayout,
   resizeSplit,
 } from "./lib/layout";
@@ -48,6 +51,12 @@ import { Settings } from "./components/Settings";
 import { LayoutView } from "./components/LayoutView";
 import type { LayoutHandlers } from "./components/LayoutView";
 import "./App.css";
+
+// Events Rust addresses to one window (quit, pop-out, a note handed over…)
+// are listened to on this window. The app-wide `listen` would hear them
+// whichever window they were meant for — Tauri's plain emit reaches every
+// listener, and a labeled target only tells them apart on this side.
+const thisWindow = getCurrentWebviewWindow();
 
 const AUTOSAVE_MS = 500;
 const SESSION_MS = 400;
@@ -66,11 +75,30 @@ const readText = (name: string) =>
 const writeText = (name: string, content: string) =>
   isExternal(name) ? api.writeFile(name, content) : api.writeNote(name, content);
 
-export default function App() {
+/** A note window: the editor locked to one note. Everything the main window
+ *  does with tabs, panes and the session is switched off; the window's own
+ *  controls (pin, back to main) are switched on. */
+export interface NoteWindowProps {
+  name: string;
+  theme: string | null;
+  onTop: boolean;
+  /** Open on the note's preview — the tab was a preview when it came out. */
+  preview: boolean;
+}
+
+export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {}) {
+  // One note, one window: no session of its own, no second tab, no split.
+  const single = !!noteWindow;
   const [buffers, setBuffers] = useState<Buffer[]>([]);
   const [layout, setLayout] = useState<LayoutNode>(() => makeGroup([], null));
   const [focusedId, setFocusedId] = useState<string>("");
-  const [themeId, setThemeId] = useState<string>(DEFAULT_THEME_ID);
+  const [themeId, setThemeId] = useState<string>(noteWindow?.theme || DEFAULT_THEME_ID);
+  // Pinned above the other windows (note windows only).
+  const [onTop, setOnTop] = useState<boolean>(noteWindow?.onTop ?? false);
+  // The theme is broadcast to the other windows only once this one knows
+  // its own: a note window from its URL, the main window from the session.
+  // Before that the default would be announced, and the others would follow.
+  const themeSettled = useRef(single);
   const [notesDir, setNotesDir] = useState<string>("");
   const [homeDir, setHomeDir] = useState<string>("");
   const [ready, setReady] = useState(false);
@@ -274,6 +302,25 @@ export default function App() {
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
+    // A note window has no session to restore: it shows the note it was
+    // opened for, and nothing it does is written to the session file — Rust
+    // keeps the list of note windows itself. A note that cannot be read is a
+    // window with nothing to show, so it closes.
+    const openSingle = async (name: string) => {
+      try {
+        setHomeDir(await api.homeDirPath());
+        setNotesDir(await api.notesDirPath());
+        const content = await readText(name);
+        const tab = noteWindow?.preview ? previewTab(name) : name;
+        const g = makeGroup([tab], tab);
+        setBuffers([{ name, content, disk: content, dirty: false }]);
+        setLayout(g);
+        setFocusedId(g.id);
+      } catch (e) {
+        console.error("note window: open failed", name, e);
+        api.closeNoteWindow().catch(() => {});
+      }
+    };
     const restore = async () => {
       try {
         setHomeDir(await api.homeDirPath());
@@ -328,6 +375,7 @@ export default function App() {
         setLayout(root);
         setFocusedId(focused);
         if (session.theme) setThemeId(session.theme);
+        themeSettled.current = true;
         // Only now is what's on screen a faithful picture of the session, so
         // only now may it be written back over the saved one.
         sessionRestored.current = true;
@@ -336,7 +384,8 @@ export default function App() {
       }
     };
     const deadline = new Promise<void>((resolve) => setTimeout(resolve, BOOT_MS));
-    Promise.race([restore(), deadline]).then(() => setReady(true));
+    const boot = noteWindow ? openSingle(noteWindow.name) : restore();
+    Promise.race([boot, deadline]).then(() => setReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -405,9 +454,44 @@ export default function App() {
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
     root.dataset.theme = theme.id;
-    // Broadcast so the secondary windows (About, Help) follow the theme live.
-    emit("parker://theme", theme.id).catch(() => {});
+    // Broadcast so every other window — About, Help, the other editor
+    // windows — follows the theme live.
+    if (themeSettled.current) emit("parker://theme", theme.id).catch(() => {});
   }, [theme]);
+
+  // The theme is one for the app: a change made in any window reaches the
+  // others here. Our own broadcast comes back too, and changes nothing.
+  useEffect(() => {
+    const p = listen<string>("parker://theme", (e) => {
+      themeSettled.current = true;
+      setThemeId((cur) => (cur === e.payload ? cur : e.payload));
+    });
+    return () => {
+      p.then((un) => un());
+    };
+  }, []);
+
+  // Likewise the editor toggles: Rust writes settings.json and tells every
+  // window. The window that flipped the switch already holds the value.
+  useEffect(() => {
+    const p = listen<{
+      editor_gutter: boolean;
+      editor_wrap: boolean;
+      editor_ligatures: boolean;
+      editor_width: number;
+      preview_sync: boolean;
+    }>("parker://prefs", (e) => {
+      const s = e.payload;
+      setGutterOn(s.editor_gutter);
+      setWrapOn(s.editor_wrap);
+      setLigaturesOn(s.editor_ligatures);
+      setTextWidth(textWidthOf(s.editor_width));
+      setPreviewSync(s.preview_sync);
+    });
+    return () => {
+      p.then((un) => un());
+    };
+  }, []);
 
   // Read back what Rust already applied, so ⌘= steps from the real rung
   // instead of from 100% — and the editor toggles along with it.
@@ -432,6 +516,18 @@ export default function App() {
   // recomputing the same rung while the state catches up.
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
+
+  // Zoom is applied to every window at once by Rust; each keeps the rung so
+  // its own ⌘= / ⌘- steps from where the interface actually is.
+  useEffect(() => {
+    const p = listen<number>("parker://zoom", (e) => {
+      zoomRef.current = e.payload;
+      setZoom(e.payload);
+    });
+    return () => {
+      p.then((un) => un());
+    };
+  }, []);
 
   // CodeMirror lays the gutter out from measurements it takes of the DOM. A
   // zoom change rewrites those metrics underneath it, and it only re-measures
@@ -531,21 +627,72 @@ export default function App() {
     [apply]
   );
 
+  // Write everything and close this note window for good. The main window
+  // never comes through here: its red button hides it (see onCloseRequested).
+  const closeWindow = useCallback(async () => {
+    await flushAll();
+    for (const b of stateRef.current.buffers) {
+      if (isExternal(b.name)) await api.closeFile(b.name).catch(() => {});
+    }
+    await api.closeNoteWindow().catch(() => {});
+  }, [flushAll]);
+
+  // A note window shows one note at a time: the new one takes the tab, the
+  // old one is written and let go of. A note another window already shows is
+  // not opened twice — that window comes forward instead.
+  const replaceNote = useCallback(
+    async (name: string) => {
+      const s = stateRef.current;
+      const gid = s.focusedId;
+      const g = findGroup(s.layout, gid) ?? firstGroup(s.layout);
+      if (g.tabs.some((t) => noteOf(t) === name)) {
+        apply((w) => ws.selectTab(w, g.id, name));
+        return;
+      }
+      if (await api.focusNote(name).catch(() => false)) return;
+      let text: string;
+      try {
+        text = await readText(name);
+      } catch (e) {
+        console.error("open failed", name, e);
+        return;
+      }
+      const old = g.tabs.map(noteOf).filter((n) => n !== name);
+      await Promise.all(old.map((n) => flushSave(n)));
+      apply((w) => {
+        let next = ws.openNoteAt(w, g.id, { name, content: text, disk: text, dirty: false });
+        for (const n of old) next = ws.forgetNote(next, n);
+        return next;
+      });
+      for (const n of old) lastWrite.current.delete(n);
+      api.setNoteWindowNote(name, false).catch(() => {});
+    },
+    [apply, flushSave]
+  );
+
   const newTab = useCallback(
     async (groupId?: string) => {
       const gid = groupId ?? stateRef.current.focusedId;
       try {
         const name = await api.createNote("md");
+        if (single) {
+          await replaceNote(name);
+          return;
+        }
         apply((w) => ws.openNote(w, gid, { name, content: "", disk: "", dirty: false }));
       } catch (e) {
         console.error("new tab failed", e);
       }
     },
-    [apply]
+    [apply, single, replaceNote]
   );
 
   const closeTab = useCallback(
     async (groupId: string, id: string) => {
+      if (single) {
+        await closeWindow();
+        return;
+      }
       const name = noteOf(id);
       await flushSave(name);
       const after = apply((w) => ws.closeTab(w, groupId, id));
@@ -553,8 +700,61 @@ export default function App() {
       // nothing has open any more.
       if (!after.buffers.some((b) => b.name === name)) lastWrite.current.delete(name);
     },
-    [apply, flushSave]
+    [apply, flushSave, single, closeWindow]
   );
+
+  // Move a tab's note to a window of its own — the pane's front tab unless
+  // one is named, opening on the preview if that is what the tab was. The
+  // note is written first and the new window reads it back; then the tabs
+  // here — editor and preview both — are let go of. The window is opened
+  // before the tabs go, so a file from outside the folder is never
+  // unadmitted in between. `atCursor`: the tab was dragged out and dropped;
+  // the window opens where it landed.
+  const popOut = useCallback(
+    async (groupId?: string, tabId?: string, atCursor = false) => {
+      if (single) return;
+      const s = stateRef.current;
+      const g = findGroup(s.layout, groupId ?? s.focusedId) ?? firstGroup(s.layout);
+      const id = tabId ?? g.active;
+      if (!id) return;
+      const name = noteOf(id);
+      await flushSave(name);
+      try {
+        await api.openNoteWindow(name, isPreviewTab(id), atCursor);
+      } catch (e) {
+        console.error("open in new window failed", name, e);
+        return;
+      }
+      const timers = saveTimers.current;
+      const pending = timers.get(name);
+      if (pending) {
+        clearTimeout(pending);
+        timers.delete(name);
+      }
+      apply((w) => ws.forgetNote(w, name));
+      lastWrite.current.delete(name);
+    },
+    [apply, flushSave, single]
+  );
+
+  // The other direction: this note window's note goes back to the main
+  // window as a tab, and the window closes.
+  const dockBack = useCallback(async () => {
+    const s = stateRef.current;
+    const active = ws.focusedGroup(s).active;
+    if (!active) return;
+    await flushAll();
+    await api
+      .dockNote(noteOf(active), isPreviewTab(active))
+      .catch((e) => console.error("move back failed", e));
+  }, [flushAll]);
+
+  const toggleOnTop = useCallback(() => {
+    setOnTop((v) => {
+      api.setWindowOnTop(!v).catch(() => {});
+      return !v;
+    });
+  }, []);
 
   const closeGroup = useCallback(
     async (groupId: string) => {
@@ -574,12 +774,19 @@ export default function App() {
     [apply]
   );
 
-  // Toggle a pane between editor and markdown preview.
+  // Toggle a pane between editor and markdown preview. A note window tells
+  // Rust which way it is showing, so a relaunch brings it back the same way.
   const toggleMode = useCallback(
     (groupId: string) => {
-      apply((w) => ws.toggleMode(w, groupId));
+      const after = apply((w) => ws.toggleMode(w, groupId));
+      if (single) {
+        const g = findGroup(after.layout, groupId);
+        if (g?.active) {
+          api.setNoteWindowNote(noteOf(g.active), isPreviewTab(g.active)).catch(() => {});
+        }
+      }
     },
-    [apply]
+    [apply, single]
   );
 
   // Open a live preview of the active note in a new pane to the right, leaving
@@ -660,13 +867,22 @@ export default function App() {
 
   // Open a note in the focused group — or a given one — loading it if not
   // already a buffer.
+  // `force` skips the look around other windows — for a note handed over by
+  // one of them, which may still be listed there while it closes.
   const openNote = useCallback(
-    async (name: string, groupId?: string, index?: number) => {
+    async (name: string, groupId?: string, index?: number, force = false) => {
+      if (single) {
+        await replaceNote(name);
+        return;
+      }
       const s = stateRef.current;
       const gid = groupId && findGroup(s.layout, groupId) ? groupId : s.focusedId;
       const loaded = s.buffers.find((b) => b.name === name);
       let buffer = loaded;
       if (!buffer) {
+        // One note, one window: if a note window shows it, that window comes
+        // forward and nothing opens here.
+        if (!force && (await api.focusNote(name).catch(() => false))) return;
         try {
           const text = await readText(name);
           buffer = { name, content: text, disk: text, dirty: false };
@@ -677,8 +893,62 @@ export default function App() {
       }
       apply((w) => ws.openNoteAt(w, gid, buffer!, index));
     },
-    [apply]
+    [apply, single, replaceNote]
   );
+
+  // A note window is parked when closed and reused for the next note — the
+  // webview lives on, so what it showed must be let go of, and later taken
+  // up again with whatever note comes next (windows.rs explains why).
+  useEffect(() => {
+    if (!single) return;
+    const p1 = thisWindow.listen("parker://parked", () => {
+      const timers = saveTimers.current;
+      for (const id of timers.values()) clearTimeout(id);
+      timers.clear();
+      lastWrite.current.clear();
+      apply((w) => {
+        let next = w;
+        for (const b of w.buffers) next = ws.forgetNote(next, b.name);
+        return next;
+      });
+    });
+    const p2 = thisWindow.listen<{ name: string; preview: boolean; onTop: boolean }>("parker://show-note",
+      async (e) => {
+        setOnTop(e.payload.onTop);
+        await replaceNote(e.payload.name);
+        const g = ws.focusedGroup(stateRef.current);
+        if (g.active && isPreviewTab(g.active) !== e.payload.preview) toggleMode(g.id);
+      }
+    );
+    return () => {
+      p1.then((un) => un());
+      p2.then((un) => un());
+    };
+  }, [single, apply, replaceNote, toggleMode]);
+
+  // Another window handed a note over, or asks for one this window has.
+  useEffect(() => {
+    const p1 = thisWindow.listen<{ name: string; preview: boolean }>("parker://open-note", async (e) => {
+      if (single) return;
+      await openNote(e.payload.name, undefined, undefined, true);
+      // It came back as it left: a preview stays a preview.
+      if (e.payload.preview) {
+        const s = stateRef.current;
+        const g = ws.focusedGroup(s);
+        if (g.active === e.payload.name) apply((w) => ws.toggleMode(w, g.id));
+      }
+    });
+    const p2 = thisWindow.listen<string>("parker://focus-note", (e) => {
+      const s = stateRef.current;
+      if (s.buffers.some((b) => b.name === e.payload)) openNote(e.payload);
+    });
+    const p3 = thisWindow.listen("parker://pop-out", () => popOut());
+    return () => {
+      p1.then((un) => un());
+      p2.then((un) => un());
+      p3.then((un) => un());
+    };
+  }, [single, openNote, popOut, apply]);
 
   const openPicker = useCallback(() => setPickerOpen(true), []);
 
@@ -690,7 +960,7 @@ export default function App() {
   // the session to be restored, since the file goes into the focused pane
   // and until then there isn't one.
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || single) return;
     let alive = true;
     const drain = async () => {
       if (!alive) return;
@@ -724,7 +994,7 @@ export default function App() {
       alive = false;
       p.then((un) => un());
     };
-  }, [ready, openNote]);
+  }, [ready, single, openNote]);
 
   // A note was moved to Trash from the picker: drop its buffer, cancel any
   // pending autosave (so it isn't recreated), and remove it from every pane.
@@ -780,16 +1050,23 @@ export default function App() {
       const k = e.key.toLowerCase();
       const fid = stateRef.current.focusedId;
 
+      // A note window has one tab and one pane: nothing to split, merge,
+      // reorder or cycle through. Those keys fall through to the editor.
+      const paneKeys = !single;
+
       if (k === ",") {
         e.preventDefault();
         setSettingsOpen((v) => !v);
+      } else if (k === "n" && e.shiftKey) {
+        e.preventDefault();
+        popOut(fid); // ⌘⇧N — the note in front, in a window of its own
       } else if (e.code === "Slash" && e.shiftKey) {
         // ⌘? — the Mac's own key for help. ⌘K used to be this; it is the
         // editor's now, for links (lib/format.ts). The menu item carries the
         // same accelerator for the record; this handler is what answers it.
         e.preventDefault();
         api.openHelp();
-      } else if (e.code === "Backslash" && !e.shiftKey) {
+      } else if (paneKeys && e.code === "Backslash" && !e.shiftKey) {
         // ⌃⌘\ split right, ⌃⌥⌘\ split down (matched by physical key so the
         // Option char doesn't matter). Ctrl isn't required — plain ⌘\ still
         // works — but it's the documented form because 1Password grabs ⌘\
@@ -798,6 +1075,7 @@ export default function App() {
         e.preventDefault();
         splitFocused(fid, e.altKey ? "col" : "row");
       } else if (
+        paneKeys &&
         e.ctrlKey &&
         (e.code === "BracketLeft" || e.code === "BracketRight")
       ) {
@@ -806,10 +1084,10 @@ export default function App() {
         const dir = e.code === "BracketRight" ? 1 : -1;
         if (e.altKey) focusPaneByOffset(dir);
         else moveTab(dir);
-      } else if (k === "m" && e.shiftKey) {
+      } else if (paneKeys && k === "m" && e.shiftKey) {
         e.preventDefault();
         mergeIntoParent(fid); // ⌘⇧M — merge this pane into its neighbor
-      } else if (k === "v" && e.shiftKey) {
+      } else if (paneKeys && k === "v" && e.shiftKey) {
         e.preventDefault();
         previewToSide(fid); // ⌘⇧V — markdown preview to the side
       } else if (k === "d" && e.shiftKey) {
@@ -846,13 +1124,13 @@ export default function App() {
         e.preventDefault();
         const g = findGroup(stateRef.current.layout, fid);
         if (g?.active) flushSave(noteOf(g.active));
-      } else if (e.shiftKey && (k === "]" || k === "}")) {
+      } else if (paneKeys && e.shiftKey && (k === "]" || k === "}")) {
         e.preventDefault();
         switchByOffset(1); // ⌘⇧] next tab (Safari/Chrome style)
-      } else if (e.shiftKey && (k === "[" || k === "{")) {
+      } else if (paneKeys && e.shiftKey && (k === "[" || k === "{")) {
         e.preventDefault();
         switchByOffset(-1); // ⌘⇧[ previous tab
-      } else if (k >= "1" && k <= "9") {
+      } else if (paneKeys && k >= "1" && k <= "9") {
         e.preventDefault();
         switchToIndex(Number(k) - 1);
       }
@@ -874,6 +1152,8 @@ export default function App() {
     startRename,
     openPicker,
     cycleTheme,
+    popOut,
+    single,
   ]);
 
   // Measure keydown → painted frame for real typing, all the time: the cost
@@ -922,6 +1202,7 @@ export default function App() {
   // — which is where the flag is cleared on a successful drop. Leaving the
   // window clears it too; there is no dragend for a drag the OS started.
   useEffect(() => {
+    if (single) return;
     const isFile = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
     const enter = (e: DragEvent) => {
       if (isFile(e)) setFileDragging(true);
@@ -938,7 +1219,7 @@ export default function App() {
       window.removeEventListener("dragenter", enter);
       window.removeEventListener("dragleave", leave);
     };
-  }, []);
+  }, [single]);
 
   // Track Option so the pane buttons can flip to "merge" while it's held.
   useEffect(() => {
@@ -961,6 +1242,12 @@ export default function App() {
     win
       .onCloseRequested(async (e) => {
         e.preventDefault();
+        // The main window hides — Parker lives on in the tray. A note window
+        // closes for good: the note is on disk and a ⌘O away.
+        if (single) {
+          await closeWindow();
+          return;
+        }
         try {
           await flushAll();
         } finally {
@@ -975,10 +1262,10 @@ export default function App() {
       disposed = true;
       unlisten?.();
     };
-  }, [flushAll]);
+  }, [flushAll, single, closeWindow]);
 
   useEffect(() => {
-    const p = listen("parker://quit", async () => {
+    const p = thisWindow.listen("parker://quit", async () => {
       try {
         await flushAll();
       } finally {
@@ -993,7 +1280,7 @@ export default function App() {
   // A quit the user asked for gets a question first. The silent path above is
   // still the one that actually leaves — this only decides whether to take it.
   useEffect(() => {
-    const p = listen("parker://confirm-quit", () => setQuitAsk(true));
+    const p = thisWindow.listen("parker://confirm-quit", () => setQuitAsk(true));
     return () => {
       p.then((un) => un());
     };
@@ -1143,7 +1430,14 @@ export default function App() {
     onReveal: (name) => api.revealFile(name).catch((e) => console.error("reveal failed", e)),
     onResize,
     onEqualize,
+    onPopOut: popOut,
+    onDragOut: async (groupId, id) => {
+      if (await api.pointerOutsideWindow().catch(() => false)) popOut(groupId, id, true);
+    },
   };
+  const noteWindowControls = single
+    ? { onTop, onToggleTop: toggleOnTop, onDockBack: dockBack }
+    : undefined;
 
   return (
     <div className={"parker" + (ligaturesOn ? " ligatures" : "")}>
@@ -1226,6 +1520,7 @@ export default function App() {
           altHeld={altHeld}
           dragging={tabDragging}
           fileDragging={fileDragging}
+          noteWindow={noteWindowControls}
           h={handlers}
         />
       </div>
@@ -1245,12 +1540,18 @@ export default function App() {
             {reloaded.length} {reloaded.length === 1 ? "note" : "notes"} reloaded
           </span>
         )}
-        <GitMenu onBeforeCommit={flushAll} />
+        {/* Git is the folder's, not a window's: one menu, one sync timer, in
+            the main window. */}
+        {!single && <GitMenu onBeforeCommit={flushAll} />}
         <span className="status-spacer" />
         <span className="status-count">{statusCounts}</span>
-        <span className="status-dir" title={notesDir}>
-          {prettyPath(notesDir, homeDir)}
-        </span>
+        {single ? (
+          onTop && <span className="status-dir">On top</span>
+        ) : (
+          <span className="status-dir" title={notesDir}>
+            {prettyPath(notesDir, homeDir)}
+          </span>
+        )}
         <button
           className="status-help"
           onClick={() => api.openHelp()}

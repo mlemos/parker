@@ -55,6 +55,7 @@ const APP: Section[] = [
       ["Focus previous / next pane", ["⌃⌥⌘[", "⌃⌥⌘]"]],
       ["Merge pane into neighbor", ["⌘⇧M"]],
       ["Markdown preview to the side", ["⌘⇧V"]],
+      ["Open the note in its own window", ["⌘⇧N"]],
     ],
   },
   {

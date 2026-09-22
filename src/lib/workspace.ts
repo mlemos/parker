@@ -531,8 +531,9 @@ export function forgetNote(ws: Workspace, name: string): Workspace {
     if (!g.tabs.some((t) => noteOf(t) === name)) continue;
     const idx = g.tabs.findIndex((t) => noteOf(t) === name);
     const remaining = g.tabs.filter((t) => noteOf(t) !== name);
+    // The tab in front may be the note's preview: the note is what is gone.
     const active =
-      g.active === name
+      g.active && noteOf(g.active) === name
         ? remaining[Math.min(idx, remaining.length - 1)] ?? null
         : g.active;
     layout = updateGroup(layout, g.id, { tabs: remaining, active });

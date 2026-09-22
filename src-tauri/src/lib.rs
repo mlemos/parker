@@ -18,6 +18,7 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 
 mod external;
+mod windows;
 #[cfg(target_os = "macos")]
 mod filedrop;
 mod monitor;
@@ -43,6 +44,11 @@ struct Session {
     /// Focused group id within the layout.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     focused: Option<String>,
+    /// Note windows — one note each, with its frame. windows.rs owns this
+    /// part: the main window's save fills it in, a note window moving or
+    /// closing rewrites it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    windows: Vec<windows::NoteWindowSession>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -443,12 +449,14 @@ async fn write_note(name: String, content: String) -> Result<(), String> {
 
 /// Move a note to the OS Trash (recoverable), never a hard unlink.
 #[tauri::command]
-fn delete_note(name: String) -> Result<(), String> {
+fn delete_note(app: tauri::AppHandle, name: String) -> Result<(), String> {
     let path = safe_note_path(&name)?;
-    if !path.exists() {
-        return Ok(()); // already gone — treat as success
+    if path.exists() {
+        trash::delete(&path).map_err(|e| format!("couldn't move to Trash: {e}"))?;
     }
-    trash::delete(&path).map_err(|e| format!("couldn't move to Trash: {e}"))
+    // A window showing a note that is gone has nothing left to show.
+    windows::note_deleted(&app, &name);
+    Ok(())
 }
 
 /// The extension a new note gets: alphanumerics only, "md" when nothing
@@ -484,7 +492,7 @@ fn create_note(ext: Option<String>) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn rename_note(from: String, to: String) -> Result<(), String> {
+fn rename_note(app: tauri::AppHandle, from: String, to: String) -> Result<(), String> {
     let from_path = safe_note_path(&from)?;
     let to_path = safe_note_path(&to)?;
     if to_path.exists() {
@@ -494,7 +502,9 @@ fn rename_note(from: String, to: String) -> Result<(), String> {
     if let Some(parent) = to_path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    fs::rename(&from_path, &to_path).map_err(|e| e.to_string())
+    fs::rename(&from_path, &to_path).map_err(|e| e.to_string())?;
+    windows::note_renamed(&app, &from, &to);
+    Ok(())
 }
 
 fn read_session() -> Session {
@@ -517,9 +527,16 @@ fn load_session(app: tauri::AppHandle) -> Session {
     session
 }
 
+/// The main window's session, as the frontend knows it. The note windows are
+/// this side's to remember — they are filled in here, not sent.
 #[tauri::command]
-fn save_session(session: Session) -> Result<(), String> {
-    let json = serde_json::to_string_pretty(&session).map_err(|e| e.to_string())?;
+fn save_session(app: tauri::AppHandle, mut session: Session) -> Result<(), String> {
+    windows::on_main_session_save(&app, &mut session);
+    write_session(&session)
+}
+
+fn write_session(session: &Session) -> Result<(), String> {
+    let json = serde_json::to_string_pretty(session).map_err(|e| e.to_string())?;
     let path = session_path();
     let tmp = path.with_extension("json.tmp");
     fs::write(&tmp, json).map_err(|e| e.to_string())?;
@@ -588,20 +605,47 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
 /// The editor toggles, all three at once — the frontend owns the live values
 /// and writes them whenever one flips, so a partial update has nothing to add.
 #[tauri::command]
-fn set_editor_prefs(gutter: bool, wrap: bool, ligatures: bool, width: u32) -> Result<(), String> {
+fn set_editor_prefs(
+    app: tauri::AppHandle,
+    gutter: bool,
+    wrap: bool,
+    ligatures: bool,
+    width: u32,
+) -> Result<(), String> {
     let mut s = load_settings();
     s.editor_gutter = gutter;
     s.editor_wrap = wrap;
     s.editor_ligatures = ligatures;
     s.editor_width = width;
-    write_settings(&s)
+    write_settings(&s)?;
+    broadcast_prefs(&app, &s);
+    Ok(())
 }
 
 #[tauri::command]
-fn set_preview_sync(enabled: bool) -> Result<(), String> {
+fn set_preview_sync(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     let mut s = load_settings();
     s.preview_sync = enabled;
-    write_settings(&s)
+    write_settings(&s)?;
+    broadcast_prefs(&app, &s);
+    Ok(())
+}
+
+/// The editor toggles are one setting for the whole app, and every window
+/// shows them: a flip in one window is told to all of them, the flipper
+/// included (it already holds the value; a second set is nothing).
+fn broadcast_prefs(app: &tauri::AppHandle, s: &Settings) {
+    use tauri::Emitter;
+    let _ = app.emit(
+        "parker://prefs",
+        serde_json::json!({
+            "editor_gutter": s.editor_gutter,
+            "editor_wrap": s.editor_wrap,
+            "editor_ligatures": s.editor_ligatures,
+            "editor_width": s.editor_width,
+            "preview_sync": s.preview_sync,
+        }),
+    );
 }
 
 #[tauri::command]
@@ -629,12 +673,12 @@ fn set_zoom(app: tauri::AppHandle, scale: f64) -> Result<f64, String> {
 /// Push a zoom factor to every window Parker owns, so About and the shortcut
 /// sheet don't sit at 100% next to a zoomed editor.
 fn apply_zoom<R: tauri::Runtime>(app: &tauri::AppHandle<R>, scale: f64) {
-    use tauri::Manager;
-    for label in ["main", "about", "help"] {
-        if let Some(w) = app.get_webview_window(label) {
-            let _ = w.set_zoom(scale);
-        }
+    use tauri::{Emitter, Manager};
+    for w in app.webview_windows().values() {
+        let _ = w.set_zoom(scale);
     }
+    // Every editor window keeps the current rung for its own ⌘= / ⌘-.
+    let _ = app.emit("parker://zoom", scale);
 }
 
 /// Minutes between timed syncs; 0 turns the timer off. The timer itself lives
@@ -1183,14 +1227,23 @@ fn set_notes_dir(
     // Point the file watcher at the new folder (no restart needed).
     #[cfg(desktop)]
     rewatch_notes(&app);
+    // Note windows name their notes relative to the old folder.
+    windows::close_all(&app);
 
     Ok(notes_dir().to_string_lossy().into_owned())
 }
 
-/// Flush is done on the frontend before this fires. If auto-sync is on and the
-/// notes folder is a git repo, commit & push before exiting (best-effort).
+/// A window has flushed and is ready to go. With several editor windows the
+/// process leaves only when the last of them has said so — windows.rs keeps
+/// the count.
 #[tauri::command]
-async fn quit(app: tauri::AppHandle) {
+async fn quit(app: tauri::AppHandle, window: tauri::Window) {
+    windows::window_flushed(&app, window.label());
+}
+
+/// Every window has flushed. If auto-sync is on and the notes folder is a git
+/// repo, commit & push before exiting (best-effort).
+pub(crate) fn finish_quit(app: &tauri::AppHandle) {
     if load_settings().git_auto_sync {
         auto_commit_push();
     }
@@ -1230,18 +1283,12 @@ fn follow_active_space<R: tauri::Runtime>(window: &tauri::WebviewWindow<R>) {
     }
 }
 
-/// Bring the main window to the front (showing it if hidden). Re-asserts the
-/// "move to active Space" behavior right before showing so summon always lands
-/// on the current desktop.
-pub(crate) fn show_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
-    use tauri::Manager;
-    if let Some(w) = app.get_webview_window("main") {
-        #[cfg(target_os = "macos")]
-        follow_active_space(&w);
-        let _ = w.show();
-        let _ = w.unminimize();
-        let _ = w.set_focus();
-    }
+/// Summon Parker: the window the user was last in comes to the front (shown
+/// if hidden), and whatever the last dismiss hid comes back with it. Re-asserts
+/// the "move to active Space" behavior right before showing so summon always
+/// lands on the current desktop.
+pub(crate) fn show_window(app: &tauri::AppHandle) {
+    windows::summon(app);
 }
 
 /// Open (or focus) the standalone About window — a small, fixed-size window
@@ -1317,46 +1364,24 @@ fn open_help(app: tauri::AppHandle) {
     show_help_window(&app);
 }
 
-/// Toggle: if the window is visible and focused, hide it; otherwise summon it.
-fn toggle_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
-    use tauri::Manager;
-    if let Some(w) = app.get_webview_window("main") {
-        let visible = w.is_visible().unwrap_or(false);
-        let focused = w.is_focused().unwrap_or(false);
-        if visible && focused {
-            let _ = w.hide();
-        } else {
-            show_window(app);
-        }
+/// Toggle: if Parker is in front, hide every window; otherwise summon.
+fn toggle_window(app: &tauri::AppHandle) {
+    if windows::is_front(app) {
+        windows::dismiss(app);
+    } else {
+        show_window(app);
     }
 }
 
-/// Ask the frontend to flush and then quit. If there's no window to flush
+/// Ask every window to flush and then quit. If there's no window to flush
 /// through, exit immediately.
 ///
 /// `confirm` marks a quit the *user* asked for (⌘Q, the menu, the tray): the
-/// frontend puts up a confirmation first. Every other path — a quit Parker
-/// itself decided on, or one the system imposes at logout/reboot — flushes and
-/// goes, because there is nobody there to answer a dialog.
-fn request_quit<R: tauri::Runtime>(app: &tauri::AppHandle<R>, confirm: bool) {
-    use tauri::{Emitter, Manager};
-    if let Some(w) = app.get_webview_window("main") {
-        // A quit request with the window hidden would pop a dialog nobody can
-        // see — show the window first so the question is answerable.
-        if confirm && !w.is_visible().unwrap_or(false) {
-            show_window(app);
-        }
-        let _ = w.emit(
-            if confirm {
-                "parker://confirm-quit"
-            } else {
-                "parker://quit"
-            },
-            (),
-        );
-    } else {
-        app.exit(0);
-    }
+/// window they are in puts up a confirmation first. Every other path — a quit
+/// Parker itself decided on, or one the system imposes at logout/reboot —
+/// flushes and goes, because there is nobody there to answer a dialog.
+fn request_quit(app: &tauri::AppHandle, confirm: bool) {
+    windows::request_quit(app, confirm);
 }
 
 
@@ -1414,7 +1439,16 @@ fn build_menu<R: tauri::Runtime>(
     let open_file = MenuItemBuilder::with_id("open_file", "Open File…")
         .accelerator("CmdOrCtrl+Shift+O")
         .build(handle)?;
-    let file_menu = SubmenuBuilder::new(handle, "File").item(&open_file).build()?;
+    // The note in front moves to a window of its own. The webview answers the
+    // key itself; the item is where the shortcut is discovered.
+    let pop_out = MenuItemBuilder::with_id("pop_out", "Open in New Window")
+        .accelerator("CmdOrCtrl+Shift+N")
+        .build(handle)?;
+    let file_menu = SubmenuBuilder::new(handle, "File")
+        .item(&open_file)
+        .separator()
+        .item(&pop_out)
+        .build()?;
 
     MenuBuilder::new(handle)
         .items(&[&app_menu, &file_menu, &edit_menu])
@@ -1422,7 +1456,7 @@ fn build_menu<R: tauri::Runtime>(
 }
 
 #[cfg(desktop)]
-fn build_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
+fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     use tauri::menu::{MenuBuilder, MenuItemBuilder};
     use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
     use tauri::Emitter;
@@ -1546,7 +1580,8 @@ pub fn run() {
         // here rather than in setup: on macOS a double-clicked file arrives
         // as an Opened event while the app is still launching, before setup
         // has run, and looking the state up then must not find it missing.
-        .manage(external::ExternalState::default());
+        .manage(external::ExternalState::default())
+        .manage(windows::WindowState::default());
 
     #[cfg(desktop)]
     let builder = builder
@@ -1571,41 +1606,15 @@ pub fn run() {
     builder
         .setup(|app| {
             // Build the main window in code (not via config) so we can center
-            // the macOS traffic lights inside our 40px custom title bar.
-            {
-                use tauri::{WebviewUrl, WebviewWindowBuilder};
-                #[allow(unused_mut)]
-                let mut b = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-                    .title(variant::TITLE)
-                    .inner_size(900.0, 700.0)
-                    .min_inner_size(480.0, 360.0)
-                    // Let HTML5 drag-and-drop work (tab reordering). Otherwise
-                    // the webview swallows drag events for OS file-drop, which
-                    // Parker doesn't use.
-                    .disable_drag_drop_handler();
-                #[cfg(target_os = "macos")]
-                {
-                    b = b
-                        .title_bar_style(tauri::TitleBarStyle::Overlay)
-                        .hidden_title(true)
-                        .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
-                }
-                let win = b.build()?;
-                // Restore the saved zoom before anything is painted, so the
-                // window doesn't flash at 100% on every launch.
-                let _ = win.set_zoom(saved_zoom());
-                // Follow the user across Spaces: summon brings Parker to the
-                // *current* desktop, not the Space it was created on.
-                #[cfg(target_os = "macos")]
-                follow_active_space(&win);
-                // A file dropped on the window opens like a double-click —
-                // filedrop.rs explains why this can't be Tauri's own handler.
-                #[cfg(target_os = "macos")]
-                {
-                    let handle = app.handle().clone();
-                    let _ = win.with_webview(move |wv| filedrop::install(&handle, wv.inner()));
-                }
-            }
+            // the macOS traffic lights inside our 40px custom title bar. The
+            // same factory builds the note windows — windows.rs.
+            windows::build_editor_window(
+                app.handle(),
+                "main",
+                tauri::WebviewUrl::default(),
+                (900.0, 700.0),
+                None,
+            )?;
 
             #[cfg(desktop)]
             {
@@ -1632,8 +1641,15 @@ pub fn run() {
                 // One perf sample a minute into perf.jsonl, so slow memory
                 // growth is diagnosable after the fact (⌘⇧D shows it live).
                 monitor::start_sampler();
+
+                // The note windows of the last session, above the main one.
+                windows::restore(app.handle(), &read_session().windows);
             }
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            use tauri::Manager;
+            windows::on_window_event(window.app_handle(), window.label(), event);
         })
         .on_menu_event(|app, event| match event.id().as_ref() {
             // Real quit — flush on the frontend, then exit.
@@ -1646,6 +1662,12 @@ pub fn run() {
             "help" => show_help_window(app),
             #[cfg(desktop)]
             "open_file" => external::open_dialog(app),
+            "pop_out" => {
+                use tauri::{Emitter, EventTarget};
+                if let Some(w) = windows::focus_target(app) {
+                    let _ = app.emit_to(EventTarget::labeled(w.label()), "parker://pop-out", ());
+                }
+            }
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
@@ -1684,6 +1706,13 @@ pub fn run() {
             external::close_file,
             external::take_opened_files,
             external::reveal_file,
+            windows::open_note_window,
+            windows::set_note_window_note,
+            windows::set_window_on_top,
+            windows::focus_note,
+            windows::dock_note,
+            windows::close_note_window,
+            windows::pointer_outside_window,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

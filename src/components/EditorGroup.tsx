@@ -10,6 +10,9 @@ import {
   Columns2,
   X,
   Plus,
+  Pin,
+  PictureInPicture2,
+  ArrowLeftToLine,
 } from "lucide-react";
 import { languageForName } from "../lib/lang";
 import { tabStatus } from "../lib/workspace";
@@ -23,6 +26,7 @@ import { Editor } from "./Editor";
 import { RenameInput } from "./RenameInput";
 import { MarkdownPreview } from "./MarkdownPreview";
 import type { TextWidth } from "../lib/text-width";
+import type { NoteWindowControls } from "./LayoutView";
 
 const TAB_MIME = "application/x-parker-tab";
 
@@ -47,6 +51,8 @@ export interface GroupCallbacks {
   onCloseGroup: () => void;
   onResolveConflict: (name: string, take: "disk" | "mine") => void;
   onReveal: (name: string) => void;
+  onPopOut: () => void;
+  onDragOut: (id: string) => void;
 }
 
 export function EditorGroup({
@@ -64,6 +70,7 @@ export function EditorGroup({
   previewSync,
   renamingName,
   homeDir,
+  noteWindow,
   cb,
 }: {
   group: Group;
@@ -80,8 +87,14 @@ export function EditorGroup({
   previewSync: boolean; // the preview follows the editor
   renamingName: string | null;
   homeDir: string; // for showing an outside file's path as ~/…
+  /** Set when this is the one pane of a note window: no new tab, no split,
+   *  no drag — and the pane's buttons are the window's. */
+  noteWindow?: NoteWindowControls;
   cb: GroupCallbacks;
 }) {
+  // In a note window a tab stays where it is: there is nowhere in the window
+  // to drag it to, and a drop from another window is not a thing yet.
+  const single = !!noteWindow;
   const [langExt, setLangExt] = useState<Extension[]>([]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -230,7 +243,7 @@ export function EditorGroup({
                     ? " drag-over"
                     : "")
                 }
-                draggable
+                draggable={!single}
                 onClick={() => cb.onSelectTab(id)}
                 onDoubleClick={() => cb.onStartRename(name)}
                 onDragStart={(e) => {
@@ -265,10 +278,17 @@ export function EditorGroup({
                   setDragIndex(null);
                   setOverIndex(null);
                 }}
-                onDragEnd={() => {
+                onDragEnd={(e) => {
                   setDragIndex(null);
                   setOverIndex(null);
                   cb.onTabDragEnd();
+                  // Let go of outside the window: nothing in here took the
+                  // drop. Whether the pointer ended beyond the window is
+                  // asked of the native side — the note gets a window of
+                  // its own, there.
+                  if (!single && e.dataTransfer.dropEffect === "none") {
+                    cb.onDragOut(id);
+                  }
                 }}
                 title={
                   preview
@@ -295,21 +315,62 @@ export function EditorGroup({
                     e.stopPropagation();
                     cb.onCloseTab(id);
                   }}
-                  title="Close (Cmd+W)"
+                  title={single ? "Close window (Cmd+W)" : "Close (Cmd+W)"}
                 >
                   <X size={12} strokeWidth={2} />
                 </span>
               </button>
             );
           })}
-          <button
-            className="tab-new"
-            onClick={cb.onNewTab}
-            title="New note (Cmd+T)"
-          >
-            <Plus size={14} strokeWidth={2} />
-          </button>
+          {!single && (
+            <button
+              className="tab-new"
+              onClick={cb.onNewTab}
+              title="New note (Cmd+T)"
+            >
+              <Plus size={14} strokeWidth={2} />
+            </button>
+          )}
         </div>
+        {single ? (
+          /* The pane is the window: its buttons are the window's — preview in
+             place, pin above the other windows, and the way back to the main
+             window. */
+          <div className="group-actions">
+            {isMd && (
+              <button
+                className={"group-btn" + (showPreview ? " on" : "")}
+                onClick={cb.onToggleMode}
+                title="Markdown preview"
+                aria-label="Preview"
+                aria-pressed={showPreview}
+              >
+                <Eye size={15} strokeWidth={1.8} />
+              </button>
+            )}
+            <button
+              className={"group-btn" + (noteWindow!.onTop ? " on" : "")}
+              onClick={noteWindow!.onToggleTop}
+              title={
+                noteWindow!.onTop
+                  ? "Pinned above other windows — click to unpin"
+                  : "Keep on top of other windows"
+              }
+              aria-label="Keep on top"
+              aria-pressed={noteWindow!.onTop}
+            >
+              <Pin size={15} strokeWidth={1.8} />
+            </button>
+            <button
+              className="group-btn"
+              onClick={noteWindow!.onDockBack}
+              title="Move back to the main window"
+              aria-label="Move back to the main window"
+            >
+              <ArrowLeftToLine size={15} strokeWidth={1.8} />
+            </button>
+          </div>
+        ) : (
         <div className="group-actions">
           {/* Single preview control: click toggles in place, ⌥-click (or the
               button while ⌥ is held) opens the preview side by side. */}
@@ -331,6 +392,17 @@ export function EditorGroup({
               ) : (
                 <Eye size={15} strokeWidth={1.8} />
               )}
+            </button>
+          )}
+          {/* The note in front moves to a window of its own. */}
+          {activeBuf && (
+            <button
+              className="group-btn"
+              onClick={cb.onPopOut}
+              title="Open in new window (Cmd+Shift+N)"
+              aria-label="Open in new window"
+            >
+              <PictureInPicture2 size={15} strokeWidth={1.8} />
             </button>
           )}
           {/* Split — click splits right, ⌥ splits down (icon morphs). */}
@@ -370,6 +442,7 @@ export function EditorGroup({
             </button>
           )}
         </div>
+        )}
       </div>
 
       {outside && (

@@ -1250,6 +1250,10 @@ body.resizing {
   color: var(--text);
   background: color-mix(in srgb, var(--text) 9%, transparent);
 }
+.group-btn.on {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
 
 /* ---- About window ------------------------------------------------------- */
 

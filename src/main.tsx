@@ -9,7 +9,21 @@ import HelpWindow from "./HelpWindow";
 
 // Secondary Tauri windows load index.html?view=… — render the matching
 // standalone view there instead of the full editor.
-const view = new URLSearchParams(window.location.search).get("view");
+const params = new URLSearchParams(window.location.search);
+const view = params.get("view");
+
+// A note window is the editor with its tab strip locked to one note: same
+// App, told which note and — so the first frame is already the right colour —
+// which theme and whether it is pinned above the others.
+const noteWindow =
+  view === "note" && params.get("name")
+    ? {
+        name: params.get("name")!,
+        theme: params.get("theme") || null,
+        onTop: params.get("top") === "1",
+        preview: params.get("preview") === "1",
+      }
+    : undefined;
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -18,7 +32,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     ) : view === "help" ? (
       <HelpWindow />
     ) : (
-      <App />
+      <App noteWindow={noteWindow} />
     )}
   </React.StrictMode>,
 );
