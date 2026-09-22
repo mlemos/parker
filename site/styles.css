@@ -964,8 +964,10 @@ kbd .ki + .ki { margin-left: 0.06em; }
 .todo-row[data-state="done"]   { --c: #4ade80; }
 .todo-row[data-state="fail"]   { --c: #ef4444; }
 .todo-row[data-state="cancel"] { --c: #71717a; }
-/* priority: the empty box's border, yellow → orange → red, as in the app
-   (shared/design-tokens.json → priority); a state other than open drops it */
+/* An open to-do's box wears the priority as its border, as in the app
+   (shared/design-tokens.json → priority): green when none is set, then
+   yellow → orange → red. A state other than open drops it. */
+.todo-row[data-state="todo"] .tglyph { border-color: #4ade80; }
 .todo-row[data-state="todo"][data-priority="1"] .tglyph { border-color: #facc15; }
 .todo-row[data-state="todo"][data-priority="2"] .tglyph { border-color: #fb923c; }
 .todo-row[data-state="todo"][data-priority="3"] .tglyph { border-color: #ef4444; }
