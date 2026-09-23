@@ -437,31 +437,53 @@ h1 {
   .companion-shot { max-width: 180px; }
 }
 
-/* ───────────────────── Hero screenshot (real app) ───────────────────── */
-/* The PNG/WebP is a native window capture with rounded corners + shadow baked
-   into its transparent margins. drop-shadow() follows that alpha, so the glow
-   hugs the real window shape and reads on both black and white backgrounds. */
+/* ───────────────────── Hero video (real app) ───────────────────── */
+/* A region capture of the window: the Mac's rounded corners let the desktop
+   through, so the video is clipped to the same radius: measured on the raw capture,
+   ~38 px of 2480 (1.55% of the width); 1.65% cuts just inside the curve so no
+   wallpaper fringe survives. cqw keeps it exact at any size. The shadow is a
+   box-shadow on the video itself — it follows the radius, and unlike a
+   filter on an ancestor it never makes the browser paint the video black. */
 .hero-shot {
   display: block;
+  position: relative;
   margin: clamp(40px, 8vh, 84px) auto 0;
   max-width: 1000px;
   width: 100%;
-  filter:
-    drop-shadow(0 28px 60px rgba(0, 0, 0, 0.45))
-    drop-shadow(0 0 44px var(--glow));
+  container-type: inline-size;
 }
-.hero-shot img { display: block; width: 100%; height: auto; }
-/* theme-adaptive: dark app shot in dark mode, light app shot in light mode */
-.hero-shot .shot { display: block; }
-.hero-shot .shot--light { display: none; }
-:root[data-theme="light"] .hero-shot .shot--dark { display: none; }
-:root[data-theme="light"] .hero-shot .shot--light { display: block; }
-:root[data-theme="dark"] .hero-shot {
-  /* faint light rim so the dark window separates from the black page */
-  filter:
-    drop-shadow(0 30px 70px rgba(0, 0, 0, 0.6))
-    drop-shadow(0 0 1px rgba(255, 255, 255, 0.14))
-    drop-shadow(0 0 60px var(--glow));
+/* A hairline like the one macOS draws around a window, 1px, laid INSIDE the
+   video's edge: an inset ring on an overlay (an inset box-shadow on the <video>
+   itself would paint under the picture). It covers the outermost pixel row, so
+   any leftover fringe of the capture edge disappears under it. */
+.hero-shot::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 15px;
+  border-radius: calc(1.65cqw - 1px);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.14),
+    0 28px 60px rgba(0, 0, 0, 0.45),
+    0 0 44px var(--glow);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .hero-shot::after {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 30px 70px rgba(0, 0, 0, 0.6),
+    0 0 60px var(--glow);
+}
+/* The video loses its outermost pixel all round (transparent), so the border
+   above sits on a clean edge. clip-path would also clip a shadow on the video,
+   so the drop shadow lives on the overlay, which is exactly the visible shape. */
+.hero-shot .shot-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: transparent;
+  clip-path: inset(1px round 15px);
+  clip-path: inset(1px round calc(1.65cqw - 1px));
 }
 
 /* ───────────────────── Sections ───────────────────── */

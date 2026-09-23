@@ -13,6 +13,44 @@
     });
   }
 
+  /* ---- Hero video: the take in the page's theme ---- */
+  (function () {
+    var video = document.querySelector(".hero-shot .shot-video");
+    if (!video) return;
+    var source = video.querySelector("source");
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var light = window.matchMedia("(prefers-color-scheme: light)");
+    function theme() {
+      return root.getAttribute("data-theme") || (light.matches ? "light" : "dark");
+    }
+    function apply() {
+      var t = theme();
+      // Phones get the 1400-px file: the hero is ~340 px wide there, the 2000-px
+      // one only pays off on a 1000-px hero at 2x.
+      var small = window.matchMedia("(max-width: 767px)").matches;
+      var src = video.getAttribute((small ? "data-small-" : "data-src-") + t);
+      var poster = video.getAttribute("data-poster-" + t);
+      if (poster) video.setAttribute("poster", poster);
+      if (!src || source.getAttribute("src") === src) return;
+      var at = video.currentTime; // the other theme's take, same moment
+      source.setAttribute("src", src);
+      video.load();
+      video.addEventListener("loadedmetadata", function once() {
+        video.removeEventListener("loadedmetadata", once);
+        try { video.currentTime = at; } catch (e) {}
+        if (!reduce) video.play().catch(function () {});
+      });
+    }
+    if (reduce) { video.removeAttribute("autoplay"); video.pause(); }
+    apply();
+    // Browsers pause a silent video in a background tab; pick it up on return.
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden && !reduce && video.paused) video.play().catch(function () {});
+    });
+    new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    light.addEventListener("change", apply);
+  })();
+
   /* ---- Typewriter headline ---- */
   (function () {
     var typer = document.querySelector(".typer");

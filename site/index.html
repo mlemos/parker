@@ -97,17 +97,22 @@
 
       <p class="cta-note reveal">v1.4.0 · macOS 12+ · Apple Silicon · ~10&nbsp;MB</p>
 
-      <!-- ── Real app screenshot (theme-adaptive): editor + live preview + git backup ── -->
+      <!-- ── The hero video (theme-adaptive): one take of the real app, at 2x.
+           script.js swaps the night/day files with the theme; the poster is the
+           take's last frame. Made by private/capture-content/video/. ── -->
       <div class="hero-shot reveal" role="img"
-           aria-label="Parker: a Markdown scratchpad open beside its live preview, with git version history.">
-        <picture class="shot shot--dark">
-          <source srcset="/brand/parker-1.4.0-vercel-night.webp" type="image/webp" />
-          <img src="/brand/parker-1.4.0-vercel-night.png" width="1800" height="1234" decoding="async" alt="" />
-        </picture>
-        <picture class="shot shot--light">
-          <source srcset="/brand/parker-1.4.0-vercel-day.webp" type="image/webp" />
-          <img src="/brand/parker-1.4.0-vercel-day.png" width="1800" height="1234" decoding="async" loading="lazy" alt="" />
-        </picture>
+           aria-label="Parker in motion: a to-do typed into a note, the picker with folders, a Markdown preview that follows the editor, split panes, a note popped out into its own window, and a git commit pushed from the status bar.">
+        <video class="shot-video" autoplay muted loop playsinline preload="metadata"
+               width="2000" height="1388"
+               poster="/brand/parker-1.4.0-hero-night-poster.webp"
+               data-src-dark="/brand/parker-1.4.0-hero-night.mp4"
+               data-src-light="/brand/parker-1.4.0-hero-day.mp4"
+               data-small-dark="/brand/parker-1.4.0-hero-night-small.mp4"
+               data-small-light="/brand/parker-1.4.0-hero-day-small.mp4"
+               data-poster-dark="/brand/parker-1.4.0-hero-night-poster.webp"
+               data-poster-light="/brand/parker-1.4.0-hero-day-poster.webp">
+          <source src="/brand/parker-1.4.0-hero-night.mp4" type="video/mp4" />
+        </video>
       </div>
     </section>
 
