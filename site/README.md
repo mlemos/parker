@@ -15,7 +15,8 @@ ethos (fast, lightweight) and its `Vercel Night` / `Vercel Day` theme palette
 | `styles.css` | Theme tokens (light/dark) + all styling. |
 | `script.js`  | Theme toggle (persisted), scroll-reveal, sticky-nav hairline. |
 | `brand/parker-<version>-<theme>.webp` / `.png` | The hero screenshot, one per theme (`vercel-night`, `vercel-day`), swapped by `<picture>` with the site's own theme. Real window captures — three panes with the git commit menu open. WebP served with PNG fallback. Rename these on a release so the file never claims a version it isn't. |
-| `brand/shots/parker-*.webp` | The screenshots on `/features`, all Vercel Night, all 1400px wide. Named `parker-<what-it-shows>` — the subject, not the version, since a feature shot outlives the release it was taken in. |
+| `brand/shots/parker-<what>-{night,day}.webp` | The stills on `/features` (split, preview-sync, git): window captures with their alpha, 1400px wide, Parker Night and Parker Day; `script.js` swaps them with the page theme. Named by subject, not version. |
+| `brand/clips/parker-<what>-{night,day}{,-small}.mp4` + `-poster.webp` | The feature videos (ai, menubar, editor, notes) and the iPhone teaser (ios). Loaded near the viewport, played while visible, swapped with the theme; `-small` goes to phones. Made by the capture kit (see its video/README.md). |
 | `brand/parker-head.svg` | The head mark (currentColor), driven via CSS mask so it flips ink↔paper with the theme. |
 | `favicon-16/32.png`, `favicon.png` | `pk` monogram favicons (per the brand guide, legible at tiny sizes). |
 | `apple-touch-icon.png` | 180px app icon (head on dark tile). |
