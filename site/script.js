@@ -51,6 +51,66 @@
     light.addEventListener("change", apply);
   })();
 
+  /* ---- Feature media: stills and videos in the page's theme ---- */
+  // img[data-src-dark]: swap the file with the theme. video.theme-video: poster
+  // swaps with the theme; the file loads only near the viewport, plays while at
+  // least a third of it is visible, pauses when it leaves. Phones (< 768 px)
+  // get data-small-* when there is one.
+  (function () {
+    var light = window.matchMedia("(prefers-color-scheme: light)");
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var phone = window.matchMedia("(max-width: 767px)");
+    var theme = function () { return root.getAttribute("data-theme") || (light.matches ? "light" : "dark"); };
+    var imgs = document.querySelectorAll("img[data-src-dark]");
+    var vids = document.querySelectorAll("video.theme-video");
+    function srcFor(v) {
+      var t = theme();
+      return (phone.matches && v.getAttribute("data-small-" + t)) || v.getAttribute("data-src-" + t);
+    }
+    function load(v) {
+      var src = srcFor(v);
+      if (!src || v.getAttribute("src") === src) return;
+      var at = v.currentTime, playing = !v.paused;
+      v.setAttribute("src", src);
+      v.addEventListener("loadedmetadata", function once() {
+        v.removeEventListener("loadedmetadata", once);
+        try { v.currentTime = at; } catch (e) {}
+        if (playing || v._visible) { if (!reduce) v.play().catch(function () {}); }
+      });
+    }
+    function apply() {
+      var t = theme();
+      imgs.forEach(function (i) { var s = i.getAttribute("data-src-" + t); if (s && i.getAttribute("src") !== s) i.setAttribute("src", s); });
+      vids.forEach(function (v) {
+        var p = v.getAttribute("data-poster-" + t); if (p) v.setAttribute("poster", p);
+        if (v._near) load(v);
+      });
+    }
+    if ("IntersectionObserver" in window) {
+      var near = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting && !e.target._near) { e.target._near = true; load(e.target); } });
+      }, { rootMargin: "400px 0px" });
+      var seen = new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          var v = e.target; v._visible = e.isIntersecting;
+          if (e.isIntersecting && !reduce) { if (!v._near) { v._near = true; load(v); } v.play().catch(function () {}); }
+          else v.pause();
+        });
+      }, { threshold: 0.33 });
+      vids.forEach(function (v) { near.observe(v); seen.observe(v); });
+    } else {
+      vids.forEach(function (v) { v._near = true; load(v); if (!reduce) { v.autoplay = true; } });
+    }
+    apply();
+    new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    light.addEventListener("change", apply);
+    // A silent video is paused in a background tab; resume the visible ones on return.
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden || reduce) return;
+      vids.forEach(function (v) { if (v._visible && v.paused) v.play().catch(function () {}); });
+    });
+  })();
+
   /* ---- Typewriter headline ---- */
   (function () {
     var typer = document.querySelector(".typer");

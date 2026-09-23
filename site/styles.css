@@ -891,6 +891,75 @@ kbd .ki + .ki { margin-left: 0.06em; }
 }
 
 
+/* ---------- Feature media (2026-09-22 captures, Night and Day) ---------- */
+/* The one-window videos get the hero's treatment: a region capture of the
+   window, so the Mac's rounded corners let the wallpaper through. Clipped to
+   the window's real radius (~39 px of a 1560-px capture: 2.5% of the width,
+   2.65% to cut just inside the curve), one pixel in, a 1-px hairline inside
+   the edge and the shadow on an overlay (clip-path would clip a shadow on the
+   video itself). */
+.win-video {
+  position: relative;
+  container-type: inline-size;
+}
+.win-video video {
+  display: block;
+  width: 100%;
+  height: auto;
+  clip-path: inset(1px round 12px);
+  clip-path: inset(1px round calc(2.65cqw - 1px));
+}
+.win-video::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 12px;
+  border-radius: calc(2.65cqw - 1px);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.14),
+    0 22px 50px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .win-video::after {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 26px 60px rgba(0, 0, 0, 0.6);
+}
+/* Videos with desktop around the windows (menu bar, AI): a rounded frame. */
+.desk-video {
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.desk-video video { display: block; width: 100%; height: auto; }
+/* Stills are window captures with their alpha: the window's own corners, no
+   box around them; the shadow follows the alpha. */
+.shot-still { margin: 0; }
+.shot-still img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.32));
+}
+:root[data-theme="dark"] .shot-still img {
+  filter: drop-shadow(0 20px 44px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.16));
+}
+.shot-still figcaption {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  padding: 12px 2px 0;
+  text-align: center;
+}
+.showcase.lead .desk-video { max-width: 1000px; margin: 0 auto; }
+.phone .screen video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* ---------- Lead showcase (full-width, centered) ---------- */
 .showcase.lead {
   display: block;
