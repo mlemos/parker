@@ -14,6 +14,10 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 
 const MAX_BYTES = 1_500_000; // largest legitimate asset is the 962 KB .icns
+// The site's videos (the hero and the /features clips) get their own ceiling:
+// the hero is ~3.3 MB, and 5 MB still catches a raw take left behind (50 MB+).
+const MEDIA = /^site\/.*\.mp4$/;
+const MEDIA_MAX_BYTES = 5_000_000;
 
 /** Files that must never be tracked, whatever their content. */
 const FORBIDDEN_PATHS = [
@@ -61,7 +65,7 @@ const ALLOW = [
 ];
 
 /** Files whose content we don't scan (generated, binary, or noisy). */
-const SKIP_CONTENT = /(^|\/)(pnpm-lock\.yaml|Cargo\.lock)$|\.(png|jpg|jpeg|webp|gif|icns|ico|svg|woff2?|pdf)$/;
+const SKIP_CONTENT = /(^|\/)(pnpm-lock\.yaml|Cargo\.lock)$|\.(png|jpg|jpeg|webp|gif|icns|ico|svg|woff2?|pdf|mp4)$/;
 
 const files = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" })
   .split("\0")
@@ -79,14 +83,15 @@ for (const file of files) {
   } catch {
     continue; // deleted but still indexed
   }
-  if (size > MAX_BYTES)
+  const limit = MEDIA.test(file) ? MEDIA_MAX_BYTES : MAX_BYTES;
+  if (size > limit)
     problems.push({
       file,
       line: 0,
-      what: `${Math.round(size / 1024)} KB — over the ${Math.round(MAX_BYTES / 1024)} KB limit; is this a build artifact?`,
+      what: `${Math.round(size / 1024)} KB — over the ${Math.round(limit / 1024)} KB limit; is this a build artifact?`,
     });
 
-  if (SKIP_CONTENT.test(file) || size > MAX_BYTES) continue;
+  if (SKIP_CONTENT.test(file) || size > limit) continue;
 
   let text;
   try {
