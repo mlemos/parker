@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import type { Extension } from "@uiw/react-codemirror";
 import {
   SquareSplitHorizontal,
@@ -22,6 +22,7 @@ import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Group } from "../lib/layout";
 import { isPreviewTab, noteOf } from "../lib/layout";
 import { isMarkdown } from "../lib/markdown";
+import { tabScrollTarget } from "../lib/tab-scroll";
 import { Editor } from "./Editor";
 import { RenameInput } from "./RenameInput";
 import { MarkdownPreview } from "./MarkdownPreview";
@@ -124,6 +125,55 @@ export function EditorGroup({
     };
   }, [activeNote]);
 
+  // The tab in front is always one you can see: the strip scrolls sideways
+  // with no scrollbar, so a tab chosen from the keyboard, the picker or the
+  // Finder could otherwise be in front and out of sight. The first showing
+  // (launch, a new pane) and a resize jump; a change of tab after that glides.
+  const stripRef = useRef<HTMLDivElement>(null);
+  const stripShown = useRef(false);
+  const revealActive = (smooth: boolean) => {
+    const strip = stripRef.current;
+    const tab = strip?.querySelector<HTMLElement>(".tab.active");
+    if (!strip || !tab) return;
+    const s = strip.getBoundingClientRect();
+    const t = tab.getBoundingClientRect();
+    const left = tabScrollTarget(
+      strip.scrollLeft,
+      strip.clientWidth,
+      t.left - s.left + strip.scrollLeft,
+      t.width
+    );
+    if (left === null) return;
+    // A glide runs on animation frames, and a window out of sight gets none:
+    // it would never start. There, and for reduced motion, it jumps.
+    const glide =
+      smooth &&
+      document.visibilityState === "visible" &&
+      !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    strip.scrollTo({ left, behavior: glide ? "smooth" : "auto" });
+  };
+  const revealRef = useRef(revealActive);
+  revealRef.current = revealActive;
+  useEffect(() => {
+    revealActive(stripShown.current);
+    stripShown.current = true;
+  }, [active, group.unselected, group.tabs.length, renamingName]);
+  // A narrower pane (a split, a resized window) can push the tab out too.
+  // Only a change of width counts: the observer also reports on its first
+  // look, and a jump then would cut short the glide above.
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip || typeof ResizeObserver === "undefined") return;
+    let width = strip.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (strip.clientWidth === width) return;
+      width = strip.clientWidth;
+      revealRef.current(false);
+    });
+    ro.observe(strip);
+    return () => ro.disconnect();
+  }, []);
+
   // A drag that began in another group never reaches this group's tab
   // onDragEnd, so the hover state it left here is cleared when the app-wide
   // drag ends instead — otherwise a stale insertion bar would stay behind.
@@ -154,6 +204,7 @@ export function EditorGroup({
     >
       <div className="tabstrip">
         <div
+          ref={stripRef}
           className={
             "tabs" +
             ((dragging || fileDragging) && overIndex === group.tabs.length
