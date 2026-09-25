@@ -7,7 +7,7 @@ import type { AgentsInfo, SettingsBackend } from "./SettingsWindow";
 import type { SettingsInfo } from "./lib/api";
 
 const SETTINGS: SettingsInfo = {
-  notes_dir: "/Users/x/Documents/Parker",
+  notes_dir: "/home/me/Documents/Parker",
   autostart: false,
   shortcut: "Ctrl+Alt+P",
   default_shortcut: "Ctrl+Alt+P",
@@ -29,9 +29,9 @@ function fakeBackend(over: Partial<SettingsBackend> = {}, agents: Partial<Agents
   let themeCb: (id: string) => void = () => {};
   const base = {
     getSettings: vi.fn(async () => ({ ...SETTINGS })),
-    homeDir: vi.fn(async () => "/Users/x"),
+    homeDir: vi.fn(async () => "/home/me"),
     setAutostart: vi.fn(async () => {}),
-    pickNotesDir: vi.fn(async (): Promise<string | null> => "/Users/x/Notes"),
+    pickNotesDir: vi.fn(async (): Promise<string | null> => "/home/me/Notes"),
     setNotesDir: vi.fn(async (p: string) => p),
     setShortcut: vi.fn(async (_accel: string) => {}),
     setGitAutoSync: vi.fn(async () => {}),
@@ -114,7 +114,7 @@ describe("SettingsWindow — General", () => {
     expect(b.pickNotesDir).toHaveBeenCalledOnce();
     expect(b.setNotesDir).not.toHaveBeenCalled();
     await user.click(await screen.findByRole("button", { name: "Move my notes" }));
-    expect(b.setNotesDir).toHaveBeenCalledWith("/Users/x/Notes", true);
+    expect(b.setNotesDir).toHaveBeenCalledWith("/home/me/Notes", true);
     // The README state belongs to the folder, so it is read again.
     await waitFor(() => expect(b.agentsInfo).toHaveBeenCalledTimes(2));
   });
@@ -126,7 +126,7 @@ describe("SettingsWindow — General", () => {
     expect(b.setNotesDir).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Change…" }));
     await user.click(await screen.findByRole("button", { name: "Just switch" }));
-    expect(b.setNotesDir).toHaveBeenCalledWith("/Users/x/Notes", false);
+    expect(b.setNotesDir).toHaveBeenCalledWith("/home/me/Notes", false);
   });
 
   it("asks nothing when the same folder is picked, or the picker is cancelled", async () => {
