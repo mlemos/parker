@@ -326,6 +326,23 @@ export function planMarkerDelete(
 }
 
 /**
+ * ⌘⌫ on a task or a list item: the range to remove, or null for the editor's
+ * own delete-to-line-start. With text before the cursor it goes back to the
+ * start of the text, so the checkbox or bullet stays and the line can be
+ * retyped; with none, it takes the mark, as ⌫ does — indentation kept. Apple
+ * Notes does the same.
+ */
+export function planLineDelete(line: string, col: number): { from: number; to: number } | null {
+  const tag = LINE_TAG.exec(line);
+  const item = tag ? null : LIST_ITEM.exec(line);
+  if (!tag && !item) return null;
+  const text = tag ? tag[0].length + (line[tag[0].length] === " " ? 1 : 0) : item![0].length;
+  if (col > text) return { from: text, to: col };
+  if (col === text) return planMarkerDelete(line, col, true);
+  return null;
+}
+
+/**
  * "!" typed at the start of a task's text raises its priority instead of
  * becoming text: the column where the "!" goes (the end of the tag, with the
  * bangs), or null to type it as usual. Up to !!!; one more is ordinary text.

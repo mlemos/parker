@@ -12,6 +12,7 @@ import {
   planBang,
   planEnter,
   planMarkerDelete,
+  planLineDelete,
   planRotate,
   priorityOf,
   planPriority,
@@ -334,5 +335,24 @@ describe("planBang", () => {
   it("works on any state and under indentation", () => {
     expect(planBang("/DOING x", 7)).toBe(6);
     expect(planBang("  /WAIT x", 8)).toBe(7);
+  });
+});
+
+describe("planLineDelete", () => {
+  it("deletes a task's text back to the checkbox", () => {
+    expect(planLineDelete("/TODO buy milk", 14)).toEqual({ from: 6, to: 14 });
+    expect(planLineDelete("  /TODO!!! buy", 14)).toEqual({ from: 11, to: 14 });
+  });
+  it("takes the checkbox once the text is gone, keeping the indentation", () => {
+    expect(planLineDelete("  /TODO ", 8)).toEqual({ from: 2, to: 8 });
+  });
+  it("does the same for a list item", () => {
+    expect(planLineDelete("- buy milk", 10)).toEqual({ from: 2, to: 10 });
+    expect(planLineDelete("  1. x", 6)).toEqual({ from: 5, to: 6 });
+    expect(planLineDelete("  - ", 4)).toEqual({ from: 2, to: 4 });
+  });
+  it("leaves a cursor inside the mark, and plain text, to the editor", () => {
+    expect(planLineDelete("/TODO buy", 3)).toBeNull();
+    expect(planLineDelete("buy milk", 8)).toBeNull();
   });
 });
