@@ -19,7 +19,7 @@ describe("the line map in the rendered HTML", () => {
 
   it("gives a to-do entry its line, and its nested lines theirs", () => {
     const html = renderMarkdown("intro\n\n/TODO buy milk\n  - oat\n  - whole\n");
-    expect(lines(html)).toEqual(["p:1", "div:3", "ul:4", "li:4", "li:5"]);
+    expect(lines(html)).toEqual(["p:1", "ul:3", "li:3", "ul:4", "li:4", "li:5"]);
   });
 
   it("does not touch inline content or closing tags", () => {
