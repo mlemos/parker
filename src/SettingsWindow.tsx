@@ -379,11 +379,11 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
               <section className="setwin-card">
                 <div className="settings-title">Claude app — desktop, Cowork, claude.ai</div>
                 <div className="settings-sub">
-                  The Claude app keeps skills in your account. Save the skill as a .zip, then in Claude open <b>Customize › Skills</b>, click <b>+</b>, and choose the file.
+                  The Claude app keeps skills in your account. Save the skill as a .zip, then in Claude open <b>Customize › Skills</b>, click <b>+</b>, choose <b>Upload a skill</b>, and pick the file. It needs <b>Code execution</b> turned on in Claude's Settings › Capabilities.
                 </div>
                 <div className="setwin-actions">
                   <button className="settings-btn" disabled={busy} onClick={() => run(async () => {
-                    if (await backend.saveSkillZip()) setNotice("Saved. Upload it in Claude › Customize › Skills.");
+                    if (await backend.saveSkillZip()) setNotice("Saved. In Claude: Customize › Skills › + › Upload a skill.");
                   })}>Save parker-skill.zip…</button>
                 </div>
               </section>
@@ -392,7 +392,7 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
                 <button className="link-btn setwin-link" onClick={() => backend.openUrl(AGENTS_URL).catch(() => {})}>getparker.dev/agents</button>
               </Row>
 
-              <Row title="README for agents" sub={agents?.readme ? "Your notes folder has a README. Agents read it first, and it wins over the skill." : "A short README.md at the root of your notes folder tells agents your rules. You can edit it anytime."}>
+              <Row title="README for agents" sub={agents?.readme ? "Your notes folder has a README. The Parker skill tells agents to read it before they write, and to follow it where the two differ." : "A short README.md at the root of your notes folder holds your own rules. The Parker skill tells agents to read it before they write."}>
                 {agents && !agents.readme && (
                   <button className="settings-btn" disabled={busy} onClick={() => run(async () => {
                     await backend.createStarterReadme();
