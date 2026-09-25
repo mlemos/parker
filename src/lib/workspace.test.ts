@@ -933,3 +933,39 @@ describe("a note whose file is gone", () => {
     expect(ws.tabStatus({ ...buf("a.md", "x", true), gone: true })).toBe("error");
   });
 });
+
+// ---- A note iCloud evicted from this Mac -----------------------------------
+// Seen 19/09: one evicted note held the whole launch for 2.5 s; several pushed
+// it past the 8 s deadline. Now it opens at once as a tab that waits.
+
+describe("a note that isn't on this Mac yet", () => {
+  it("is recognised from read_note's error", () => {
+    expect(ws.readFailure("not-local: This note is in iCloud and isn't on this Mac yet")).toBe("cloud");
+    expect(ws.readFailure("No such file or directory (os error 2)")).toBe("missing");
+  });
+
+  it("opens as a tab with no text, downloading", () => {
+    const b = ws.cloudBuffer("a.md");
+    expect(b).toMatchObject({ name: "a.md", content: "", disk: "", dirty: false, cloud: "downloading" });
+  });
+
+  // An empty buffer written to disk would replace the note in iCloud.
+  it("is never saved while it has no text", () => {
+    expect(ws.canAutosave(ws.cloudBuffer("a.md"))).toBe(false);
+    expect(ws.canAutosave({ ...ws.cloudBuffer("a.md"), cloud: "stuck" })).toBe(false);
+  });
+
+  it("arrives as its text, clean, with nothing marked as changed", () => {
+    const start = [{ ...ws.cloudBuffer("a.md"), changed: [1] }, buf("b.md", "b")];
+    const out = ws.arrived(start, "a.md", "# Notes\nhello\n");
+    expect(out[0]).toEqual({ name: "a.md", content: "# Notes\nhello\n", disk: "# Notes\nhello\n", dirty: false });
+    expect(ws.canAutosave(out[0])).toBe(true);
+    expect(out[1]).toBe(start[1]);
+  });
+
+  it("can be marked stuck and back to downloading", () => {
+    const stuck = ws.setCloud([ws.cloudBuffer("a.md")], "a.md", "stuck");
+    expect(stuck[0].cloud).toBe("stuck");
+    expect(ws.setCloud(stuck, "a.md", "downloading")[0].cloud).toBe("downloading");
+  });
+});

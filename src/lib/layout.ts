@@ -31,6 +31,11 @@ export interface Buffer {
    *  the file the user just threw away. Cleared when the file comes back, or
    *  when the user chooses to save it again. */
   gone?: boolean;
+  /** The file is in iCloud but not on this Mac (evicted): Rust is fetching it.
+   *  "downloading" at first, "stuck" when it takes too long or can't be had.
+   *  The note has no text yet, so it can't be edited or saved: a write would
+   *  replace the copy in iCloud with nothing. */
+  cloud?: "downloading" | "stuck";
 }
 
 export interface Group {

@@ -2827,3 +2827,25 @@ body.resizing {
   font: inherit;
   font-size: 13px;
 }
+
+/* A note in iCloud but not on this Mac yet: a cloud on its tab, and the pane
+   says it's on its way instead of showing an editor it can't have. */
+.tab-cloud {
+  flex: none;
+  color: var(--muted);
+}
+.cloud-pane .empty-pane-inner {
+  color: var(--secondary);
+}
+.cloud-pane .empty-title {
+  max-width: 34ch;
+  text-align: center;
+  text-wrap: balance;
+}
+.cloud-sub {
+  max-width: 44ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+}

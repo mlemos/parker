@@ -13,6 +13,7 @@ import {
   Pin,
   PictureInPicture2,
   ArrowLeftToLine,
+  Cloud,
 } from "lucide-react";
 import { languageForName } from "../lib/lang";
 import { tabStatus } from "../lib/workspace";
@@ -52,6 +53,7 @@ export interface GroupCallbacks {
   onCloseGroup: () => void;
   onResolveConflict: (name: string, take: "disk" | "mine") => void;
   onSaveGone: (name: string) => void;
+  onRetryCloud: (name: string) => void;
   onReveal: (name: string) => void;
   onPopOut: () => void;
   onDragOut: (id: string) => void;
@@ -360,6 +362,9 @@ export function EditorGroup({
                 ) : (
                   <span className={`tab-dot ${status}`} title={dotTitle} />
                 )}
+                {buf?.cloud && (
+                  <Cloud className="tab-cloud" size={12} strokeWidth={2} aria-label="In iCloud, not on this Mac yet" />
+                )}
                 <span className="tab-name">{displayName(name)}</span>
                 <span
                   className="tab-close"
@@ -560,7 +565,24 @@ export function EditorGroup({
       )}
 
       <div className="editor-wrap">
-        {activeBuf && showPreview ? (
+        {activeBuf?.cloud ? (
+          <div className="empty-pane cloud-pane" role="status">
+            <div className="empty-pane-inner">
+              <Cloud size={22} strokeWidth={1.6} aria-hidden />
+              {activeBuf.cloud === "downloading" ? (
+                <div className="empty-title">Downloading from iCloud…</div>
+              ) : (
+                <>
+                  <div className="empty-title">This note is in iCloud and isn't on this Mac yet</div>
+                  <div className="cloud-sub">It opens by itself when iCloud delivers it. If this Mac is offline, connect and try again.</div>
+                  <button className="empty-btn" onClick={() => cb.onRetryCloud(activeBuf.name)}>
+                    Try again
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        ) : activeBuf && showPreview ? (
           <MarkdownPreview
             content={previewContent}
             name={activeBuf.name}
