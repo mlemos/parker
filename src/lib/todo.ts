@@ -60,7 +60,9 @@ import {
   LINE_TAG,
   ownersForRange,
   cursorAfterRotate,
+  planBang,
   planEnter,
+  planMarkerDelete,
   planPriority,
   nextOnClick,
   norm,
@@ -242,18 +244,29 @@ const deleteMarker = (backward: boolean) => (view: EditorView): boolean => {
   const sel = view.state.selection.main;
   if (!sel.empty) return false;
   const line = view.state.doc.lineAt(sel.head);
-  const tag = LINE_TAG.exec(line.text);
-  if (!tag) return false;
-  const from = line.from + tag[1].length;
-  const to = line.from + tag[0].length;
-  if (sel.head !== (backward ? to : from)) return false;
-  const hasSpace = line.text[tag[0].length] === " ";
+  const plan = planMarkerDelete(line.text, sel.head - line.from, backward);
+  if (!plan) return false;
   view.dispatch({
-    changes: { from, to: to + (hasSpace ? 1 : 0) },
+    changes: { from: line.from + plan.from, to: line.from + plan.to },
     userEvent: "delete",
   });
   return true;
 };
+
+/** "!" at the start of a task's text raises the priority (see planBang); the
+ *  cursor stays at the start of the text. */
+const bangRaisesPriority = EditorView.inputHandler.of((view, from, to, text) => {
+  if (text !== "!" || from !== to) return false;
+  const line = view.state.doc.lineAt(from);
+  const at = planBang(line.text, from - line.from);
+  if (at === null) return false;
+  view.dispatch({
+    changes: { from: line.from + at, insert: "!" },
+    selection: { anchor: from + 1 },
+    userEvent: "input.type",
+  });
+  return true;
+});
 
 /**
  * Enter continues a task or a list item, and ends an empty one — see planEnter.
@@ -293,17 +306,20 @@ function plainNewline(view: EditorView): boolean {
   return true;
 }
 
-export const todoKeymap = Prec.highest(
-  keymap.of([
-    { key: "Mod-Enter", run: rotateLine },
-    { key: "Ctrl-Mod-ArrowUp", run: stepPriority(1) },
-    { key: "Ctrl-Mod-ArrowDown", run: stepPriority(-1) },
-    { key: "Enter", run: continueLine },
-    { key: "Shift-Enter", run: plainNewline },
-    { key: "Backspace", run: deleteMarker(true) },
-    { key: "Delete", run: deleteMarker(false) },
-  ])
-);
+export const todoKeymap = [
+  bangRaisesPriority,
+  Prec.highest(
+    keymap.of([
+      { key: "Mod-Enter", run: rotateLine },
+      { key: "Ctrl-Mod-ArrowUp", run: stepPriority(1) },
+      { key: "Ctrl-Mod-ArrowDown", run: stepPriority(-1) },
+      { key: "Enter", run: continueLine },
+      { key: "Shift-Enter", run: plainNewline },
+      { key: "Backspace", run: deleteMarker(true) },
+      { key: "Delete", run: deleteMarker(false) },
+    ])
+  ),
+];
 
 class TodoPlugin {
   decorations: DecorationSet;

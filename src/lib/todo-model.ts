@@ -284,6 +284,45 @@ export function ownersForRange(
 
 // ---- Enter: a task or a list continues, an empty one ends ----------------------
 
+/**
+ * Backspace or Delete on a task's checkbox: the range to remove — the tag, its
+ * bangs and the one space after it, so the line is left as plain text — or
+ * null when the key should do its usual thing.
+ *
+ * Backspace counts right after the tag AND right after its space: the start
+ * of the text, which is where ⌘⏎ and a click leave the cursor. Counting only
+ * the first left the second to plain Backspace, which took the space alone:
+ * an empty task kept its box, and "/TODO buy milk" became "/TODObuy milk" —
+ * no longer a task, its raw tag suddenly on screen. Delete counts right
+ * before the tag.
+ */
+export function planMarkerDelete(
+  line: string,
+  col: number,
+  backward: boolean
+): { from: number; to: number } | null {
+  const tag = LINE_TAG.exec(line);
+  if (!tag) return null;
+  const start = tag[1].length;
+  const end = tag[0].length;
+  const hasSpace = line[end] === " ";
+  const at = backward ? col === end || (hasSpace && col === end + 1) : col === start;
+  return at ? { from: start, to: end + (hasSpace ? 1 : 0) } : null;
+}
+
+/**
+ * "!" typed at the start of a task's text raises its priority instead of
+ * becoming text: the column where the "!" goes (the end of the tag, with the
+ * bangs), or null to type it as usual. Up to !!!; one more is ordinary text.
+ */
+export function planBang(line: string, col: number): number | null {
+  const tag = LINE_TAG.exec(line);
+  if (!tag || priorityOf(tag) >= 3) return null;
+  const end = tag[0].length;
+  const atStart = col === end || (line[end] === " " && col === end + 1);
+  return atStart ? end : null;
+}
+
 /** What Enter should do on `line` with the cursor at UTF-16 column `col`. */
 export type EnterPlan =
   | { kind: "newline" }
