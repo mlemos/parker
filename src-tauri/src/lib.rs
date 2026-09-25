@@ -17,6 +17,7 @@ use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 
+mod agents;
 mod external;
 mod windows;
 #[cfg(target_os = "macos")]
@@ -1278,7 +1279,14 @@ fn set_notes_dir(
     // Note windows name their notes relative to the old folder.
     windows::close_all(&app);
 
-    Ok(notes_dir().to_string_lossy().into_owned())
+    // The Settings window changes the folder from outside the editor, so the
+    // editor hears about it the way it hears about prefs.
+    let resolved = notes_dir().to_string_lossy().into_owned();
+    {
+        use tauri::Emitter;
+        let _ = app.emit("parker://notes-dir", &resolved);
+    }
+    Ok(resolved)
 }
 
 /// A window has flushed and is ready to go. With several editor windows the
@@ -1406,6 +1414,64 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     }
 }
 
+/// Open (or focus) the Settings window: sections in a sidebar, like System
+/// Settings. It reaches the rest of the app only through commands and the
+/// events every window already follows (prefs, theme, zoom, notes-dir).
+fn show_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+    if let Some(w) = app.get_webview_window("settings") {
+        // Coming back from hidden: tell it to read everything again.
+        if !w.is_visible().unwrap_or(true) {
+            use tauri::{Emitter, EventTarget};
+            let _ = app.emit_to(EventTarget::labeled("settings"), "parker://settings-shown", ());
+        }
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let theme = read_session().theme.unwrap_or_default();
+    let url = format!("index.html?view=settings&theme={theme}");
+    let z = saved_zoom();
+    #[allow(unused_mut)]
+    let mut b = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App(url.into()))
+        .title("Settings")
+        .inner_size(760.0 * z, 540.0 * z)
+        .min_inner_size(640.0 * z, 440.0 * z)
+        .maximizable(false)
+        // Hidden until the themed first frame has painted (see HelpWindow).
+        .visible(false)
+        .center();
+    #[cfg(target_os = "macos")]
+    {
+        b = b
+            .title_bar_style(tauri::TitleBarStyle::Overlay)
+            .hidden_title(true)
+            .traffic_light_position(tauri::LogicalPosition::new(18.0, 24.0));
+    }
+    if let Ok(w) = b.build() {
+        let _ = w.set_zoom(z);
+    }
+}
+
+/// ⌘, opens Settings, and pressed again with Settings in front, closes it.
+fn toggle_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::Manager;
+    if let Some(w) = app.get_webview_window("settings") {
+        if w.is_visible().unwrap_or(false) && w.is_focused().unwrap_or(false) {
+            let _ = w.hide();
+            return;
+        }
+    }
+    show_settings_window(app);
+}
+
+/// Command for the toolbar button and ⌘, inside an editor window.
+#[tauri::command]
+fn open_settings(app: tauri::AppHandle) {
+    show_settings_window(&app);
+}
+
 /// Command so the in-app (?) button can open the shortcuts window.
 #[tauri::command]
 fn open_help(app: tauri::AppHandle) {
@@ -1446,7 +1512,7 @@ fn build_menu<R: tauri::Runtime>(
     let quit = MenuItemBuilder::with_id("quit", "Quit Parker")
         .accelerator("CmdOrCtrl+Q")
         .build(handle)?;
-    // Settings opens the in-app panel (Cmd+, is the macOS convention).
+    // Settings opens its own window (Cmd+, is the macOS convention).
     let settings = MenuItemBuilder::with_id("settings", "Settings…")
         .accelerator("CmdOrCtrl+,")
         .build(handle)?;
@@ -1507,7 +1573,6 @@ fn build_menu<R: tauri::Runtime>(
 fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     use tauri::menu::{MenuBuilder, MenuItemBuilder};
     use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-    use tauri::Emitter;
 
     let show = MenuItemBuilder::with_id("tray_show", "Show Parker").build(app)?;
     let settings = MenuItemBuilder::with_id("tray_settings", "Settings…").build(app)?;
@@ -1533,10 +1598,7 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_show" => show_window(app),
-            "tray_settings" => {
-                show_window(app);
-                let _ = app.emit("parker://open-settings", ());
-            }
+            "tray_settings" => show_settings_window(app),
             "tray_about" => show_about_window(app),
             "tray_quit" => request_quit(app, true),
             _ => {}
@@ -1697,15 +1759,21 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             use tauri::Manager;
+            // Closing Settings hides it: wry leaks a destroyed webview (see
+            // windows.rs), so the window is made once and kept.
+            if window.label() == "settings" {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+                return;
+            }
             windows::on_window_event(window.app_handle(), window.label(), event);
         })
         .on_menu_event(|app, event| match event.id().as_ref() {
             // Real quit — flush on the frontend, then exit.
             "quit" => request_quit(app, true),
-            "settings" => {
-                use tauri::Emitter;
-                let _ = app.emit("parker://open-settings", ());
-            }
+            "settings" => toggle_settings_window(app),
             "about" => show_about_window(app),
             "help" => show_help_window(app),
             #[cfg(desktop)]
@@ -1741,6 +1809,12 @@ pub fn run() {
             set_editor_prefs,
             set_preview_sync,
             open_help,
+            open_settings,
+            agents::agents_info,
+            agents::install_claude_code_skill,
+            agents::reveal_claude_code_skill,
+            agents::save_skill_zip,
+            agents::create_starter_readme,
             git_status,
             git_commit,
             git_push,

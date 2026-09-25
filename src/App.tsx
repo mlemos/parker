@@ -47,7 +47,6 @@ import { PerfMonitor } from "./components/PerfMonitor";
 import { markTabSwitch, trackLatency } from "./lib/latency";
 import { GitMenu } from "./components/GitMenu";
 import { QuitConfirm } from "./components/QuitConfirm";
-import { Settings } from "./components/Settings";
 import { LayoutView } from "./components/LayoutView";
 import type { LayoutHandlers } from "./components/LayoutView";
 import "./App.css";
@@ -111,7 +110,6 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
   // runs in the capture phase — before the picker's own input sees the key.
   const pickerOpenRef = useRef(false);
   pickerOpenRef.current = pickerOpen;
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [perfOpen, setPerfOpen] = useState(false);
   // ⌘Q / menu / tray asked to quit — waiting on the user's answer.
   const [quitAsk, setQuitAsk] = useState(false);
@@ -1062,7 +1060,7 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
 
       if (k === ",") {
         e.preventDefault();
-        setSettingsOpen((v) => !v);
+        api.openSettings().catch(() => {}); // the menu's ⌘, usually gets here first
       } else if (k === "n" && e.shiftKey) {
         e.preventDefault();
         popOut(fid); // ⌘⇧N — the note in front, in a window of its own
@@ -1294,8 +1292,9 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
     };
   }, []);
 
+  // The Settings window changes the notes folder from outside this window.
   useEffect(() => {
-    const p = listen("parker://open-settings", () => setSettingsOpen(true));
+    const p = listen<string>("parker://notes-dir", (e) => setNotesDir(e.payload));
     return () => {
       p.then((un) => un());
     };
@@ -1503,7 +1502,7 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
           </button>
           <button
             className="icon-btn"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => api.openSettings().catch(() => {})}
             title="Settings (Cmd+,)"
             aria-label="Settings"
           >
@@ -1583,18 +1582,6 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
           }}
           onDeleted={onNoteDeleted}
           onClose={() => setPickerOpen(false)}
-        />
-      )}
-
-      {settingsOpen && (
-        <Settings
-          homeDir={homeDir}
-          ligaturesOn={ligaturesOn}
-          onToggleLigatures={() => setLigaturesOn((v) => !v)}
-          textWidth={textWidth}
-          onTextWidth={setTextWidth}
-          onClose={() => setSettingsOpen(false)}
-          onNotesDirChange={(dir) => setNotesDir(dir)}
         />
       )}
 

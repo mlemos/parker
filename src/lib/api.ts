@@ -45,6 +45,14 @@ export interface SettingsInfo {
   preview_sync: boolean;
 }
 
+/** The Parker skill for Claude Code, and whether the notes folder has a
+ *  README for agents. See src-tauri/src/agents.rs. */
+export interface AgentsInfo {
+  claude_code: "missing" | "current" | "different";
+  claude_code_dir: string;
+  readme: boolean;
+}
+
 export interface GitFileChange {
   status: string; // two-char porcelain code, e.g. " M", "A ", "??"
   path: string;
@@ -120,6 +128,14 @@ export const api = {
   ) => invoke<void>("set_editor_prefs", { gutter, wrap, ligatures, width }),
   setPreviewSync: (enabled: boolean) =>
     invoke<void>("set_preview_sync", { enabled }),
+  /** Open (or focus) the Settings window. */
+  openSettings: () => invoke<void>("open_settings"),
+  agentsInfo: () => invoke<AgentsInfo>("agents_info"),
+  installClaudeCodeSkill: () => invoke<void>("install_claude_code_skill"),
+  revealClaudeCodeSkill: () => invoke<void>("reveal_claude_code_skill"),
+  /** Asks where to save; false when the user cancels. */
+  saveSkillZip: () => invoke<boolean>("save_skill_zip"),
+  createStarterReadme: () => invoke<void>("create_starter_readme"),
   gitStatus: () => invoke<GitStatus>("git_status"),
   gitLog: (limit?: number) => invoke<GitLogEntry[]>("git_log", { limit }),
   gitCommit: (message: string, push: boolean) =>
