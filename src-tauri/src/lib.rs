@@ -723,8 +723,11 @@ fn set_zoom(app: tauri::AppHandle, scale: f64) -> Result<f64, String> {
 /// sheet don't sit at 100% next to a zoomed editor.
 fn apply_zoom<R: tauri::Runtime>(app: &tauri::AppHandle<R>, scale: f64) {
     use tauri::{Emitter, Manager};
-    for w in app.webview_windows().values() {
-        let _ = w.set_zoom(scale);
+    for (label, w) in app.webview_windows() {
+        // Settings stays at 100% (see show_settings_window).
+        if label != "settings" {
+            let _ = w.set_zoom(scale);
+        }
     }
     // Every editor window keeps the current rung for its own ⌘= / ⌘-.
     let _ = app.emit("parker://zoom", scale);
@@ -1432,12 +1435,13 @@ fn show_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     }
     let theme = read_session().theme.unwrap_or_default();
     let url = format!("index.html?view=settings&theme={theme}");
-    let z = saved_zoom();
+    // Always at 100%: the zoom is the editor's, and a settings window that
+    // grows with it would outgrow the screen for no reason.
     #[allow(unused_mut)]
     let mut b = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App(url.into()))
         .title("Settings")
-        .inner_size(760.0 * z, 540.0 * z)
-        .min_inner_size(640.0 * z, 440.0 * z)
+        .inner_size(760.0, 540.0)
+        .min_inner_size(640.0, 440.0)
         .maximizable(false)
         // Hidden until the themed first frame has painted (see HelpWindow).
         .visible(false)
@@ -1449,9 +1453,7 @@ fn show_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             .hidden_title(true)
             .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
     }
-    if let Ok(w) = b.build() {
-        let _ = w.set_zoom(z);
-    }
+    let _ = b.build();
 }
 
 /// ⌘, opens Settings, and pressed again with Settings in front, closes it.
