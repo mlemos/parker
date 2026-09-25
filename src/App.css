@@ -2675,28 +2675,29 @@ body.resizing {
   color: var(--muted);
 }
 
-/* ---- Settings window: sidebar of sections, the chosen one on the right ---- */
+/* ---- Settings window: the app's title bar on top, then a sidebar of
+   sections and the chosen one. The sidebar is the tab strip turned on its side:
+   same surface, same active item. */
 .setwin {
   box-sizing: border-box;
   height: 100vh;
   display: flex;
+  flex-direction: column;
   background: var(--editor-bg);
   color: var(--text);
   -webkit-user-select: none;
   user-select: none;
 }
-.setwin-side {
-  flex: 0 0 200px;
+.setwin-split {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
-  padding: 0 10px 12px;
-  background: var(--header-bg);
-  border-right: 1px solid var(--border);
 }
-/* Room for the macOS traffic lights, and a place to drag the window. */
-.setwin-lights {
-  height: 52px;
-  flex: none;
+.setwin-side {
+  flex: 0 0 188px;
+  padding: 8px;
+  background: var(--tabbar-bg);
+  border-right: 1px solid var(--border);
 }
 .setwin-side nav {
   display: flex;
@@ -2706,10 +2707,11 @@ body.resizing {
 .setwin-item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 10px;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
   border: none;
-  border-radius: 7px;
+  border-radius: 6px;
   background: transparent;
   color: var(--secondary);
   font: inherit;
@@ -2718,12 +2720,12 @@ body.resizing {
   cursor: pointer;
 }
 .setwin-item:hover {
-  color: var(--text);
-  background: color-mix(in srgb, var(--text) 7%, transparent);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 .setwin-item.on {
+  background: var(--tab-active-bg);
   color: var(--text);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .setwin-item:focus-visible,
 .setwin-link:focus-visible {
@@ -2735,7 +2737,7 @@ body.resizing {
   color: var(--muted);
 }
 .setwin-item.on .setwin-icon {
-  color: var(--accent);
+  color: var(--text);
 }
 .setwin-main {
   flex: 1;
@@ -2743,25 +2745,17 @@ body.resizing {
   display: flex;
   flex-direction: column;
 }
-.setwin-head {
-  flex: none;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  padding: 0 28px;
-  border-bottom: 1px solid var(--border);
-}
-.setwin-head h1 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-}
 .setwin-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 8px 28px 24px;
+  padding: 18px 28px 24px;
+}
+.setwin-h1 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
 }
 .setwin-intro {
   margin: 14px 0 4px;

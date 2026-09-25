@@ -205,8 +205,15 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
 
   return (
     <div className="setwin">
-      <aside className="setwin-side" data-tauri-drag-region>
-        <div className="setwin-lights" data-tauri-drag-region />
+      <div className="titlebar" data-tauri-drag-region>
+        <div className="tb-left" data-tauri-drag-region />
+        <div className="tb-center" data-tauri-drag-region>
+          <span className="helpwin-title" data-tauri-drag-region>Settings</span>
+        </div>
+        <div className="tb-right" data-tauri-drag-region />
+      </div>
+      <div className="setwin-split">
+      <aside className="setwin-side">
         <nav aria-label="Settings sections">
           {SECTIONS.map((s) => (
             <button key={s.id} className={"setwin-item" + (s.id === section ? " on" : "")} onClick={() => choose(s.id)} aria-current={s.id === section ? "page" : undefined}>
@@ -218,10 +225,8 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
       </aside>
 
       <main className="setwin-main">
-        <div className="setwin-head" data-tauri-drag-region>
-          <h1 data-tauri-drag-region>{title}</h1>
-        </div>
         <div className="setwin-body">
+          <h1 className="setwin-h1">{title}</h1>
           {!info && !error && <div className="settings-loading">Loading…</div>}
 
           {info && section === "general" && (
@@ -403,6 +408,7 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
           {error && <div className="settings-error" role="alert">{error}</div>}
         </div>
       </main>
+      </div>
     </div>
   );
 }
