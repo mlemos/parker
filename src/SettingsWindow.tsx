@@ -392,7 +392,7 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
                 <button className="link-btn setwin-link" onClick={() => backend.openUrl(AGENTS_URL).catch(() => {})}>getparker.dev/agents</button>
               </Row>
 
-              <Row title="README for agents" sub={agents?.readme ? "Your notes folder has a README.md. Agents read it first, and it wins over the skill." : "A short README.md at the root of your notes folder tells agents your rules. You can edit it anytime."}>
+              <Row title="README for agents" sub={agents?.readme ? "Your notes folder has a README. Agents read it first, and it wins over the skill." : "A short README.md at the root of your notes folder tells agents your rules. You can edit it anytime."}>
                 {agents && !agents.readme && (
                   <button className="settings-btn" disabled={busy} onClick={() => run(async () => {
                     await backend.createStarterReadme();
