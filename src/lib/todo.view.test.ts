@@ -145,6 +145,34 @@ describe("right after ⌘⏎ makes a task", () => {
     expect(shown(v)).toBe("- a\n  |b");
   });
 
+  it("⌘⌫ deletes the text and keeps the checkbox; a second takes the checkbox", () => {
+    const v = open("  /TODO!! buy milk", 18);
+    press(v, "Backspace", { metaKey: true });
+    expect(shown(v)).toBe("  /TODO!! |");
+    press(v, "Backspace", { metaKey: true });
+    expect(shown(v)).toBe("  |");
+  });
+
+  it("⌘⌫ keeps what is after the cursor", () => {
+    const v = open("/TODO buy milk", 9);
+    press(v, "Backspace", { metaKey: true });
+    expect(shown(v)).toBe("/TODO | milk");
+  });
+
+  it("⌘⌫ does the same on a list item", () => {
+    const v = open("- a\n  - buy milk", 16);
+    press(v, "Backspace", { metaKey: true });
+    expect(shown(v)).toBe("- a\n  - |");
+    press(v, "Backspace", { metaKey: true });
+    expect(shown(v)).toBe("- a\n  |");
+  });
+
+  it("⌘⌫ on plain text is left to the editor", () => {
+    const v = open("buy milk", 8);
+    press(v, "Backspace", { metaKey: true });
+    expect(shown(v)).toBe("|");
+  });
+
   it("! in the middle of the text is text", () => {
     const v = open("/TODO buy milk", 10);
     type(v, "!");

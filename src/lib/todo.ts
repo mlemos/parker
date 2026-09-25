@@ -63,6 +63,7 @@ import {
   planBang,
   planEnter,
   planMarkerDelete,
+  planLineDelete,
   planPriority,
   nextOnClick,
   norm,
@@ -253,6 +254,23 @@ const deleteMarker = (backward: boolean) => (view: EditorView): boolean => {
   return true;
 };
 
+/** ⌘⌫ keeps the checkbox or bullet on its first press (see planLineDelete).
+ *  On a wrapped line whose visual row starts past the mark, the editor's own
+ *  delete-to-row-start is already right. */
+function deleteToMarker(view: EditorView): boolean {
+  const sel = view.state.selection.main;
+  if (!sel.empty) return false;
+  const line = view.state.doc.lineAt(sel.head);
+  const plan = planLineDelete(line.text, sel.head - line.from);
+  if (!plan) return false;
+  if (view.moveToLineBoundary(sel, false).head > line.from + plan.from) return false;
+  view.dispatch({
+    changes: { from: line.from + plan.from, to: line.from + plan.to },
+    userEvent: "delete.line",
+  });
+  return true;
+}
+
 /** "!" at the start of a task's text raises the priority (see planBang); the
  *  cursor stays at the start of the text. */
 const bangRaisesPriority = EditorView.inputHandler.of((view, from, to, text) => {
@@ -317,6 +335,7 @@ export const todoKeymap = [
       { key: "Shift-Enter", run: plainNewline },
       { key: "Backspace", run: deleteMarker(true) },
       { key: "Delete", run: deleteMarker(false) },
+      { key: "Mod-Backspace", run: deleteToMarker },
     ])
   ),
 ];
