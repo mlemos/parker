@@ -434,9 +434,71 @@ async fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
 }
 
 #[tauri::command]
-async fn read_note(name: String) -> Result<String, String> {
+async fn read_note(app: tauri::AppHandle, name: String) -> Result<String, String> {
     let path = safe_note_path(&name)?;
+    // A note iCloud evicted from this Mac is only a name: reading it blocks
+    // until the download ends — seconds, or forever offline. Answer at once
+    // and fetch it in the background; the tab waits in a "downloading" state.
+    if is_dataless(&path) {
+        fetch_in_background(app, name, path);
+        return Err(format!("{NOT_LOCAL}: This note is in iCloud and isn't on this Mac yet"));
+    }
     fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
+/// The prefix of read_note's error for a note that isn't on this Mac yet;
+/// the frontend keys on it (workspace.readFailure).
+const NOT_LOCAL: &str = "not-local";
+
+/// macOS's st_flags bit for a file whose contents live only in the cloud
+/// (<sys/stat.h>: SF_DATALESS). Reading its metadata doesn't download it.
+#[cfg(target_os = "macos")]
+const SF_DATALESS: u32 = 0x4000_0000;
+
+/// Whether the file is evicted: a name on disk, the contents in iCloud.
+fn is_dataless(path: &std::path::Path) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        use std::os::macos::fs::MetadataExt;
+        fs::symlink_metadata(path)
+            .map(|m| dataless_flag(m.st_flags()))
+            .unwrap_or(false)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = path;
+        false
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn dataless_flag(st_flags: u32) -> bool {
+    st_flags & SF_DATALESS != 0
+}
+
+/// Notes being downloaded right now, so a retry doesn't start a second one.
+fn fetching() -> &'static std::sync::Mutex<std::collections::HashSet<String>> {
+    static SET: std::sync::OnceLock<std::sync::Mutex<std::collections::HashSet<String>>> =
+        std::sync::OnceLock::new();
+    SET.get_or_init(Default::default)
+}
+
+/// Read the file on a thread of its own: the read is what makes macOS
+/// download it. When it lands, the note is reported changed, and the tab
+/// reloads it like any outside edit; if it can't be had, the tab is told.
+fn fetch_in_background(app: tauri::AppHandle, name: String, path: PathBuf) {
+    if !fetching().lock().map(|mut s| s.insert(name.clone())).unwrap_or(false) {
+        return; // already on its way
+    }
+    std::thread::spawn(move || {
+        use tauri::Emitter;
+        let ok = fs::read(&path).is_ok();
+        if let Ok(mut s) = fetching().lock() {
+            s.remove(&name);
+        }
+        let event = if ok { "parker://note-changed" } else { "parker://note-unavailable" };
+        let _ = app.emit(event, &name);
+    });
 }
 
 #[tauri::command]
@@ -1869,6 +1931,24 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn the_dataless_bit_is_read_from_st_flags() {
+        assert!(super::dataless_flag(0x4000_0000));
+        assert!(super::dataless_flag(0x4000_0060)); // an evicted file in ~/Documents, as found
+        assert!(!super::dataless_flag(0));
+        assert!(!super::dataless_flag(0x0000_0020));
+    }
+
+    #[test]
+    fn an_ordinary_file_is_not_dataless() {
+        let p = std::env::temp_dir().join(format!("parker-dataless-{}.md", std::process::id()));
+        std::fs::write(&p, "here").unwrap();
+        assert!(!super::is_dataless(&p));
+        assert!(!super::is_dataless(&p.with_extension("missing")));
+        let _ = std::fs::remove_file(&p);
+    }
+
     use super::*;
 
     // ---- New notes in folders ----------------------------------------------

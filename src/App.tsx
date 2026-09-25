@@ -69,8 +69,25 @@ const ZOOM_STEPS = [
 // A buffer's text comes and goes through one of two doors in Rust, and its
 // name says which: a note by bare name, a file from outside the folder by its
 // absolute path. Nothing below this line needs to know the difference.
+/** How long a note may take to arrive from iCloud before the tab says it
+ *  may not be coming. */
+const CLOUD_PATIENCE_MS = 20_000;
 const readText = (name: string) =>
   isExternal(name) ? api.readFile(name) : api.readNote(name);
+/** A note read into a buffer — or, when iCloud has it and this Mac doesn't,
+ *  a buffer that waits for it (Rust is already fetching). Other failures
+ *  still throw. */
+async function readOrCloud(name: string): Promise<Buffer> {
+  try {
+    const text = await readText(name);
+    return { name, content: text, disk: text, dirty: false };
+  } catch (e) {
+    if (ws.readFailure(e instanceof Error ? e.message : String(e)) === "cloud") {
+      return ws.cloudBuffer(name);
+    }
+    throw e;
+  }
+}
 const writeText = (name: string, content: string) =>
   isExternal(name) ? api.writeFile(name, content) : api.writeNote(name, content);
 
@@ -312,10 +329,10 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
       try {
         setHomeDir(await api.homeDirPath());
         setNotesDir(await api.notesDirPath());
-        const content = await readText(name);
+        const buffer = await readOrCloud(name);
         const tab = noteWindow?.preview ? previewTab(name) : name;
         const g = makeGroup([tab], tab);
-        setBuffers([{ name, content, disk: content, dirty: false }]);
+        setBuffers([buffer]);
         setLayout(g);
         setFocusedId(g.id);
       } catch (e) {
@@ -329,15 +346,20 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
         setNotesDir(await api.notesDirPath());
         const session = await api.loadSession();
 
+        // All at once, not one after another: one slow read no longer holds
+        // up the rest. A note iCloud evicted comes back at once as a tab that
+        // is downloading; one deleted or renamed outside the app is skipped.
+        const names = session.open ?? [];
+        const reads = await Promise.allSettled(names.map((n) => readText(n)));
         const restored: Buffer[] = [];
-        for (const name of session.open ?? []) {
-          try {
-            const content = await readText(name);
-            restored.push({ name, content, disk: content, dirty: false });
-          } catch {
-            // deleted/renamed outside the app — skip it
+        reads.forEach((r, i) => {
+          const name = names[i];
+          if (r.status === "fulfilled") {
+            restored.push({ name, content: r.value, disk: r.value, dirty: false });
+          } else if (ws.readFailure(String(r.reason)) === "cloud") {
+            restored.push(ws.cloudBuffer(name));
           }
-        }
+        });
         // A first launch gets a note to type into. A session that merely has
         // nothing open — the last tab was closed, or every note it listed is
         // gone — comes back as the empty pane it was; making a note here is
@@ -619,6 +641,42 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
     [scheduleSave]
   );
 
+  // A note downloading from iCloud for this long is probably not coming —
+  // offline, or iCloud is stuck. Say so, and offer to try again.
+  const cloudKey = buffers.filter((b) => b.cloud === "downloading").map((b) => b.name).join("\n");
+  useEffect(() => {
+    if (!cloudKey) return;
+    const names = cloudKey.split("\n");
+    const id = window.setTimeout(() => {
+      setBuffers((prev) =>
+        prev.map((b) => (names.includes(b.name) && b.cloud === "downloading" ? { ...b, cloud: "stuck" } : b))
+      );
+    }, CLOUD_PATIENCE_MS);
+    return () => window.clearTimeout(id);
+  }, [cloudKey]);
+
+  // Rust's fetch ended without the file.
+  useEffect(() => {
+    const p = listen<string>("parker://note-unavailable", (e) =>
+      setBuffers((prev) => ws.setCloud(prev, e.payload, "stuck"))
+    );
+    return () => {
+      p.then((un) => un());
+    };
+  }, []);
+
+  // Try again: read once more; that restarts the fetch if it isn't running.
+  const retryCloud = useCallback(async (name: string) => {
+    setBuffers((prev) => ws.setCloud(prev, name, "downloading"));
+    try {
+      const b = await readOrCloud(name);
+      if (!b.cloud) setBuffers((prev) => ws.arrived(prev, name, b.content));
+    } catch (e) {
+      setBuffers((prev) => ws.setCloud(prev, name, "stuck"));
+      console.error("retry failed", name, e);
+    }
+  }, []);
+
   // "Save it again" on a note whose file is gone: the one way it comes back.
   const saveGone = useCallback(
     (name: string) => {
@@ -665,9 +723,9 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
         return;
       }
       if (await api.focusNote(name).catch(() => false)) return;
-      let text: string;
+      let opened: Buffer;
       try {
-        text = await readText(name);
+        opened = await readOrCloud(name);
       } catch (e) {
         console.error("open failed", name, e);
         return;
@@ -675,7 +733,7 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
       const old = g.tabs.map(noteOf).filter((n) => n !== name);
       await Promise.all(old.map((n) => flushSave(n)));
       apply((w) => {
-        let next = ws.openNoteAt(w, g.id, { name, content: text, disk: text, dirty: false });
+        let next = ws.openNoteAt(w, g.id, opened);
         for (const n of old) next = ws.forgetNote(next, n);
         return next;
       });
@@ -901,8 +959,7 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
         // forward and nothing opens here.
         if (!force && (await api.focusNote(name).catch(() => false))) return;
         try {
-          const text = await readText(name);
-          buffer = { name, content: text, disk: text, dirty: false };
+          buffer = await readOrCloud(name);
         } catch (e) {
           console.error("open failed", name, e);
           return;
@@ -1330,6 +1387,11 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
         // path, and the watcher fires inside it. That is not a missing note;
         // it is one being replaced. Look again before saying anything.
         const msg = e instanceof Error ? e.message : String(e);
+        // Evicted by iCloud again (or still): Rust is fetching it; wait.
+        if (ws.readFailure(msg) === "cloud") {
+          setBuffers((prev) => ws.setCloud(prev, name, "downloading"));
+          return;
+        }
         if (ws.readFailure(msg) === "missing") {
           await new Promise((r) => setTimeout(r, 250));
           try {
@@ -1353,6 +1415,11 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
       }
       const now = stateRef.current.buffers.find((b) => b.name === name);
       if (!now) return;
+      // A note that was downloading has arrived: that's its text, not an edit.
+      if (now.cloud) {
+        setBuffers((prev) => ws.arrived(prev, name, disk));
+        return;
+      }
       // The file is readable: whatever a read said before is over. Only a
       // write used to clear the error, so a moment's absence stayed red. A
       // note that was gone is back — restored from the Trash, or by git.
@@ -1455,6 +1522,7 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
     onCloseGroup: closeGroup,
     onResolveConflict: resolveConflict,
     onSaveGone: saveGone,
+    onRetryCloud: retryCloud,
     onReveal: (name) => api.revealFile(name).catch((e) => console.error("reveal failed", e)),
     onResize,
     onEqualize,

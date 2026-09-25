@@ -51,6 +51,7 @@ function setup(
     onCloseGroup: vi.fn(),
     onResolveConflict: vi.fn(),
     onSaveGone: vi.fn(),
+    onRetryCloud: vi.fn(),
     onReveal: vi.fn(),
     onPopOut: vi.fn(),
     onDragOut: vi.fn(),
@@ -309,5 +310,27 @@ describe("a note whose file is gone", () => {
     const bars = container.querySelectorAll(".conflict-bar");
     expect(bars.length).toBe(1);
     expect(bars[0].textContent).toContain("Changed on disk");
+  });
+});
+
+describe("a note that isn't on this Mac yet", () => {
+  it("shows a cloud on its tab and waits, with no editor", () => {
+    const { container } = setup(["a.md", "b.md"], "a.md", [{ name: "a.md", cloud: "downloading" }]);
+    expect(screen.getByLabelText("In iCloud, not on this Mac yet")).toBeDefined();
+    expect(screen.getByRole("status").textContent).toContain("Downloading from iCloud");
+    expect(container.querySelector(".cm-editor")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  });
+
+  it("offers to try again when it isn't coming", () => {
+    const { cb } = setup(["a.md"], "a.md", [{ name: "a.md", cloud: "stuck" }]);
+    expect(screen.getByRole("status").textContent).toContain("isn't on this Mac yet");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(cb.onRetryCloud).toHaveBeenCalledWith("a.md");
+  });
+
+  it("shows no cloud on a note that is here", () => {
+    setup(["a.md"], "a.md");
+    expect(screen.queryByLabelText("In iCloud, not on this Mac yet")).toBeNull();
   });
 });

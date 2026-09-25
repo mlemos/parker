@@ -30,6 +30,7 @@ export interface LayoutHandlers {
   onCloseGroup: (groupId: string) => void;
   onResolveConflict: (name: string, take: "disk" | "mine") => void;
   onSaveGone: (name: string) => void;
+  onRetryCloud: (name: string) => void;
   onReveal: (name: string) => void;
   onResize: (splitId: string, index: number, delta: number) => void;
   onEqualize: (splitId: string, index: number) => void;
@@ -92,6 +93,7 @@ export function LayoutView({
       onCloseGroup: () => common.h.onCloseGroup(g.id),
       onResolveConflict: common.h.onResolveConflict,
       onSaveGone: common.h.onSaveGone,
+      onRetryCloud: common.h.onRetryCloud,
       onReveal: common.h.onReveal,
       onPopOut: () => common.h.onPopOut(g.id),
       onDragOut: (id) => common.h.onDragOut(g.id, id),

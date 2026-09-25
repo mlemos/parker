@@ -194,8 +194,33 @@ export function classifyDiskChange(buf: Buffer, disk: string): DiskChange {
 /** A failed read, from Rust's error text: the file isn't there (deleted,
  *  trashed, moved — or mid-replace, which is why callers read twice), or it
  *  couldn't be read for another reason. */
-export function readFailure(message: string): "missing" | "error" {
+export function readFailure(message: string): "missing" | "cloud" | "error" {
+  if (message.startsWith("not-local")) return "cloud";
   return /No such file|os error 2\b/.test(message) ? "missing" : "error";
+}
+
+/** A tab for a note that isn't on this Mac yet: no text until it arrives. */
+export function cloudBuffer(name: string): Buffer {
+  return { name, content: "", disk: "", dirty: false, cloud: "downloading" };
+}
+
+/** A note's cloud state: downloading, stuck, or (undefined) here at last. */
+export function setCloud(
+  buffers: Buffer[],
+  name: string,
+  cloud: Buffer["cloud"]
+): Buffer[] {
+  return buffers.map((b) => (b.name === name ? { ...b, cloud } : b));
+}
+
+/** The note arrived from iCloud: its text, clean, with nothing marked as
+ *  changed — a download isn't an edit. */
+export function arrived(buffers: Buffer[], name: string, text: string): Buffer[] {
+  return buffers.map((b) =>
+    b.name === name
+      ? { name, content: text, disk: text, dirty: false }
+      : b
+  );
 }
 
 /** Mark a note's file as gone from disk, or back. */
@@ -206,7 +231,7 @@ export function setGone(buffers: Buffer[], name: string, gone: boolean): Buffer[
 /** Whether a save may write this note now. Not while two versions wait for
  *  the user, and not while the file is gone: writing would recreate it. */
 export function canAutosave(buffer: Buffer | undefined): buffer is Buffer {
-  return !!buffer && !buffer.conflict && !buffer.gone;
+  return !!buffer && !buffer.conflict && !buffer.gone && !buffer.cloud;
 }
 
 export function setError(
