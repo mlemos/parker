@@ -13,14 +13,56 @@
 // same transaction that changes the number of ranges — no listener, no second
 // dispatch, no frame where ⌘D's second match exists but is invisible.
 import { Compartment, EditorState } from "@codemirror/state";
-import { drawSelection } from "@uiw/react-codemirror";
+import { EditorSelection } from "@codemirror/state";
+import { EditorView, Prec, RectangleMarker, drawSelection, layer } from "@uiw/react-codemirror";
 import type { Extension } from "@codemirror/state";
 
 const drawn = new Compartment();
 
 const multi = (state: EditorState) => state.selection.ranges.length > 1;
 
+// ---- The caret -------------------------------------------------------------
+//
+// WKWebView's own caret can leave a copy of itself behind: a caret that moves
+// at the wrong moment of its blink is drawn at the new place and never erased
+// from the old one — ⌘⏎, ⌫, Tab on an empty line, and a frozen caret stays at
+// column 0 while the real one blinks at column 2. Repainting the lines did not
+// clear it; it is WebKit's caret animation, not the page's paint.
+//
+// So the caret is CodeMirror's, always, and the browser's is transparent. The
+// selection stays the browser's while there is one range (above): this layer
+// draws only the caret, and only then — with two or more ranges drawSelection
+// draws the carets along with the ranges. It takes CodeMirror's cursor-layer
+// class, which brings the theme's caret colour, the blink, and hiding it when
+// the editor is not focused; the blink restarts on every move, as a native
+// caret's does.
+const caretLayer = layer({
+  above: true,
+  class: "cm-cursorLayer",
+  markers(view) {
+    const { ranges, main } = view.state.selection;
+    if (ranges.length > 1 || !main.empty) return [];
+    return RectangleMarker.forRange(view, "cm-cursor cm-cursor-primary", EditorSelection.cursor(main.head, main.assoc));
+  },
+  update(update, dom) {
+    if (update.transactions.some((tr) => tr.selection))
+      dom.style.animationName = dom.style.animationName === "cm-blink" ? "cm-blink2" : "cm-blink";
+    return update.docChanged || update.selectionSet || update.viewportChanged || update.geometryChanged;
+  },
+  mount(dom) {
+    dom.style.animationDuration = "1200ms";
+  },
+});
+
+const hideNativeCaret = Prec.highest(
+  EditorView.theme({
+    ".cm-content, .cm-line": { caretColor: "transparent !important" },
+  })
+);
+
 export const hybridSelection: Extension = [
+  caretLayer,
+  hideNativeCaret,
   drawn.of([]),
   EditorState.transactionExtender.of((tr) => {
     // Without allowMultipleSelections the state keeps only the main range,

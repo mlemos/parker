@@ -2856,3 +2856,10 @@ body.resizing {
   color: var(--muted);
   text-align: center;
 }
+
+/* The caret is CodeMirror's (see lib/selection.ts — WebKit's leaves a copy
+   of itself behind). The macOS caret's width, not CodeMirror's 1.2px. */
+.editor-wrap .cm-cursor {
+  border-left-width: 2px;
+  margin-left: -1px;
+}
