@@ -131,6 +131,20 @@ describe("right after ⌘⏎ makes a task", () => {
     expect(shown(v)).toBe("/TODO!!! !|");
   });
 
+  it("a list item does the same: Enter, then ⌫, is an empty line", () => {
+    const v = open("- a", 3);
+    press(v, "Enter");
+    expect(shown(v)).toBe("- a\n- |");
+    press(v, "Backspace");
+    expect(shown(v)).toBe("- a\n|");
+  });
+
+  it("⌫ at the start of a nested item's text keeps its indentation", () => {
+    const v = open("- a\n  - b", 8);
+    press(v, "Backspace");
+    expect(shown(v)).toBe("- a\n  |b");
+  });
+
   it("! in the middle of the text is text", () => {
     const v = open("/TODO buy milk", 10);
     type(v, "!");

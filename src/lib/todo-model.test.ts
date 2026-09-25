@@ -270,6 +270,40 @@ describe("planMarkerDelete", () => {
   });
 });
 
+// Tasks and list items behave the same (Manoel, 25/09): the empty bullet that
+// Enter leaves goes in one ⌫, like the empty task ⌘⏎ leaves.
+describe("planMarkerDelete on list items", () => {
+  it("⌫ at the start of an item's text takes the bullet", () => {
+    expect(planMarkerDelete("- ", 2, true)).toEqual({ from: 0, to: 2 });
+    expect(planMarkerDelete("- item", 2, true)).toEqual({ from: 0, to: 2 });
+    expect(planMarkerDelete("* item", 2, true)).toEqual({ from: 0, to: 2 });
+    expect(planMarkerDelete("12. item", 4, true)).toEqual({ from: 0, to: 4 });
+  });
+
+  it("⌫ right after the bullet does the same", () => {
+    expect(planMarkerDelete("- item", 1, true)).toEqual({ from: 0, to: 2 });
+  });
+
+  it("keeps the indentation, and takes a Markdown checkbox with its bullet", () => {
+    expect(planMarkerDelete("  - nested", 4, true)).toEqual({ from: 2, to: 4 });
+    expect(planMarkerDelete("- [ ] task", 6, true)).toEqual({ from: 0, to: 6 });
+    expect(planMarkerDelete("- [x] done", 6, true)).toEqual({ from: 0, to: 6 });
+  });
+
+  it("leaves Backspace alone inside the text, and on plain lines", () => {
+    expect(planMarkerDelete("- item", 4, true)).toBeNull();
+    expect(planMarkerDelete("- item", 0, true)).toBeNull();
+    expect(planMarkerDelete("-item", 1, true)).toBeNull(); // not a list item
+    expect(planMarkerDelete("text", 0, true)).toBeNull();
+  });
+
+  it("Delete right before the bullet takes it", () => {
+    expect(planMarkerDelete("- item", 0, false)).toEqual({ from: 0, to: 2 });
+    expect(planMarkerDelete("  1. one", 2, false)).toEqual({ from: 2, to: 5 });
+    expect(planMarkerDelete("- item", 2, false)).toBeNull();
+  });
+});
+
 describe("planBang", () => {
   it("! at the start of a task's text goes into the tag (Bug 2)", () => {
     expect(planBang("/TODO ", 6)).toBe(5);
@@ -291,6 +325,10 @@ describe("planBang", () => {
     expect(planBang("/TODO buy milk", 14)).toBeNull();
     expect(planBang("  /TODO x", 1)).toBeNull();
     expect(planBang("buy milk", 0)).toBeNull();
+  });
+
+  it("is text on a list item: lists have no priority", () => {
+    expect(planBang("- item", 2)).toBeNull();
   });
 
   it("works on any state and under indentation", () => {
