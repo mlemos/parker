@@ -1447,7 +1447,7 @@ fn show_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         b = b
             .title_bar_style(tauri::TitleBarStyle::Overlay)
             .hidden_title(true)
-            .traffic_light_position(tauri::LogicalPosition::new(18.0, 24.0));
+            .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
     }
     if let Ok(w) = b.build() {
         let _ = w.set_zoom(z);
