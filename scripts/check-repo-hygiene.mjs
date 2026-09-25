@@ -26,7 +26,9 @@ const FORBIDDEN_PATHS = [
   [/(^|\/)settings\.json$/, "Parker's settings (contains your notes folder path)"],
   [/(^|\/)Untitled-\d+\.(md|txt)$/, "a scratch note"],
   [/\.parker-tmp$/, "an autosave temp file"],
-  [/\.(dmg|app|zip)$/, "a build artifact (ship it on a Release, not in git)"],
+  // site/agents/parker-skill.zip is the one zip that belongs in git: 12 KB,
+  // generated from the skill by scripts/publish-skill.mjs, byte-stable.
+  [/^(?!site\/agents\/parker-skill\.zip$).*\.(dmg|app|zip)$/, "a build artifact (ship it on a Release, not in git)"],
   [/(^|\/)\.env/, "an environment file"],
   [/(^|\/)\.vercel\//, "Vercel project ids"],
   [/(^|\/)\.claude\//, "local agent tooling/config"],
@@ -65,7 +67,7 @@ const ALLOW = [
 ];
 
 /** Files whose content we don't scan (generated, binary, or noisy). */
-const SKIP_CONTENT = /(^|\/)(pnpm-lock\.yaml|Cargo\.lock)$|\.(png|jpg|jpeg|webp|gif|icns|ico|svg|woff2?|pdf|mp4)$/;
+const SKIP_CONTENT = /(^|\/)(pnpm-lock\.yaml|Cargo\.lock)$|\.(png|jpg|jpeg|webp|gif|icns|ico|svg|woff2?|pdf|mp4|zip)$/;
 
 const files = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" })
   .split("\0")
