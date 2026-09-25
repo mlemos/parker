@@ -40,13 +40,6 @@
         "description": "Markdown document",
         "mimeType": "text/markdown",
         "role": "Editor"
-      },
-      {
-        "ext": ["txt"],
-        "name": "Plain text",
-        "description": "Plain text document",
-        "mimeType": "text/plain",
-        "role": "Editor"
       }
     ]
   }
