@@ -1,37 +1,21 @@
-// Build the site's /agents page from the Parker skill, so the page, the file
-// agents download and the one the app installs are the same text.
+// Publish the Parker skill on the site, so what agents download is the file
+// the app installs.
 //
-//   node scripts/build-agents-page.mjs          write site/agents/*
-//   node scripts/build-agents-page.mjs --check  fail if site/agents is stale (CI)
+//   node scripts/publish-skill.mjs          write site/agents/SKILL.md + .zip
+//   node scripts/publish-skill.mjs --check  fail if they are stale (CI)
 //
-// Source: skills/parker/SKILL.md. Template: scripts/agents-page.template.html
-// (the page around the skill; edit it by hand, then run this). Output:
-//   site/agents/index.html      the page, with the skill rendered at <!--SKILL-->
-//   site/agents/SKILL.md        the skill, byte for byte
+// Source: skills/parker/SKILL.md. Output:
+//   site/agents/SKILL.md          the skill, byte for byte
 //   site/agents/parker-skill.zip  parker/SKILL.md, the layout the Claude app
-//                               uploads; stored (no compression) with a fixed
-//                               date, so it only changes when the skill does
+//                                 uploads; stored (no compression) with a fixed
+//                                 date, so it only changes when the skill does
+// The page itself (site/agents/index.html) is hand-written like the others.
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { crc32 } from "node:zlib";
 import { fileURLToPath } from "node:url";
-import MarkdownIt from "markdown-it";
 
 const at = (p) => fileURLToPath(new URL(p, import.meta.url));
 const skill = readFileSync(at("../skills/parker/SKILL.md"), "utf8");
-const template = readFileSync(at("../scripts/agents-page.template.html"), "utf8");
-
-/** The skill without its frontmatter: the reader sees the text, not YAML. */
-function body(md) {
-  const m = md.match(/^---\n[\s\S]*?\n---\n/);
-  return m ? md.slice(m[0].length) : md;
-}
-
-// Same settings as the app's preview: raw HTML in the skill stays text.
-const md = new MarkdownIt({ html: false, linkify: true, typographer: false });
-const skillHtml = md.render(body(skill)).trimEnd();
-if (!template.includes("<!--SKILL-->")) throw new Error("template: <!--SKILL--> marker not found");
-// Not re-indented: that would put spaces inside the <pre> blocks.
-const page = template.replace("<!--SKILL-->", skillHtml);
 
 /** A zip of the given entries, stored and dated 2026-01-01, so the bytes are
  *  a function of the content alone. Directories end in "/". */
@@ -91,7 +75,6 @@ function zip(entries) {
 }
 
 const out = {
-  "site/agents/index.html": Buffer.from(page, "utf8"),
   "site/agents/SKILL.md": Buffer.from(skill, "utf8"),
   "site/agents/parker-skill.zip": zip([["parker/", ""], ["parker/SKILL.md", skill]]),
 };
@@ -104,7 +87,7 @@ if (process.argv.includes("--check")) {
   if (stale.length) {
     console.error("site/agents is out of date with skills/parker/SKILL.md:");
     for (const [p] of stale) console.error("  " + p);
-    console.error("Run: node scripts/build-agents-page.mjs");
+    console.error("Run: node scripts/publish-skill.mjs");
     process.exit(1);
   }
   console.log("site/agents matches the skill.");

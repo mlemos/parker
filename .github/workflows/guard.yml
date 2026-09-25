@@ -37,10 +37,10 @@ jobs:
           version: 9
       - run: pnpm install --frozen-lockfile
 
-      # site/agents is generated from skills/parker/SKILL.md; a skill edit
-      # without a rebuild would leave the page and the download behind.
-      - name: /agents matches the skill
-        run: node scripts/build-agents-page.mjs --check
+      # site/agents/SKILL.md and parker-skill.zip are copies of
+      # skills/parker/SKILL.md; a skill edit without a publish leaves them behind.
+      - name: The published skill matches the source
+        run: node scripts/publish-skill.mjs --check
 
       - name: Typecheck
         run: pnpm exec tsc --noEmit

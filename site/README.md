@@ -12,7 +12,8 @@ ethos (fast, lightweight) and its `Vercel Night` / `Vercel Day` theme palette
 |------|-----------|
 | `index.html` | The home page (nav, hero + app screenshot, AI block, feature grid, philosophy, CTA, footer). |
 | `features/index.html` | The deep dive at `/features` — seven feature sections with screenshots, an interactive to-do demo, the theme swatches, the shortcut reference and the spec strip. |
-| `agents/` | The `/agents` page, `SKILL.md` and `parker-skill.zip` — **generated** from `skills/parker/SKILL.md` by `scripts/build-agents-page.mjs` (template: `scripts/agents-page.template.html`). Edit the skill or the template, then run the script; CI fails when they drift. |
+| `agents/index.html` | The `/agents` page: setting agents up with the Parker skill. Hand-written. |
+| `agents/SKILL.md`, `agents/parker-skill.zip` | **Generated** from `skills/parker/SKILL.md` by `scripts/publish-skill.mjs` — the file agents download and the zip the Claude app uploads. Edit the skill, then run the script; CI fails when they drift. |
 | `styles.css` | Theme tokens (light/dark) + all styling. |
 | `script.js`  | Theme toggle (persisted), scroll-reveal, sticky-nav hairline. |
 | `brand/parker-<version>-<theme>.webp` / `.png` | The hero screenshot, one per theme (`vercel-night`, `vercel-day`), swapped by `<picture>` with the site's own theme. Real window captures — three panes with the git commit menu open. WebP served with PNG fallback. Rename these on a release so the file never claims a version it isn't. |
