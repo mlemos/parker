@@ -11,6 +11,12 @@
 // the to-do line *and* the lines nested under it, which makes the group a real
 // container: the children render inside their entry, and the entry's colour
 // simply cascades to them the way colour does.
+//
+// A to-do is a list item (25/09): a run of them at one indentation is one
+// <ul class="todo-list">, each an <li> — what a screen reader, a copy into
+// Mail or a export expects. And the rule runs before setext headings, so a
+// "-" or "=" typed under a to-do can't underline it into an <h2>: only a
+// paragraph can be underlined, and a to-do isn't one.
 
 import type { MarkdownIt, StateBlock, Token } from "markdown-it";
 import { LINE_TAG, norm, priorityOf } from "./todo-model";
@@ -24,20 +30,29 @@ const isEmpty = (state: StateBlock, line: number): boolean =>
   state.isEmpty(line);
 
 export function todoPlugin(md: MarkdownIt): void {
-  md.block.ruler.before("paragraph", "parker_todo", todoRule, {
+  md.block.ruler.before("lheading", "parker_todo", todoRule, {
     alt: ["paragraph", "blockquote", "list"],
   });
+  md.renderer.rules.parker_todo_list_open = (tokens: Token[], i: number) =>
+    `<ul class="todo-list"${md.renderer.renderAttrs(tokens[i])}>`;
+  md.renderer.rules.parker_todo_list_close = () => `</ul>`;
   md.renderer.rules.parker_todo_open = (tokens: Token[], i: number) => {
     const state = tokens[i].info;
     const priority = (tokens[i].meta as { priority?: number } | null)?.priority ?? 0;
     // The line map's attribute rides along; nothing else is on the token.
     return (
-      `<div class="todo todo-${state.toLowerCase()}"${md.renderer.renderAttrs(tokens[i])}>` +
+      `<li class="todo todo-${state.toLowerCase()}"${md.renderer.renderAttrs(tokens[i])}>` +
       `<div class="todo-head">${todoBoxHtml(state, priority)}`
     );
   };
   md.renderer.rules.parker_todo_text_close = () => `</div>`;
-  md.renderer.rules.parker_todo_close = () => `</div>`;
+  md.renderer.rules.parker_todo_close = () => `</li>`;
+}
+
+/** The to-do tag on a line, or null. */
+function tagAt(state: StateBlock, line: number): RegExpExecArray | null {
+  const start = state.bMarks[line] + state.tShift[line];
+  return LINE_TAG.exec(state.src.slice(start, state.eMarks[line]));
 }
 
 function todoRule(
@@ -46,15 +61,41 @@ function todoRule(
   endLine: number,
   silent: boolean
 ): boolean {
-  const start = state.bMarks[startLine] + state.tShift[startLine];
-  const max = state.eMarks[startLine];
-  const tag = LINE_TAG.exec(state.src.slice(start, max));
-  if (!tag) return false;
+  if (!tagAt(state, startLine)) return false;
+  // Four columns past the block's indent is an indented code block, as it is
+  // for "- item".
+  if (indentAt(state, startLine) - state.blkIndent >= 4) return false;
   if (silent) return true;
 
   const own = indentAt(state, startLine);
+  const list = state.push("parker_todo_list_open", "ul", 1);
+  list.block = true;
 
-  // The group runs until something steps back out to this level or further.
+  // Entries at this indentation, one after another — a blank line between
+  // two of them doesn't end the list, as it doesn't for "- item".
+  let line = startLine;
+  let last = startLine;
+  for (;;) {
+    last = entry(state, line, endLine, own);
+    let next = last + 1;
+    while (next < endLine && isEmpty(state, next)) next++;
+    if (next >= endLine || indentAt(state, next) !== own || !tagAt(state, next)) break;
+    line = next;
+  }
+  list.map = [startLine, last + 1];
+
+  state.push("parker_todo_list_close", "ul", -1);
+  state.line = last + 1;
+  return true;
+}
+
+/** One entry: the to-do line and what is nested under it. Returns its last line. */
+function entry(state: StateBlock, startLine: number, endLine: number, own: number): number {
+  const tag = tagAt(state, startLine)!;
+  const start = state.bMarks[startLine] + state.tShift[startLine];
+  const max = state.eMarks[startLine];
+
+  // The entry runs until something steps back out to this level or further.
   // Blank lines are transparent: an empty line between two sub-items has not
   // left the nesting. Trailing blanks are not claimed, though — they belong to
   // whatever comes next.
@@ -70,7 +111,7 @@ function todoRule(
     line++;
   }
 
-  const open = state.push("parker_todo_open", "div", 1);
+  const open = state.push("parker_todo_open", "li", 1);
   open.info = norm(tag[2]);
   open.meta = { priority: priorityOf(tag) };
   open.map = [startLine, last + 1];
@@ -94,7 +135,6 @@ function todoRule(
     state.blkIndent = oldIndent;
   }
 
-  state.push("parker_todo_close", "div", -1);
-  state.line = last + 1;
-  return true;
+  state.push("parker_todo_close", "li", -1);
+  return last;
 }

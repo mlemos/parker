@@ -47,7 +47,7 @@ describe("a to-do line as its own block", () => {
       "ListItem",
       "Paragraph",
     ]);
-    expect(pathOver(ENTRY_THEN_TODO, "/TODO")).toEqual(["Document", "Paragraph"]);
+    expect(pathOver(ENTRY_THEN_TODO, "/TODO")).toEqual(["Document", "TodoLine"]);
   });
 
   it("keeps the list's colour off it", () => {
@@ -62,7 +62,7 @@ describe("a to-do line as its own block", () => {
     const paragraphs: string[] = [];
     parse(doc).iterate({
       enter: (n) => {
-        if (n.name === "Paragraph") paragraphs.push(doc.slice(n.from, n.to));
+        if (n.name === "TodoLine") paragraphs.push(doc.slice(n.from, n.to));
       },
     });
     expect(paragraphs).toEqual(["/TODO First", "/TODO Second"]);
@@ -70,7 +70,7 @@ describe("a to-do line as its own block", () => {
 
   it("breaks out of a plain paragraph too", () => {
     const doc = "Some prose about the release.\n/TODO Not part of that sentence\n";
-    expect(pathOver(doc, "/TODO")).toEqual(["Document", "Paragraph"]);
+    expect(pathOver(doc, "/TODO")).toEqual(["Document", "TodoLine"]);
   });
 
   it("works for every state, and for the aliases", () => {
@@ -79,8 +79,54 @@ describe("a to-do line as its own block", () => {
       "WIP", "PAUSED", "HOLD", "WAITING", "BLOCKED", "MISSED", "DISMISSED",
     ]) {
       const doc = `/DONE Shipped\n  - a detail\n/${tag} Next\n`;
-      expect(pathOver(doc, `/${tag}`), tag).toEqual(["Document", "Paragraph"]);
+      expect(pathOver(doc, `/${tag}`), tag).toEqual(["Document", "TodoLine"]);
     }
+  });
+});
+
+// A to-do line is a block of its own, not a paragraph (25/09). As a paragraph
+// it could be turned into a heading: a "-" typed on the line below — on its
+// way to "- item" — is Markdown's underline for a heading, and "Sub Todo"
+// flashed bold in the heading colour.
+describe("a to-do line is not a paragraph", () => {
+  const nodes = (doc: string) => {
+    const names: string[] = [];
+    parse(doc).iterate({ enter: (n) => void names.push(n.name) });
+    return names;
+  };
+
+  it("can't be underlined into a heading", () => {
+    for (const doc of [
+      "/TODO Main Todo\n  /TODO Sub Todo\n  -",
+      "/TODO Main Todo\n-",
+      "/TODO Main Todo\n===",
+      "  /DONE Sub\n  ---",
+    ]) {
+      const names = nodes(doc);
+      expect(names.filter((n) => n.startsWith("SetextHeading")), doc).toEqual([]);
+      expect(names, doc).toContain("TodoLine");
+    }
+  });
+
+  it("still underlines ordinary text into a heading", () => {
+    expect(nodes("A title\n---")).toContain("SetextHeading2");
+  });
+
+  it("keeps inline markup on the to-do's text", () => {
+    const names = nodes("/TODO Run `pnpm test` and read **this** [doc](https://example.org)");
+    expect(names).toEqual(expect.arrayContaining(["TodoLine", "InlineCode", "StrongEmphasis", "Link"]));
+  });
+
+  it("covers the line from the tag, indentation and container aside", () => {
+    const doc = "- item\n  /TODO nested task";
+    let span = "";
+    parse(doc).iterate({ enter: (n) => void (n.name === "TodoLine" && (span = doc.slice(n.from, n.to))) });
+    expect(span).toBe("/TODO nested task");
+  });
+
+  it("leaves a line after it to be its own block", () => {
+    const names = nodes("/TODO a\nmore text");
+    expect(names).toEqual(["Document", "TodoLine", "Paragraph"]);
   });
 });
 

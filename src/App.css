@@ -921,6 +921,13 @@ body.resizing {
    wrapped line continues under the text. So a note that mixes `- item` and
    `/TODO item` reads as one list here as it does in the editor — the same
    column for every marker, the same column for every text. */
+/* A run of to-dos is a list (<ul class="todo-list">), but the entry itself
+   takes the indent — the list adds none, so the geometry is the same whether
+   a to-do stands alone or nests under another. */
+.md-body ul.todo-list {
+  padding-left: 0;
+  margin: 0.35em 0;
+}
 .md-body .todo {
   padding-left: var(--list-indent);
   margin: 0.35em 0;
@@ -1133,7 +1140,7 @@ body.resizing {
   position: relative;
 }
 /* The bullet: the engine's three shapes by depth, centred on the marker axis. */
-.md-body ul > li:not(.task)::before {
+.md-body ul > li:not(.task):not(.todo)::before {
   content: "•";
   position: absolute;
   top: 0;
@@ -1141,10 +1148,10 @@ body.resizing {
   width: calc(2 * var(--marker-axis));
   text-align: center;
 }
-.md-body ul ul > li:not(.task)::before {
+.md-body ul ul > li:not(.task):not(.todo)::before {
   content: "◦";
 }
-.md-body ul ul ul > li:not(.task)::before {
+.md-body ul ul ul > li:not(.task):not(.todo)::before {
   content: "▪";
 }
 /* A GFM task (`- [ ]`) is drawn like a to-do entry: the checkbox hangs in

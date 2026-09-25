@@ -57,7 +57,7 @@ describe("to-do entries in the preview", () => {
   // paragraph, so two to-dos read as a single one.
   it("keeps two entries in a row apart", () => {
     expect(shape("/TODO First\n/TODO Second")).toBe(
-      "<div><div></div></div><div><div></div></div>"
+      "<ul><li><div></div></li><li><div></div></li></ul>"
     );
     const out = html("/TODO First\n/TODO Second");
     expect(out).toContain("First");
@@ -68,7 +68,7 @@ describe("to-do entries in the preview", () => {
   // of the entry rather than inside it.
   it("puts the nested lines inside their entry", () => {
     expect(shape("/DONE Shipped\n  - one\n  - two")).toBe(
-      "<div><div></div><ul><li></li><li></li></ul></div>"
+      "<ul><li><div></div><ul><li></li><li></li></ul></li></ul>"
     );
   });
 
@@ -76,13 +76,13 @@ describe("to-do entries in the preview", () => {
   // stay inside the entry. (Markdown makes the list loose, hence the <p>s.)
   it("reads through a blank line inside a group", () => {
     expect(shape("/DONE Shipped\n  - one\n\n  - two")).toBe(
-      "<div><div></div><ul><li><p></p></li><li><p></p></li></ul></div>"
+      "<ul><li><div></div><ul><li><p></p></li><li><p></p></li></ul></li></ul>"
     );
   });
 
   it("ends the group when the text steps back out", () => {
     const out = shape("/DONE Shipped\n  - one\nback at the margin");
-    expect(out).toBe("<div><div></div><ul><li></li></ul></div><p></p>");
+    expect(out).toBe("<ul><li><div></div><ul><li></li></ul></li></ul><p></p>");
   });
 
   it("nests a to-do inside a to-do", () => {
@@ -90,6 +90,12 @@ describe("to-do entries in the preview", () => {
     expect(out).toContain("todo todo-doing");
     expect(out).toContain("todo todo-todo");
     expect(out.indexOf("todo-todo")).toBeGreaterThan(out.indexOf("todo-doing"));
+  });
+
+  it("nests a to-do's own list inside its entry", () => {
+    expect(shape("/DOING Outer\n  /TODO Inner")).toBe(
+      "<ul><li><div></div><ul><li><div></div></li></ul></li></ul>"
+    );
   });
 
   it("renders inline markup on the entry", () => {
@@ -124,5 +130,52 @@ describe("what the preview leaves alone", () => {
 
   it("still refuses a javascript: link on a to-do line", () => {
     expect(html("/TODO [x](javascript:alert(1))")).not.toContain("href");
+  });
+});
+
+// To-dos are list items (25/09): a run of them is one <ul class="todo-list">,
+// each an <li> — for screen readers, for copying into Mail or Docs, and so a
+// line under a to-do can't turn it into a heading.
+describe("to-dos as a list", () => {
+  it("makes a run of to-dos one list, each an item", () => {
+    const out = html("/TODO First\n/DONE Second\n/WAIT Third");
+    expect(out.match(/<ul class="todo-list"/g)?.length).toBe(1);
+    expect(out.match(/<li class="todo /g)?.length).toBe(3);
+    expect(out).toContain('<li class="todo todo-done"');
+  });
+
+  it("keeps a blank line between to-dos inside the same list", () => {
+    expect(shape("/TODO a\n\n/TODO b")).toBe("<ul><li><div></div></li><li><div></div></li></ul>");
+  });
+
+  it("starts a new list after text in between", () => {
+    expect(shape("/TODO a\nbetween\n\n/TODO b")).toBe(
+      "<ul><li><div></div></li></ul><p></p><ul><li><div></div></li></ul>"
+    );
+  });
+
+  it("keeps the source line on each item, for scroll sync", () => {
+    const out = html("/TODO a\n/TODO b");
+    expect(out).toMatch(/<li class="todo todo-todo"[^>]*data-line="1"/);
+    expect(out).toMatch(/<li class="todo todo-todo"[^>]*data-line="2"/);
+  });
+
+  // The scene that showed it: "-" typed under a sub-task, on its way to
+  // "- item", made "/TODO Sub Todo" a heading with its raw tag on screen.
+  it("never turns a to-do into a heading", () => {
+    for (const src of [
+      "/TODO Main Todo\n  /TODO Sub Todo\n  -",
+      "/TODO Main Todo\n-",
+      "/TODO Main Todo\n===",
+    ]) {
+      const out = html(src);
+      expect(out, src).not.toMatch(/<h\d/);
+      expect(out, src).not.toContain("/TODO");
+      expect(out, src).toContain("Main Todo");
+    }
+  });
+
+  it("still underlines ordinary text into a heading", () => {
+    expect(html("A title\n---")).toContain("<h2");
   });
 });
