@@ -42,6 +42,13 @@ jobs:
       - name: The published skill matches the source
         run: node scripts/publish-skill.mjs --check
 
+      # The zip the Claude app uploads: one parker/ folder holding SKILL.md,
+      # and SKILL.md inside it is the skill, byte for byte.
+      - name: The skill zip opens as the Claude app expects
+        run: |
+          test "$(unzip -Z1 site/agents/parker-skill.zip | sort | tr '\n' ' ')" = "parker/ parker/SKILL.md "
+          unzip -p site/agents/parker-skill.zip parker/SKILL.md | cmp - skills/parker/SKILL.md
+
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
