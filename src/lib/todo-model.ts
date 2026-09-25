@@ -284,17 +284,22 @@ export function ownersForRange(
 
 // ---- Enter: a task or a list continues, an empty one ends ----------------------
 
+/** A list item's mark: bullet or number, an optional Markdown checkbox, and
+ *  the spaces after them. */
+const LIST_ITEM = /^(\s*)([-*+]|\d+\.)(?:\s+\[[ xX]\])?(\s+)/;
+
 /**
- * Backspace or Delete on a task's checkbox: the range to remove — the tag, its
- * bangs and the one space after it, so the line is left as plain text — or
- * null when the key should do its usual thing.
+ * Backspace or Delete on an item's mark — a task's checkbox (the tag, its
+ * bangs and the one space after it) or a list item's bullet — the range to
+ * remove, so the line is left as plain text at its indentation; or null when
+ * the key should do its usual thing. Tasks and list items behave the same.
  *
- * Backspace counts right after the tag AND right after its space: the start
- * of the text, which is where ⌘⏎ and a click leave the cursor. Counting only
- * the first left the second to plain Backspace, which took the space alone:
- * an empty task kept its box, and "/TODO buy milk" became "/TODObuy milk" —
- * no longer a task, its raw tag suddenly on screen. Delete counts right
- * before the tag.
+ * Backspace counts right after the mark AND at the start of the text, which
+ * is where ⌘⏎, Enter and a click leave the cursor. Counting only the first
+ * left the second to plain Backspace: an empty task kept its box, "/TODO buy
+ * milk" became "/TODObuy milk", and an empty bullet turned into two spaces of
+ * indentation with the cursor pushed right. Delete counts right before the
+ * mark.
  */
 export function planMarkerDelete(
   line: string,
@@ -302,12 +307,22 @@ export function planMarkerDelete(
   backward: boolean
 ): { from: number; to: number } | null {
   const tag = LINE_TAG.exec(line);
-  if (!tag) return null;
-  const start = tag[1].length;
-  const end = tag[0].length;
-  const hasSpace = line[end] === " ";
-  const at = backward ? col === end || (hasSpace && col === end + 1) : col === start;
-  return at ? { from: start, to: end + (hasSpace ? 1 : 0) } : null;
+  if (tag) {
+    const start = tag[1].length;
+    const end = tag[0].length;
+    const hasSpace = line[end] === " ";
+    const at = backward ? col === end || (hasSpace && col === end + 1) : col === start;
+    return at ? { from: start, to: end + (hasSpace ? 1 : 0) } : null;
+  }
+  const item = LIST_ITEM.exec(line);
+  if (item) {
+    const start = item[1].length;
+    const end = item[0].length;
+    const bulletEnd = start + item[2].length;
+    const at = backward ? col === end || col === bulletEnd : col === start;
+    return at ? { from: start, to: end } : null;
+  }
+  return null;
 }
 
 /**
