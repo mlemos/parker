@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GitBranch, Loader2, CloudUpload } from "lucide-react";
+import { listen } from "@tauri-apps/api/event";
 import { api } from "../lib/api";
 import type { GitStatus, GitFileChange, GitLogEntry } from "../lib/api";
 
@@ -8,8 +9,8 @@ const POLL_MS = 15000;
 // in minutes, so checking once a minute is as fine-grained as it needs to be.
 const TICK_MS = 60000;
 
-/** Settings broadcasts this when the timed-sync interval changes, so the timer
-    picks up a new choice without waiting for a restart. */
+/** The Settings window emits this (as an app-wide event) when the timed-sync
+    interval changes, so the timer picks up a new choice without a restart. */
 export const SYNC_INTERVAL_EVENT = "parker:git-sync-interval";
 
 // A smart default commit message from the changed notes (the folder is flat).
@@ -208,10 +209,10 @@ export function GitMenu({
         .catch(() => {});
     };
     read();
-    window.addEventListener(SYNC_INTERVAL_EVENT, read);
+    const un = listen(SYNC_INTERVAL_EVENT, read);
     return () => {
       alive = false;
-      window.removeEventListener(SYNC_INTERVAL_EVENT, read);
+      un.then((f) => f());
     };
   }, []);
 

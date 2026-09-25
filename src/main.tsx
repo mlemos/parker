@@ -6,6 +6,7 @@ import "@fontsource-variable/geist-mono";
 import App from "./App";
 import AboutWindow from "./AboutWindow";
 import HelpWindow from "./HelpWindow";
+import SettingsRoot from "./SettingsRoot";
 
 // Secondary Tauri windows load index.html?view=… — render the matching
 // standalone view there instead of the full editor.
@@ -31,6 +32,8 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <AboutWindow />
     ) : view === "help" ? (
       <HelpWindow />
+    ) : view === "settings" ? (
+      <SettingsRoot />
     ) : (
       <App noteWindow={noteWindow} />
     )}
