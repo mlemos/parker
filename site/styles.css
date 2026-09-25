@@ -715,7 +715,7 @@ h1 {
 .footer .brand { justify-content: center; }
 .footer .mark-head { width: 26px; height: 26px; }
 .footer-tag { color: var(--text-2); font-size: 15px; margin: 2px 0 6px; }
-.footer-links { display: flex; gap: 24px; font-size: 14px; }
+.footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 24px; font-size: 14px; }
 .footer-links a { color: var(--text-2); transition: color .15s ease; }
 .footer-links a:hover { color: var(--text); }
 .footer-author { color: var(--text-2); font-size: 14px; margin: 4px 0 2px; }
@@ -1249,6 +1249,7 @@ button.todo-out:focus-visible { outline: 2px solid var(--accent); outline-offset
 }
 .step {
   position: relative;
+  min-width: 0; /* a long command scrolls inside its box instead of widening the page */
   padding: 26px 28px 24px 76px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1273,7 +1274,7 @@ button.todo-out:focus-visible { outline: 2px solid var(--accent); outline-offset
 .step p { margin: 0; color: var(--text-2); font-size: 15px; line-height: 1.6; }
 .step p b, .step p strong { color: var(--text); font-weight: 600; }
 .step a { color: var(--accent-hi); }
-.step code, .skill-doc code {
+.step code, .card code {
   font-family: var(--font-mono);
   font-size: 0.88em;
   padding: 1px 5px;
@@ -1284,6 +1285,7 @@ button.todo-out:focus-visible { outline: 2px solid var(--accent); outline-offset
 .step-agent + .step-agent { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border-soft); }
 .step .fine { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
 .cmd {
+  max-width: 100%;
   margin: 10px 0 0;
   padding: 12px 14px;
   overflow-x: auto;
@@ -1293,39 +1295,13 @@ button.todo-out:focus-visible { outline: 2px solid var(--accent); outline-offset
 }
 .cmd code { padding: 0; background: none; font-size: 12.5px; white-space: pre; }
 
-.skill-doc {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 34px 40px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text-2);
-  font-size: 15px;
-  line-height: 1.65;
-}
-.skill-doc h1, .skill-doc h2, .skill-doc h3 { color: var(--text); letter-spacing: -0.01em; line-height: 1.3; }
-.skill-doc h1 { font-size: 26px; margin: 0 0 12px; }
-.skill-doc h2 { font-size: 19px; margin: 34px 0 10px; }
-.skill-doc h3 { font-size: 16px; margin: 24px 0 8px; }
-.skill-doc p { margin: 0 0 12px; }
-.skill-doc ul, .skill-doc ol { margin: 0 0 14px; padding-left: 22px; }
-.skill-doc li { margin: 5px 0; }
-.skill-doc strong { color: var(--text); font-weight: 600; }
-.skill-doc a { color: var(--accent-hi); }
-.skill-doc pre {
-  margin: 12px 0 16px;
-  padding: 14px 16px;
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-}
-.skill-doc pre code { padding: 0; background: none; font-size: 12.5px; line-height: 1.6; white-space: pre; }
 .section-head a { color: var(--accent-hi); }
 
 @media (max-width: 640px) {
   .step { padding: 22px 18px 20px 18px; }
   .step-n { position: static; margin-bottom: 10px; }
-  .skill-doc { padding: 24px 18px; }
 }
+
+/* Headlines break where the sense does, not where the width runs out. */
+h1, h2 { text-wrap: balance; }
+.nw { white-space: nowrap; }
