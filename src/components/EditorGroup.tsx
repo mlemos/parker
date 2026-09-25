@@ -51,6 +51,7 @@ export interface GroupCallbacks {
   onFileDragOver: (index?: number) => void;
   onCloseGroup: () => void;
   onResolveConflict: (name: string, take: "disk" | "mine") => void;
+  onSaveGone: (name: string) => void;
   onReveal: (name: string) => void;
   onPopOut: () => void;
   onDragOut: (id: string) => void;
@@ -536,6 +537,24 @@ export function EditorGroup({
             onClick={() => cb.onResolveConflict(activeBuf.name, "mine")}
           >
             Keep mine
+          </button>
+        </div>
+      )}
+
+      {activeBuf?.gone && !activeBuf.conflict && (
+        <div className="conflict-bar" role="status">
+          <TriangleAlert size={13} strokeWidth={2.5} aria-hidden />
+          <span
+            className="conflict-msg"
+            title="This note was deleted or moved outside Parker"
+          >
+            This note was deleted or moved outside Parker
+          </span>
+          <button className="conflict-btn" onClick={() => cb.onCloseTab(activeBuf.name)}>
+            Close tab
+          </button>
+          <button className="conflict-btn primary" onClick={() => cb.onSaveGone(activeBuf.name)}>
+            Save it again
           </button>
         </div>
       )}

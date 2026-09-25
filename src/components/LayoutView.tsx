@@ -29,6 +29,7 @@ export interface LayoutHandlers {
   onFileDragOver: (groupId: string, index?: number) => void;
   onCloseGroup: (groupId: string) => void;
   onResolveConflict: (name: string, take: "disk" | "mine") => void;
+  onSaveGone: (name: string) => void;
   onReveal: (name: string) => void;
   onResize: (splitId: string, index: number, delta: number) => void;
   onEqualize: (splitId: string, index: number) => void;
@@ -90,6 +91,7 @@ export function LayoutView({
       onFileDragOver: (index) => common.h.onFileDragOver(g.id, index),
       onCloseGroup: () => common.h.onCloseGroup(g.id),
       onResolveConflict: common.h.onResolveConflict,
+      onSaveGone: common.h.onSaveGone,
       onReveal: common.h.onReveal,
       onPopOut: () => common.h.onPopOut(g.id),
       onDragOut: (id) => common.h.onDragOut(g.id, id),

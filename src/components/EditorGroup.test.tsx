@@ -50,6 +50,7 @@ function setup(
     onFileDragOver: vi.fn(),
     onCloseGroup: vi.fn(),
     onResolveConflict: vi.fn(),
+    onSaveGone: vi.fn(),
     onReveal: vi.fn(),
     onPopOut: vi.fn(),
     onDragOut: vi.fn(),
@@ -284,5 +285,29 @@ describe("the pane of the main window", () => {
   it("has nothing to pop out when it is empty", () => {
     setup([], "");
     expect(screen.queryByLabelText("Open in new window")).toBeNull();
+  });
+});
+
+describe("a note whose file is gone", () => {
+  it("says so, and offers to close the tab or save it again", () => {
+    const { cb, container } = setup(["a.md", "b.md"], "a.md", [{ name: "a.md", gone: true }]);
+    const bar = container.querySelector(".conflict-bar")!;
+    expect(bar.textContent).toContain("deleted or moved outside Parker");
+    fireEvent.click(screen.getByRole("button", { name: "Close tab" }));
+    expect(cb.onCloseTab).toHaveBeenCalledWith("a.md");
+    fireEvent.click(screen.getByRole("button", { name: "Save it again" }));
+    expect(cb.onSaveGone).toHaveBeenCalledWith("a.md");
+  });
+
+  it("says nothing for a note that is on disk", () => {
+    const { container } = setup(["a.md"], "a.md");
+    expect(container.querySelector(".conflict-bar")).toBeNull();
+  });
+
+  it("leaves a conflict to its own bar", () => {
+    const { container } = setup(["a.md"], "a.md", [{ name: "a.md", gone: true, conflict: { disk: "x" } }]);
+    const bars = container.querySelectorAll(".conflict-bar");
+    expect(bars.length).toBe(1);
+    expect(bars[0].textContent).toContain("Changed on disk");
   });
 });

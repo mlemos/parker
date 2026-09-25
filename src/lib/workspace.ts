@@ -191,6 +191,24 @@ export function classifyDiskChange(buf: Buffer, disk: string): DiskChange {
 }
 
 /** Record (or clear, with undefined) why this note could not be read or written. */
+/** A failed read, from Rust's error text: the file isn't there (deleted,
+ *  trashed, moved — or mid-replace, which is why callers read twice), or it
+ *  couldn't be read for another reason. */
+export function readFailure(message: string): "missing" | "error" {
+  return /No such file|os error 2\b/.test(message) ? "missing" : "error";
+}
+
+/** Mark a note's file as gone from disk, or back. */
+export function setGone(buffers: Buffer[], name: string, gone: boolean): Buffer[] {
+  return buffers.map((b) => (b.name === name ? { ...b, gone: gone || undefined } : b));
+}
+
+/** Whether a save may write this note now. Not while two versions wait for
+ *  the user, and not while the file is gone: writing would recreate it. */
+export function canAutosave(buffer: Buffer | undefined): buffer is Buffer {
+  return !!buffer && !buffer.conflict && !buffer.gone;
+}
+
 export function setError(
   buffers: Buffer[],
   name: string,
@@ -205,7 +223,7 @@ export function setError(
  * Green is the resting state, and it is stated rather than implied: a tab that
  * says nothing is indistinguishable from a tab whose indicator is broken.
  *
- *   error     something failed and the note may not be on disk at all
+ *   error     something failed, or the file is gone from disk
  *   conflict  two versions exist and only the user can choose
  *   unseen    text arrived from outside and hasn't been read
  *   dirty     your own typing, not yet written
@@ -215,7 +233,7 @@ export type TabStatus = "error" | "conflict" | "unseen" | "dirty" | "saved";
 
 export function tabStatus(buffer: Buffer | undefined): TabStatus {
   if (!buffer) return "saved";
-  if (buffer.error) return "error";
+  if (buffer.error || buffer.gone) return "error";
   if (buffer.conflict) return "conflict";
   if (buffer.changed?.length) return "unseen";
   if (buffer.dirty) return "dirty";

@@ -26,6 +26,11 @@ export interface Buffer {
    *  two versions exist and only the user can pick. Autosave stays out of the
    *  note until it is resolved, so nothing decides this by default. */
   conflict?: { disk: string };
+  /** Set when the file vanished from disk — deleted, trashed or moved outside
+   *  Parker. Nothing writes the note while it is set: a save would recreate
+   *  the file the user just threw away. Cleared when the file comes back, or
+   *  when the user chooses to save it again. */
+  gone?: boolean;
 }
 
 export interface Group {
