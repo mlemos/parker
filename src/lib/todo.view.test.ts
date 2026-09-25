@@ -86,3 +86,54 @@ describe("to-do keys on a real view", () => {
     expect(v.state.doc.toString()).toBe("/DOING!! one");
   });
 });
+
+// The two cases in parker-cursor-bug.md, as the keyboard does them: ⌘⏎ on an
+// empty line leaves "/TODO |", and then…
+describe("right after ⌘⏎ makes a task", () => {
+  /** Type as the DOM input path does: through the editor's input handlers,
+   *  which is where "!" is taken over. */
+  function type(v: EditorView, text: string) {
+    const { from, to } = v.state.selection.main;
+    const handled = v.state
+      .facet(EditorView.inputHandler)
+      .some((h) => h(v, from, to, text, () => v.state.update({ changes: { from, to, insert: text } })));
+    if (!handled) v.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
+  }
+  const shown = (v: EditorView) => {
+    const s = v.state.doc.toString();
+    const h = v.state.selection.main.head;
+    return s.slice(0, h) + "|" + s.slice(h);
+  };
+
+  it("⌫ takes the checkbox away (Bug 1)", () => {
+    const v = open("", 0);
+    press(v, "Enter", { metaKey: true });
+    expect(shown(v)).toBe("/TODO |");
+    press(v, "Backspace");
+    expect(shown(v)).toBe("|");
+  });
+
+  it("⌫ at the start of a task's text leaves the text, not /TODObuy", () => {
+    const v = open("/TODO buy milk", 6);
+    press(v, "Backspace");
+    expect(shown(v)).toBe("|buy milk");
+  });
+
+  it("! raises the priority and the cursor stays put (Bug 2)", () => {
+    const v = open("", 0);
+    press(v, "Enter", { metaKey: true });
+    type(v, "!");
+    expect(shown(v)).toBe("/TODO! |");
+    type(v, "!");
+    type(v, "!");
+    expect(shown(v)).toBe("/TODO!!! |");
+    type(v, "!"); // a fourth is text
+    expect(shown(v)).toBe("/TODO!!! !|");
+  });
+
+  it("! in the middle of the text is text", () => {
+    const v = open("/TODO buy milk", 10);
+    type(v, "!");
+    expect(shown(v)).toBe("/TODO buy !|milk");
+  });
+});

@@ -9,7 +9,9 @@ import {
   nextOnClick,
   norm,
   ownersForRange,
+  planBang,
   planEnter,
+  planMarkerDelete,
   planRotate,
   priorityOf,
   planPriority,
@@ -229,5 +231,70 @@ describe("Enter continues a task or a list, and an empty one ends it", () => {
       if (plan.kind === "continue") expect(plan.prefix, label).toBe(c.prefix);
       if (plan.kind === "exit") expect([plan.from, plan.to], label).toEqual([c.from, c.to]);
     }
+  });
+});
+
+// ---- Backspace on a checkbox, and "!" at the start of a task ----------------
+// From parker-cursor-bug.md (25/09): after ⌘⏎ the cursor sits after the space;
+// Backspace there took only the space, and "!" became text.
+
+describe("planMarkerDelete", () => {
+  it("Backspace after the space takes the whole checkbox (Bug 1)", () => {
+    expect(planMarkerDelete("/TODO ", 6, true)).toEqual({ from: 0, to: 6 });
+    expect(planMarkerDelete("/TODO buy milk", 6, true)).toEqual({ from: 0, to: 6 });
+  });
+
+  it("Backspace right after the tag does the same", () => {
+    expect(planMarkerDelete("/TODO buy milk", 5, true)).toEqual({ from: 0, to: 6 });
+    expect(planMarkerDelete("/TODO", 5, true)).toEqual({ from: 0, to: 5 });
+  });
+
+  it("keeps the indentation and takes the bangs with the tag", () => {
+    expect(planMarkerDelete("  /TODO nested", 8, true)).toEqual({ from: 2, to: 8 });
+    expect(planMarkerDelete("/TODO!!! urgent", 9, true)).toEqual({ from: 0, to: 9 });
+    expect(planMarkerDelete("/DONE finished", 6, true)).toEqual({ from: 0, to: 6 });
+  });
+
+  it("leaves Backspace alone anywhere else in the line", () => {
+    expect(planMarkerDelete("/TODO buy milk", 7, true)).toBeNull(); // inside the text
+    expect(planMarkerDelete("/TODO buy milk", 14, true)).toBeNull(); // end of line
+    expect(planMarkerDelete("/TODO buy milk", 0, true)).toBeNull(); // before the box
+    expect(planMarkerDelete("/TODO  two spaces", 7, true)).toBeNull(); // past the one space
+    expect(planMarkerDelete("buy milk", 0, true)).toBeNull(); // not a task
+  });
+
+  it("Delete right before the tag takes the checkbox", () => {
+    expect(planMarkerDelete("/TODO buy milk", 0, false)).toEqual({ from: 0, to: 6 });
+    expect(planMarkerDelete("  /TODO x", 2, false)).toEqual({ from: 2, to: 8 });
+    expect(planMarkerDelete("/TODO buy milk", 6, false)).toBeNull();
+  });
+});
+
+describe("planBang", () => {
+  it("! at the start of a task's text goes into the tag (Bug 2)", () => {
+    expect(planBang("/TODO ", 6)).toBe(5);
+    expect(planBang("/TODO buy milk", 6)).toBe(5);
+    expect(planBang("/TODO", 5)).toBe(5);
+  });
+
+  it("stacks up to !!!", () => {
+    expect(planBang("/TODO! x", 7)).toBe(6);
+    expect(planBang("/TODO!! x", 8)).toBe(7);
+  });
+
+  it("types a fourth ! as text", () => {
+    expect(planBang("/TODO!!! x", 9)).toBeNull();
+  });
+
+  it("is text anywhere else", () => {
+    expect(planBang("/TODO buy milk", 10)).toBeNull();
+    expect(planBang("/TODO buy milk", 14)).toBeNull();
+    expect(planBang("  /TODO x", 1)).toBeNull();
+    expect(planBang("buy milk", 0)).toBeNull();
+  });
+
+  it("works on any state and under indentation", () => {
+    expect(planBang("/DOING x", 7)).toBe(6);
+    expect(planBang("  /WAIT x", 8)).toBe(7);
   });
 });
