@@ -51,6 +51,24 @@ pub fn starter_readme(skill: &str) -> Option<&str> {
     Some(&section[start..start + end + 1])
 }
 
+/// Whether a file name is a README of any spelling: README.md, readme.txt,
+/// Readme, README.markdown…
+pub fn is_readme(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    lower == "readme" || lower.starts_with("readme.")
+}
+
+/// The notes folder already has a README of some kind at its root.
+fn has_readme(dir: &Path) -> bool {
+    fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .flatten()
+                .any(|e| e.file_type().map(|t| t.is_file()).unwrap_or(false) && is_readme(&e.file_name().to_string_lossy()))
+        })
+        .unwrap_or(false)
+}
+
 fn tilde(p: &Path) -> String {
     let home = dirs::home_dir().unwrap_or_default();
     match p.strip_prefix(&home) {
@@ -66,7 +84,7 @@ pub fn agents_info() -> AgentsInfo {
     AgentsInfo {
         claude_code: status_of(installed.as_deref()),
         claude_code_dir: tilde(&dir),
-        readme: crate::notes_dir().join("README.md").is_file(),
+        readme: has_readme(&crate::notes_dir()),
     }
 }
 
@@ -146,15 +164,26 @@ pub async fn save_skill_zip(app: tauri::AppHandle) -> Result<bool, String> {
 }
 
 /// Create the skill's starter README at the root of the notes folder. Never
-/// overwrites one that exists.
+/// touches a README that is there, whatever its spelling, and the write
+/// itself refuses to replace a file (create_new), so one that appears between
+/// the check and the write is safe too.
 #[tauri::command]
 pub fn create_starter_readme() -> Result<(), String> {
-    let file = crate::notes_dir().join("README.md");
-    if file.exists() {
-        return Err("Your notes folder already has a README.md.".into());
+    use std::io::Write;
+    let dir = crate::notes_dir();
+    if has_readme(&dir) {
+        return Err("Your notes folder already has a README.".into());
     }
     let text = starter_readme(SKILL).ok_or("The skill has no starter README.")?;
-    fs::write(&file, text).map_err(|e| e.to_string())
+    let mut f = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(dir.join("README.md"))
+        .map_err(|e| match e.kind() {
+            std::io::ErrorKind::AlreadyExists => "Your notes folder already has a README.".to_string(),
+            _ => e.to_string(),
+        })?;
+    f.write_all(text.as_bytes()).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -175,6 +204,32 @@ mod tests {
         assert!(r.contains("## For agents"));
         assert!(!r.contains("```"), "no fence left over");
         assert!(r.ends_with('\n'));
+    }
+
+    #[test]
+    fn any_spelling_of_readme_counts() {
+        for n in ["README.md", "readme.md", "Readme.txt", "README", "readme.markdown"] {
+            assert!(is_readme(n), "{n}");
+        }
+        for n in ["readmes.md", "my-readme.md", "notes.md", "README-old"] {
+            assert!(!is_readme(n), "{n}");
+        }
+    }
+
+    #[test]
+    fn a_readme_in_the_folder_is_found_and_never_replaced() {
+        let dir = std::env::temp_dir().join(format!("parker-readme-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        assert!(!has_readme(&dir));
+        fs::write(dir.join("Readme.txt"), "mine").unwrap();
+        assert!(has_readme(&dir));
+        // create_new refuses an existing file even without the check.
+        fs::write(dir.join("README.md"), "mine too").unwrap();
+        let r = fs::OpenOptions::new().write(true).create_new(true).open(dir.join("README.md"));
+        assert_eq!(r.unwrap_err().kind(), std::io::ErrorKind::AlreadyExists);
+        assert_eq!(fs::read_to_string(dir.join("README.md")).unwrap(), "mine too");
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
