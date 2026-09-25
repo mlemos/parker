@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { listen } from "@tauri-apps/api/event";
 import { SettingsWindow, applyWindowTheme } from "./SettingsWindow";
 import { tauriBackend } from "./settingsBackend";
 import { DEFAULT_THEME_ID } from "./lib/themes";
@@ -15,10 +16,17 @@ export default function SettingsRoot() {
   // Closing hides this window (Rust keeps it), so each time it comes back it
   // starts over: a fresh read of every setting and of the skill's state.
   const [shown, setShown] = useState(0);
+  // The theme it comes back in is the one in force now, not the one in the
+  // URL it was created with: a theme picked while it was open (or hidden)
+  // would otherwise be undone by the fresh start.
+  const [theme, setTheme] = useState(initialTheme);
   useEffect(() => {
-    const p = getCurrentWebviewWindow().listen("parker://settings-shown", () => setShown((n) => n + 1));
+    const w = getCurrentWebviewWindow();
+    const shownP = w.listen("parker://settings-shown", () => setShown((n) => n + 1));
+    const themeP = listen<string>("parker://theme", (e) => setTheme(e.payload));
     return () => {
-      p.then((un) => un());
+      shownP.then((un) => un());
+      themeP.then((un) => un());
     };
   }, []);
 
@@ -39,5 +47,5 @@ export default function SettingsRoot() {
       window.removeEventListener("keydown", onKey);
     };
   }, []);
-  return <SettingsWindow key={shown} backend={tauriBackend} initialTheme={initialTheme} />;
+  return <SettingsWindow key={shown} backend={tauriBackend} initialTheme={theme} />;
 }

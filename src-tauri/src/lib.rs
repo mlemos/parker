@@ -39,6 +39,10 @@ struct Session {
     active: Option<String>,
     #[serde(default)]
     theme: Option<String>,
+    /// The theme's editor background ("#0b0a14"), so a window Rust builds
+    /// before its page has painted can already wear it (see paint_before_load).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    theme_bg: Option<String>,
     /// Split layout tree (opaque JSON owned by the frontend). None → single pane.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     layout: Option<serde_json::Value>,
@@ -1422,7 +1426,7 @@ fn show_about_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         return;
     }
     // Pass the current theme so the About window matches the editor's look.
-    let theme = read_session().theme.unwrap_or_default();
+    let theme = current_theme().0;
     let url = format!("index.html?view=about&theme={theme}");
     // Secondary windows are sized in logical pixels, so a zoomed webview inside
     // a fixed frame would simply be cropped — the frame scales with it.
@@ -1441,9 +1445,109 @@ fn show_about_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             .title_bar_style(tauri::TitleBarStyle::Overlay)
             .hidden_title(true);
     }
-    if let Ok(w) = b.build() {
+    if let Ok(w) = paint_before_load(b).build() {
+        clear_webview_background(&w);
         let _ = w.set_zoom(z);
     }
+}
+
+/// Shows a window built hidden once its page has loaded. The page asks to be
+/// shown on its first painted frame, but WebKit runs no frames for a window
+/// that has never been on screen, so that request never came: the first click
+/// on the gear opened nothing, and only the second — which finds the window
+/// and shows it from here — did. By the load event the page's module has run
+/// and put the theme on, so this is still no white flash.
+fn reveal_when_loaded<R: tauri::Runtime>(
+    w: tauri::WebviewWindow<R>,
+    p: tauri::webview::PageLoadPayload<'_>,
+) {
+    if p.event() == tauri::webview::PageLoadEvent::Finished {
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
+}
+
+/// "#rgb", "#rrggbb" or "#rrggbbaa" as a colour; None for anything else.
+fn parse_hex_color(s: &str) -> Option<tauri::window::Color> {
+    let h = s.strip_prefix('#')?;
+    let byte = |i: usize, n: usize| u8::from_str_radix(h.get(i..i + n)?, 16).ok();
+    match h.len() {
+        3 => Some(tauri::window::Color(byte(0, 1)? * 17, byte(1, 1)? * 17, byte(2, 1)? * 17, 255)),
+        6 => Some(tauri::window::Color(byte(0, 2)?, byte(2, 2)?, byte(4, 2)?, 255)),
+        8 => Some(tauri::window::Color(byte(0, 2)?, byte(2, 2)?, byte(4, 2)?, byte(6, 2)?)),
+        _ => None,
+    }
+}
+
+/// The theme in force: its id and its editor background. Every window Rust
+/// builds is born in it — the id in its URL, the colour under its page — so
+/// none opens in another theme, or white, and then changes. The frontend
+/// reports each change the moment it happens (set_theme); the session file,
+/// saved a few seconds later, only seeds it at launch.
+static THEME: std::sync::Mutex<Option<(String, String)>> = std::sync::Mutex::new(None);
+
+/// Parker Night's background: the theme a first launch opens in.
+const DEFAULT_THEME_BG: &str = "#000000";
+
+fn current_theme() -> (String, String) {
+    if let Some(t) = THEME.lock().ok().and_then(|t| t.clone()) {
+        return t;
+    }
+    let s = read_session();
+    (
+        s.theme.unwrap_or_default(),
+        s.theme_bg.unwrap_or_else(|| DEFAULT_THEME_BG.to_string()),
+    )
+}
+
+/// The theme changed (in any window): new windows are born in it, and the
+/// ones already open take its colour under their pages.
+#[tauri::command]
+fn set_theme(app: tauri::AppHandle, id: String, bg: String) {
+    use tauri::Manager;
+    let color = parse_hex_color(&bg);
+    if let Ok(mut t) = THEME.lock() {
+        *t = Some((id, bg));
+    }
+    if let Some(c) = color {
+        for w in app.webview_windows().values() {
+            let _ = w.set_background_color(Some(c));
+        }
+    }
+}
+
+/// A window shown before its page has painted shows whatever is under the
+/// page — WebKit's white, even in a dark theme. So the window takes the
+/// theme's background, and the webview stops drawing its own over it (see
+/// clear_webview_background): until the page paints, the window is already
+/// the colour the page will be.
+fn paint_before_load<R: tauri::Runtime, M: tauri::Manager<R>>(
+    b: tauri::WebviewWindowBuilder<'_, R, M>,
+) -> tauri::WebviewWindowBuilder<'_, R, M> {
+    match parse_hex_color(&current_theme().1) {
+        Some(c) => b.background_color(c),
+        None => b,
+    }
+}
+
+/// The webview half of paint_before_load: on macOS Tauri colours only the
+/// window, and WKWebView keeps painting white on top until its page draws.
+fn clear_webview_background<R: tauri::Runtime>(w: &tauri::WebviewWindow<R>) {
+    #[cfg(target_os = "macos")]
+    let _ = w.with_webview(|wv| unsafe {
+        use objc2::msg_send;
+        use objc2::runtime::AnyObject;
+        use objc2_foundation::{NSNumber, NSString};
+        let wk = wv.inner() as *mut AnyObject;
+        if wk.is_null() {
+            return;
+        }
+        let no = NSNumber::new_bool(false);
+        let key = NSString::from_str("drawsBackground");
+        let _: () = msg_send![wk, setValue: &*no, forKey: &*key];
+    });
+    #[cfg(not(target_os = "macos"))]
+    let _ = w;
 }
 
 /// Open (or focus) the standalone Keyboard Shortcuts window.
@@ -1454,7 +1558,7 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         let _ = w.set_focus();
         return;
     }
-    let theme = read_session().theme.unwrap_or_default();
+    let theme = current_theme().0;
     let url = format!("index.html?view=help&theme={theme}");
     let z = saved_zoom();
     #[allow(unused_mut)]
@@ -1466,6 +1570,7 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         // Start hidden: the frontend applies the theme, then shows the window on
         // the first painted frame so it never flashes an unstyled (white) frame.
         .visible(false)
+        .on_page_load(reveal_when_loaded)
         .center();
     #[cfg(target_os = "macos")]
     {
@@ -1474,7 +1579,8 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             .hidden_title(true)
             .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
     }
-    if let Ok(w) = b.build() {
+    if let Ok(w) = paint_before_load(b).build() {
+        clear_webview_background(&w);
         let _ = w.set_zoom(z);
     }
 }
@@ -1495,7 +1601,7 @@ fn show_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         let _ = w.set_focus();
         return;
     }
-    let theme = read_session().theme.unwrap_or_default();
+    let theme = current_theme().0;
     let url = format!("index.html?view=settings&theme={theme}");
     // Always at 100%: the zoom is the editor's, and a settings window that
     // grows with it would outgrow the screen for no reason.
@@ -1507,6 +1613,7 @@ fn show_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         .maximizable(false)
         // Hidden until the themed first frame has painted (see HelpWindow).
         .visible(false)
+        .on_page_load(reveal_when_loaded)
         .center();
     #[cfg(target_os = "macos")]
     {
@@ -1515,7 +1622,9 @@ fn show_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             .hidden_title(true)
             .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
     }
-    let _ = b.build();
+    if let Ok(w) = paint_before_load(b).build() {
+        clear_webview_background(&w);
+    }
 }
 
 /// ⌘, opens Settings, and pressed again with Settings in front, closes it.
@@ -1782,10 +1891,13 @@ pub fn run() {
             // Build the main window in code (not via config) so we can center
             // the macOS traffic lights inside our 40px custom title bar. The
             // same factory builds the note windows — windows.rs.
+            // Born in the saved theme, so its first frame is already that
+            // colour rather than the default's until the session is read.
+            let theme = current_theme().0;
             windows::build_editor_window(
                 app.handle(),
                 "main",
-                tauri::WebviewUrl::default(),
+                tauri::WebviewUrl::App(format!("index.html?theme={theme}").into()),
                 (900.0, 700.0),
                 None,
             )?;
@@ -1874,6 +1986,7 @@ pub fn run() {
             set_preview_sync,
             open_help,
             open_settings,
+            set_theme,
             agents::agents_info,
             agents::install_claude_code_skill,
             agents::reveal_claude_code_skill,
@@ -1931,6 +2044,19 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_theme_background_is_read_from_hex() {
+        use tauri::window::Color;
+        let c = |s| super::parse_hex_color(s).map(|Color(r, g, b, a)| (r, g, b, a));
+        assert_eq!(c("#0b0a14"), Some((0x0b, 0x0a, 0x14, 255)));
+        assert_eq!(c("#fff"), Some((255, 255, 255, 255)));
+        assert_eq!(c("#00000080"), Some((0, 0, 0, 0x80)));
+        assert_eq!(c("0b0a14"), None);
+        assert_eq!(c("#12345"), None);
+        assert_eq!(c("#zzzzzz"), None);
+        assert_eq!(c("rgb(0,0,0)"), None);
+    }
+
     #[cfg(target_os = "macos")]
     #[test]
     fn the_dataless_bit_is_read_from_st_flags() {

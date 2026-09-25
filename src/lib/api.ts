@@ -19,6 +19,9 @@ export interface Session {
   open: string[];
   active: string | null;
   theme: string | null;
+  /** The theme's editor background, for the windows Rust opens before their
+   *  page paints (Settings, Help). */
+  theme_bg?: string | null;
   layout?: unknown; // serialized split layout tree (frontend-owned schema)
   focused?: string | null; // focused group id within the layout
   /** Note windows — Rust's part of the session; the frontend never sends it. */
@@ -130,6 +133,9 @@ export const api = {
     invoke<void>("set_preview_sync", { enabled }),
   /** Open (or focus) the Settings window. */
   openSettings: () => invoke<void>("open_settings"),
+  /** The theme in force, for the windows Rust opens next and the colour under
+   *  the open ones' pages. */
+  setTheme: (id: string, bg: string) => invoke<void>("set_theme", { id, bg }),
   agentsInfo: () => invoke<AgentsInfo>("agents_info"),
   installClaudeCodeSkill: () => invoke<void>("install_claude_code_skill"),
   revealClaudeCodeSkill: () => invoke<void>("reveal_claude_code_skill"),
