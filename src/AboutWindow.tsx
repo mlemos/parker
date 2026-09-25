@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -32,7 +32,8 @@ export default function AboutWindow() {
     };
   }, []);
 
-  useEffect(() => {
+  // Before the frame paints, so the first one is already in the theme.
+  useLayoutEffect(() => {
     const u = theme.ui;
     const root = document.documentElement;
     const vars: Record<string, string> = {

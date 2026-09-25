@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   ListOrdered,
@@ -102,13 +102,18 @@ export interface NoteWindowProps {
   preview: boolean;
 }
 
-export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {}) {
+export default function App({
+  noteWindow,
+  initialTheme,
+}: { noteWindow?: NoteWindowProps; initialTheme?: string | null } = {}) {
   // One note, one window: no session of its own, no second tab, no split.
   const single = !!noteWindow;
   const [buffers, setBuffers] = useState<Buffer[]>([]);
   const [layout, setLayout] = useState<LayoutNode>(() => makeGroup([], null));
   const [focusedId, setFocusedId] = useState<string>("");
-  const [themeId, setThemeId] = useState<string>(noteWindow?.theme || DEFAULT_THEME_ID);
+  // Rust puts the theme in force in every window's URL — the main window's
+  // too — so the first frame is already in it, not in the default.
+  const [themeId, setThemeId] = useState<string>(noteWindow?.theme || initialTheme || DEFAULT_THEME_ID);
   // Pinned above the other windows (note windows only).
   const [onTop, setOnTop] = useState<boolean>(noteWindow?.onTop ?? false);
   // The theme is broadcast to the other windows only once this one knows
@@ -287,6 +292,7 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
         open: s.buffers.map((b) => b.name),
         active: focusedActive(s),
         theme: s.themeId,
+        theme_bg: themeById(s.themeId).ui.editorBg,
         layout: s.layout,
         focused: s.focusedId,
       })
@@ -302,6 +308,7 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
           open: s.buffers.map((b) => b.name),
           active: focusedActive(s),
           theme: s.themeId,
+          theme_bg: themeById(s.themeId).ui.editorBg,
           layout: s.layout,
           focused: s.focusedId,
         })
@@ -423,8 +430,9 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
     if (sessionRestored.current) scheduleSessionSave();
   }, [openKey, focusedId, layout, themeId, scheduleSessionSave]);
 
-  // Reflect the theme's named UI roles as CSS variables on the root element.
-  useEffect(() => {
+  // Reflect the theme's named UI roles as CSS variables on the root element —
+  // before the frame paints (a layout effect), so no frame is drawn without.
+  useLayoutEffect(() => {
     const root = document.documentElement;
     const u = theme.ui;
     const vars: Record<string, string> = {
@@ -479,8 +487,12 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
     root.dataset.mode = theme.mode;
     root.dataset.theme = theme.id;
     // Broadcast so every other window — About, Help, the other editor
-    // windows — follows the theme live.
-    if (themeSettled.current) emit("parker://theme", theme.id).catch(() => {});
+    // windows — follows the theme live, and tell Rust, so the next window it
+    // opens is born in it and the open ones take its colour underneath.
+    if (themeSettled.current) {
+      emit("parker://theme", theme.id).catch(() => {});
+      api.setTheme(theme.id, u.editorBg).catch(() => {});
+    }
   }, [theme]);
 
   // The theme is one for the app: a change made in any window reaches the

@@ -35,7 +35,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     ) : view === "settings" ? (
       <SettingsRoot />
     ) : (
-      <App noteWindow={noteWindow} />
+      <App noteWindow={noteWindow} initialTheme={params.get("theme")} />
     )}
   </React.StrictMode>,
 );

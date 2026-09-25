@@ -405,7 +405,8 @@ pub fn build_editor_window(
             .hidden_title(true)
             .traffic_light_position(tauri::LogicalPosition::new(16.0, 22.0));
     }
-    let win = b.build()?;
+    let win = super::paint_before_load(b).build()?;
+    super::clear_webview_background(&win);
     let _ = win.set_zoom(super::saved_zoom());
     #[cfg(target_os = "macos")]
     super::follow_active_space(&win);
@@ -528,7 +529,7 @@ fn create(
         }
     }
     let label = with_reg(app, |r| r.new_label()).unwrap_or_else(|| "note-0".to_string());
-    let theme = super::read_session().theme.unwrap_or_default();
+    let theme = super::current_theme().0;
     eprintln!("note window: building {label} for {:?}", entry.name);
     let win = build_editor_window(
         app,
