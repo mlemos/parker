@@ -224,11 +224,11 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
       timers.delete(name);
     }
     const buf = stateRef.current.buffers.find((b) => b.name === name);
-    if (!buf) return;
     // A note with an open conflict is not autosaved: writing would answer the
     // question on the user's behalf, in favour of whoever was typing — which is
-    // the silence this whole feature exists to break.
-    if (buf.conflict) return;
+    // the silence this whole feature exists to break. Nor is a note whose file
+    // is gone: the write would bring back what the user just threw away.
+    if (!ws.canAutosave(buf)) return;
     try {
       const written = buf.content;
       await writeText(name, written);
@@ -617,6 +617,19 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
       if (take === "mine") scheduleSave(name);
     },
     [scheduleSave]
+  );
+
+  // "Save it again" on a note whose file is gone: the one way it comes back.
+  const saveGone = useCallback(
+    (name: string) => {
+      setBuffers((prev) => ws.setGone(prev, name, false));
+      stateRef.current = {
+        ...stateRef.current,
+        buffers: ws.setGone(stateRef.current.buffers, name, false),
+      };
+      void flushSave(name);
+    },
+    [flushSave]
   );
 
   const focusGroup = useCallback((id: string) => setFocusedId(id), []);
@@ -1317,14 +1330,19 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
         // path, and the watcher fires inside it. That is not a missing note;
         // it is one being replaced. Look again before saying anything.
         const msg = e instanceof Error ? e.message : String(e);
-        if (/No such file|os error 2\b/.test(msg)) {
+        if (ws.readFailure(msg) === "missing") {
           await new Promise((r) => setTimeout(r, 250));
           try {
             disk = await readText(name);
           } catch (e2) {
             const m2 = e2 instanceof Error ? e2.message : String(e2);
-            api.logChange(JSON.stringify({ ts: new Date().toISOString(), name, verdict: "read-error", error: m2 })).catch(() => {});
-            setBuffers((prev) => ws.setError(prev, name, `Could not read: ${m2}`));
+            // Still no file: it was deleted, trashed or moved away. Say so,
+            // and stop saving it — see Buffer.gone.
+            const gone = ws.readFailure(m2) === "missing";
+            api.logChange(JSON.stringify({ ts: new Date().toISOString(), name, verdict: gone ? "gone" : "read-error", error: m2 })).catch(() => {});
+            setBuffers((prev) =>
+              gone ? ws.setGone(prev, name, true) : ws.setError(prev, name, `Could not read: ${m2}`)
+            );
             return;
           }
         } else {
@@ -1336,10 +1354,12 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
       const now = stateRef.current.buffers.find((b) => b.name === name);
       if (!now) return;
       // The file is readable: whatever a read said before is over. Only a
-      // write used to clear the error, so a moment's absence stayed red.
+      // write used to clear the error, so a moment's absence stayed red. A
+      // note that was gone is back — restored from the Trash, or by git.
       if (now.error?.startsWith("Could not read")) {
         setBuffers((prev) => ws.setError(prev, name, undefined));
       }
+      if (now.gone) setBuffers((prev) => ws.setGone(prev, name, false));
       // Parker's own writing, which the disk baseline alone cannot always
       // recognise — see isOwnWrite.
       if (ws.isOwnWrite(lastWrite.current.get(name), disk, seqAtRead)) return;
@@ -1434,6 +1454,7 @@ export default function App({ noteWindow }: { noteWindow?: NoteWindowProps } = {
     },
     onCloseGroup: closeGroup,
     onResolveConflict: resolveConflict,
+    onSaveGone: saveGone,
     onReveal: (name) => api.revealFile(name).catch((e) => console.error("reveal failed", e)),
     onResize,
     onEqualize,

@@ -893,3 +893,43 @@ describe("tabStatus", () => {
     expect(ws.tabStatus(ws.setError(failed, "a.md", undefined)[0])).toBe("saved");
   });
 });
+
+// ---- A note whose file is gone ---------------------------------------------
+// Seen on 24/09: a note trashed in the Finder came back minutes later, written
+// again by Parker, which had it open. A gone note must never be saved on its
+// own; only "Save it again" or the file coming back ends that.
+
+describe("a note whose file is gone", () => {
+  it("tells a missing file from another read failure", () => {
+    expect(ws.readFailure("No such file or directory (os error 2)")).toBe("missing");
+    expect(ws.readFailure("os error 2")).toBe("missing");
+    expect(ws.readFailure("Permission denied (os error 13)")).toBe("error");
+    expect(ws.readFailure("stream did not contain valid UTF-8")).toBe("error");
+  });
+
+  it("is never autosaved, and neither is a note in conflict", () => {
+    const gone = ws.setGone([buf("a.md", "text", true)], "a.md", true);
+    expect(ws.canAutosave(gone[0])).toBe(false);
+    expect(ws.canAutosave({ ...buf("b.md", "x", true), conflict: { disk: "y" } })).toBe(false);
+    expect(ws.canAutosave(buf("c.md", "x", true))).toBe(true);
+    expect(ws.canAutosave(undefined)).toBe(false);
+  });
+
+  it("is saved again once it comes back", () => {
+    const gone = ws.setGone([buf("a.md")], "a.md", true);
+    const back = ws.setGone(gone, "a.md", false);
+    expect(back[0].gone).toBeUndefined();
+    expect(ws.canAutosave(back[0])).toBe(true);
+  });
+
+  it("touches only that note", () => {
+    const out = ws.setGone([buf("a.md"), buf("b.md")], "a.md", true);
+    expect(out[0].gone).toBe(true);
+    expect(out[1].gone).toBeUndefined();
+  });
+
+  it("shows as an error on its tab", () => {
+    expect(ws.tabStatus({ ...buf("a.md"), gone: true })).toBe("error");
+    expect(ws.tabStatus({ ...buf("a.md", "x", true), gone: true })).toBe("error");
+  });
+});
