@@ -1,6 +1,6 @@
 ---
 name: parker
-description: Work inside a Parker notes folder — the plain-Markdown vault behind the Parker app. Use whenever the user mentions Parker, "my notes", "my vault", a backlog, tracker or to-do list kept in Parker, or asks you to read, add, update or triage tasks in their notes. Covers where the folder is, the to-do grammar the app renders, how the app reacts to your edits, how to edit without damaging a note, how to shape what you write, and how to hand decisions back to the user.
+description: Work in a Parker notes folder: find it, read and write its to-dos, edit notes without damage, and hand decisions back. Use when the user mentions Parker, their notes, a backlog, tasks or to-dos.
 ---
 
 # Parker
