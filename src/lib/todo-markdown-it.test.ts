@@ -110,6 +110,28 @@ describe("what the preview leaves alone", () => {
     expect(shape("- one\n- two")).toBe("<ul><li></li><li></li></ul>");
   });
 
+  // The editor's rule: a tag counts only with nothing but whitespace before
+  // it on the line. After a list marker or a quote's ">" it is text, as it is
+  // there — a list item whose text starts with a slash.
+  it("leaves a tag after a list marker as the item's text, as the editor does", () => {
+    const out = html("- /TODO after a marker\n- plain");
+    expect(out).not.toContain("todo-list");
+    expect(out).toContain("/TODO after a marker");
+    expect(shape("- /TODO after a marker\n- plain")).toBe("<ul><li></li><li></li></ul>");
+  });
+
+  it("leaves a tag after a quote marker as the quote's text", () => {
+    const out = html("> /DONE in a quote");
+    expect(out).not.toContain("todo-list");
+    expect(out).toContain("/DONE in a quote");
+  });
+
+  it("still takes an indented tag under a list item, as the editor does", () => {
+    const out = html("- item\n  /TODO under the item");
+    expect(out).toContain('class="todo todo-todo"');
+    expect(out).not.toContain("/TODO under");
+  });
+
   it("does not touch a word that only looks like a tag", () => {
     for (const line of ["/TODOS many", "/DO it", "TODO no slash"])
       expect(html(line), line).not.toContain("cm-todo-box");
