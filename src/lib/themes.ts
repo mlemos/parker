@@ -379,15 +379,16 @@ const daySyntax: SyntaxColors = {
 };
 
 // Parker Night — Vercel Night's chrome and ground, with a content palette of
-// its own: structure in indigo, emphasis in one family (lime, and a lighter
-// lime where bold and italic meet), a link's text in blue and its address in
-// fuchsia — two things, two colours. Picked in the theme editor, 2026-09-20.
+// its own: structure in purple; bold, italic and both in three warm-to-acid
+// hues (lime, amber, orange) so each mark is its own thing; a link's text in
+// sky and its address a shade lighter; and a highlighter that is simply
+// yellow. Tuned in the theme editor, 2026-09-26.
 const parkerNightSyntax: SyntaxColors = {
   plain: tw.zinc[100],
-  heading: tw.indigo[500],
-  bold: tw.lime[300],
-  italic: tw.lime[300],
-  boldItalic: tw.lime[200],
+  heading: tw.purple[400],
+  bold: tw.lime[400],
+  italic: tw.amber[400],
+  boldItalic: tw.orange[400],
   list: tw.zinc[200],
   inlineCode: tw.green[400],
   keyword: tw.pink[400],
@@ -396,24 +397,23 @@ const parkerNightSyntax: SyntaxColors = {
   func: tw.cyan[400],
   comment: tw.zinc[500],
   strike: tw.zinc[500],
-  highlight: tw.yellow[300],
+  highlight: "#ffff00", // the pen, not a swatch
   punct: tw.zinc[400],
-  link: tw.blue[500],
-  url: tw.fuchsia[500],
+  link: tw.sky[400],
+  url: tw.sky[300],
   quote: tw.zinc[400],
   invalid: tw.red[400],
 };
 
 // Parker Day — the same palette on Vercel Day's paper, stepped down to the
-// 600s the way daySyntax steps down from nightSyntax; the lighter lime that
-// marks bold-italic after dark becomes the darker one here, because on white
-// "more" is darker.
+// 600s the way daySyntax steps down from nightSyntax. The highlighter stays
+// yellow-600: the pen's own yellow is invisible on white.
 const parkerDaySyntax: SyntaxColors = {
   plain: tw.zinc[900],
-  heading: tw.indigo[600],
+  heading: tw.purple[600],
   bold: tw.lime[600],
-  italic: tw.lime[600],
-  boldItalic: tw.lime[700],
+  italic: tw.amber[600],
+  boldItalic: tw.orange[600],
   list: tw.zinc[700],
   inlineCode: tw.green[700],
   keyword: tw.pink[600],
@@ -424,8 +424,8 @@ const parkerDaySyntax: SyntaxColors = {
   strike: tw.zinc[400],
   highlight: tw.yellow[600],
   punct: tw.zinc[500],
-  link: tw.blue[600],
-  url: tw.fuchsia[600],
+  link: tw.sky[600],
+  url: tw.sky[500],
   quote: tw.zinc[500],
   invalid: tw.red[600],
 };
