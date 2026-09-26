@@ -1683,11 +1683,11 @@ body.resizing {
   color: var(--md-url);
   text-decoration: underline;
 }
-/* Struck text: the theme's strike colour, and the line through it — the
-   parser alone only tags it. */
+/* Struck text: the theme's strike colour, and only that. The tildes are in
+   view here, so the line through it would say the same thing twice; the
+   preview, where the tildes are gone, draws the line. */
 .editor-wrap .cm-md-strike {
   color: var(--md-strike);
-  text-decoration: line-through;
 }
 /* Under a to-do, a mark keeps its hue and loses intensity — its own dial
    (--todo-child-mark-mix), not the line's — so a nested line stays a nested
