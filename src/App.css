@@ -1491,8 +1491,8 @@ body.resizing {
      page. The marks on those lines — bold, italic, code, links — keep their
      own hue and dim by a dial of their own, so a mark under a to-do reads as
      itself, only quieter. Both are tuned in the theme editor harness. */
-  --todo-child-mix: 55%;
-  --todo-child-mark-mix: 70%;
+  --todo-child-mix: 70%;
+  --todo-child-mark-mix: 85%;
   /* The square's geometry, shared by the editor and the preview (and mirrored
      by the iPhone, TodoAttachment.swift). The square is centred on the column
      a list marker takes, so a box and a `-` sit on one axis — it is wider
