@@ -49,9 +49,15 @@ export function todoPlugin(md: MarkdownIt): void {
   md.renderer.rules.parker_todo_close = () => `</li>`;
 }
 
-/** The to-do tag on a line, or null. */
+/** The to-do tag on a line, or null. Only where the editor sees one: with
+    nothing but whitespace before it on the source line. Inside a list item or
+    a quote markdown-it has moved the line's start past the marker, so
+    "- /TODO x" would otherwise read as a to-do here and as a list item whose
+    text starts with a slash there; the raw line is what both sides agree on. */
 function tagAt(state: StateBlock, line: number): RegExpExecArray | null {
   const start = state.bMarks[line] + state.tShift[line];
+  const lineStart = state.src.lastIndexOf("\n", start - 1) + 1;
+  if (!/^\s*$/.test(state.src.slice(lineStart, start))) return null;
   return LINE_TAG.exec(state.src.slice(start, state.eMarks[line]));
 }
 
