@@ -225,6 +225,12 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* After the name of a tab whose note is a symlink. */
+.tab-link {
+  flex: none;
+  margin-left: 4px;
+  color: var(--muted);
+}
 /* A preview tab: the eye where the dot would be — the same note, seen rather
    than edited. The name is set as any other tab's. */
 .tab-eye {

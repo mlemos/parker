@@ -14,6 +14,7 @@ import {
   PictureInPicture2,
   ArrowLeftToLine,
   Cloud,
+  Link2,
 } from "lucide-react";
 import { languageForName } from "../lib/lang";
 import { tabStatus } from "../lib/workspace";
@@ -376,6 +377,10 @@ export function EditorGroup({
                   <Cloud className="tab-cloud" size={12} strokeWidth={2} aria-label="In iCloud, not on this Mac yet" />
                 )}
                 <span className="tab-name">{displayName(name)}</span>
+                {/* A symlinked note: edits go to the file it points at. */}
+                {links[name] && !preview && (
+                  <Link2 className="tab-link" size={11} strokeWidth={2} aria-label="A link" />
+                )}
                 <span
                   className="tab-close"
                   onClick={(e) => {

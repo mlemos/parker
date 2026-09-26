@@ -28,7 +28,8 @@ function setup(
   tabs: string[],
   active: string,
   extra: Partial<Buffer>[] = [],
-  noteWindow?: NoteWindow
+  noteWindow?: NoteWindow,
+  links: Record<string, string> = {}
 ) {
   const cb: GroupCallbacks = {
     onFocus: vi.fn(),
@@ -75,11 +76,24 @@ function setup(
       renamingName={null}
       homeDir="/Volumes/work"
       noteWindow={noteWindow}
+      links={links}
       cb={cb}
     />
   );
   return { cb, ...view };
 }
+
+// A symlinked note is edited through the link (Onda 4). Opening it has to say
+// so where it can be seen, not only in a tooltip: an icon on the tab.
+describe("a note that is a symlink", () => {
+  it("wears a link icon, and names the real file on hover", () => {
+    setup(["a.md", "link.md"], "link.md", [], undefined, { "link.md": "/home/me/Desktop/test.md" });
+    const tab = screen.getByText("link.md").closest(".tab")!;
+    expect(tab.querySelector(".tab-link")).not.toBeNull();
+    expect(tab.getAttribute("title")).toContain("a link to /home/me/Desktop/test.md");
+    expect(screen.getByText("a.md").closest(".tab")!.querySelector(".tab-link")).toBeNull();
+  });
+});
 
 describe("a file from outside the notes folder", () => {
   it("shows only its filename on the tab, and the whole path on hover", () => {

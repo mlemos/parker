@@ -1703,6 +1703,11 @@ export default function App({
       <div className="statusbar">
         {activeName && isExternal(activeName) ? (
           <PathLabel className="status-file" path={activeName} home={homeDir} />
+        ) : activeName && links[activeName] ? (
+          // A symlinked note says where its text really lives.
+          <span className="status-file" title={links[activeName]}>
+            {activeName} → {prettyPath(links[activeName], homeDir)}
+          </span>
         ) : (
           <span className="status-file">{activeName ?? ""}</span>
         )}
