@@ -1092,9 +1092,9 @@ body.resizing {
   line-height: 1.7;
   color: var(--editor-fg);
   /* The one indent every list-like block uses — bullets, numbers, to-do
-     entries, task checkboxes — so their texts share a column. The gutter
-     before it holds the marker, and every marker — bullet, box, checkbox —
-     is centred on `--marker-axis`, so they line up on one vertical line.
+     entries — so their texts share a column. The gutter before it holds the
+     marker, and every marker — bullet, box — is centred on `--marker-axis`,
+     so they line up on one vertical line.
      The bullets are drawn here rather than by the engine (whose marker sits
      wherever it likes, differently per engine) so the axis is a fact. */
   --list-indent: 1.6em;
@@ -1199,7 +1199,7 @@ body.resizing {
   position: relative;
 }
 /* The bullet: the engine's three shapes by depth, centred on the marker axis. */
-.md-body ul > li:not(.task):not(.todo)::before {
+.md-body ul > li:not(.todo)::before {
   content: "•";
   position: absolute;
   top: 0;
@@ -1207,22 +1207,11 @@ body.resizing {
   width: calc(2 * var(--marker-axis));
   text-align: center;
 }
-.md-body ul ul > li:not(.task):not(.todo)::before {
+.md-body ul ul > li:not(.todo)::before {
   content: "◦";
 }
-.md-body ul ul ul > li:not(.task):not(.todo)::before {
+.md-body ul ul ul > li:not(.todo)::before {
   content: "▪";
-}
-/* A GFM task (`- [ ]`) is drawn like a to-do entry: the checkbox hangs in
-   the gutter on the marker axis and the text stays in the text column. */
-.md-body li.task input {
-  font: inherit; /* an input's em is its own 13px otherwise — the sizes below are the text's */
-  width: var(--todo-box-size);
-  height: var(--todo-box-size);
-  margin: 0 calc(var(--list-indent) - var(--marker-inset) - var(--todo-box-size)) 0
-    calc(var(--marker-inset) - var(--list-indent));
-  vertical-align: var(--todo-box-drop);
-  accent-color: var(--accent);
 }
 .md-body blockquote {
   padding: 0.2em 1em;

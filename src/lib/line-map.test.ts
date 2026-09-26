@@ -29,8 +29,8 @@ describe("the line map in the rendered HTML", () => {
 
   it("changes nothing else about the output", () => {
     const html = renderMarkdown("- [ ] task\n- [x] done\n");
-    expect(html).toContain('<li class="task" data-line="1"><input type="checkbox" disabled>');
-    expect(html).toContain('<li class="task" data-line="2"><input type="checkbox" checked disabled>');
+    expect(html).toContain('<li data-line="1">[ ] task</li>');
+    expect(html).toContain('<li data-line="2">[x] done</li>');
   });
 });
 

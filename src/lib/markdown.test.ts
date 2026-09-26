@@ -80,24 +80,16 @@ describe("renderMarkdown / highlight", () => {
   });
 });
 
-describe("renderMarkdown / task lists", () => {
-  it("turns GFM checkboxes into disabled inputs", () => {
-    const html = renderMarkdown("- [ ] milk\n- [x] bread");
-    expect(html).toContain('<li class="task" data-line="1"><input type="checkbox" disabled>milk</li>');
-    expect(html).toContain(
-      '<li class="task" data-line="2"><input type="checkbox" checked disabled>bread</li>'
-    );
-  });
-
-  it("accepts an upper-case X and ordered lists", () => {
-    expect(renderMarkdown("1. [X] one")).toContain('checked disabled>one');
-  });
-
-  it("handles loose list items, where the text is wrapped in a paragraph", () => {
-    const html = renderMarkdown("- [ ] a\n\n- [ ] b");
-    expect(html).toContain(
-      '<li class="task" data-line="1"><p data-line="1"><input type="checkbox" disabled>a</p>'
-    );
+describe("renderMarkdown / brackets are text", () => {
+  // Decided 2026-09-26: GFM task lists are not supported. A to-do is a
+  // tagged line; "[ ]" after a bullet is the item's text, as in the editor.
+  it("leaves a GFM checkbox as the item's text", () => {
+    const html = renderMarkdown("- [ ] milk\n- [x] bread\n1. [X] one");
+    expect(html).not.toContain("checkbox");
+    expect(html).not.toContain('class="task"');
+    expect(html).toContain("[ ] milk");
+    expect(html).toContain("[x] bread");
+    expect(html).toContain("[X] one");
   });
 
   it("leaves brackets that aren't a checkbox alone", () => {

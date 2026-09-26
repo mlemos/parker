@@ -284,9 +284,9 @@ export function ownersForRange(
 
 // ---- Enter: a task or a list continues, an empty one ends ----------------------
 
-/** A list item's mark: bullet or number, an optional Markdown checkbox, and
- *  the spaces after them. */
-const LIST_ITEM = /^(\s*)([-*+]|\d+\.)(?:\s+\[[ xX]\])?(\s+)/;
+/** A list item's mark: bullet or number, and the spaces after it. "[ ]"
+ *  after it is the item's text, not a checkbox — a to-do is a tagged line. */
+const LIST_ITEM = /^(\s*)([-*+]|\d+\.)(\s+)/;
 
 /**
  * Backspace or Delete on an item's mark — a task's checkbox (the tag, its
