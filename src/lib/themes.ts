@@ -107,6 +107,7 @@ export interface SyntaxColors {
   func: string; // function / type / class names
   comment: string; // comments, block quotes
   strike: string; // ~~struck through~~
+  highlight: string; // ==highlighted==: the ink, and a wash of it behind
   punct: string; // operators, punctuation, brackets
   link: string; // a link's text
   url: string; // the url itself (and a bare one)
@@ -118,6 +119,9 @@ export interface SyntaxColors {
     the fenced code text (also monospace) does not. Attached to the node in
     lang.ts (mdTags). */
 export const inlineCodeTag = Tag.define(t.monospace);
+/** ==Highlighted== text — a node of Parker's own (lib/highlight.ts), so a tag
+    of its own. */
+export const highlightTag = Tag.define();
 
 function monoStyles(p: SyntaxColors) {
   return [
@@ -196,6 +200,7 @@ function monoStyles(p: SyntaxColors) {
     { tag: [t.strong], class: "cm-md-strong" },
     { tag: [inlineCodeTag], class: "cm-md-code" },
     { tag: [t.strikethrough], class: "cm-md-strike" },
+    { tag: [highlightTag], class: "cm-md-highlight" },
     // Before the links, so a link inside a quote is still a link: a quote's
     // colour covers its children, and the later rule wins on a span both
     // cover. The url after a link's text is the same case — its own node
@@ -343,6 +348,7 @@ const nightSyntax: SyntaxColors = {
   func: tw.cyan[400],
   comment: tw.zinc[500],
   strike: tw.zinc[500],
+  highlight: tw.yellow[300],
   punct: tw.zinc[400],
   link: tw.cyan[400],
   url: tw.blue[400],
@@ -364,6 +370,7 @@ const daySyntax: SyntaxColors = {
   func: tw.cyan[600],
   comment: tw.zinc[400],
   strike: tw.zinc[400],
+  highlight: tw.yellow[600],
   punct: tw.zinc[500],
   link: tw.cyan[600],
   url: tw.blue[600],
@@ -389,6 +396,7 @@ const parkerNightSyntax: SyntaxColors = {
   func: tw.cyan[400],
   comment: tw.zinc[500],
   strike: tw.zinc[500],
+  highlight: tw.yellow[300],
   punct: tw.zinc[400],
   link: tw.blue[500],
   url: tw.fuchsia[500],
@@ -414,6 +422,7 @@ const parkerDaySyntax: SyntaxColors = {
   func: tw.cyan[600],
   comment: tw.zinc[400],
   strike: tw.zinc[400],
+  highlight: tw.yellow[600],
   punct: tw.zinc[500],
   link: tw.blue[600],
   url: tw.fuchsia[600],
@@ -479,6 +488,7 @@ const githubLightSyntax: SyntaxColors = {
   func: "#8250df",
   comment: "#6e7781",
   strike: "#6e7781",
+  highlight: "#9a6700",
   punct: "#24292f",
   link: "#0969da",
   url: "#0969da",
@@ -500,6 +510,7 @@ const githubDarkSyntax: SyntaxColors = {
   func: "#d2a8ff",
   comment: "#8b949e",
   strike: "#8b949e",
+  highlight: "#e3b341",
   punct: "#c9d1d9",
   link: "#58a6ff",
   url: "#58a6ff",
@@ -556,6 +567,7 @@ const playaSyntax: SyntaxColors = {
   func: "#4f7373",
   comment: "#8a7860",
   strike: "#8a7860",
+  highlight: "#8d6b1f",
   punct: "#6b5a44",
   link: "#2f6f6f",
   url: "#2f6f6f",
@@ -600,6 +612,7 @@ const playaNightSyntax: SyntaxColors = {
   func: "#7fd1ff",
   comment: "#8b83b5",
   strike: "#8b83b5",
+  highlight: "#ffe066",
   punct: "#9a92c4",
   link: "#7fd1ff",
   url: "#7fd1ff",
@@ -645,6 +658,7 @@ const matrixSyntax: SyntaxColors = {
   func: "#70c29a",
   comment: "#2f8f4f",
   strike: "#2f8f4f",
+  highlight: "#c8ff7d",
   punct: "#4a9c68",
   link: "#00ffcc",
   url: "#00ffcc",
@@ -691,6 +705,7 @@ const blueprintSyntax: SyntaxColors = {
   func: "#ffffff",
   comment: "#84a4cd",
   strike: "#84a4cd",
+  highlight: "#ffd28a",
   punct: "#9fb8dd",
   link: "#a6d8ff",
   url: "#a6d8ff",

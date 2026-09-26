@@ -12,6 +12,7 @@ import { Strikethrough } from "@lezer/markdown";
 import type { MarkdownConfig } from "@lezer/markdown";
 import { todoBlocks } from "./todo-markdown";
 import { inlineCodeTag } from "./themes";
+import { Highlight } from "./highlight";
 import { formatKeymap } from "./format";
 import type { Extension } from "@uiw/react-codemirror";
 
@@ -23,11 +24,11 @@ export async function languageForName(name: string): Promise<Extension[]> {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
 
   if (ext === "md" || ext === "markdown" || ext === "mdx") {
-    // markdown() parses CommonMark; ~~strikethrough~~ is GFM, so that one
-    // extension is added — and only that one. Tables, task lists and
-    // autolinks stay with the code that already handles them.
+    // markdown() parses CommonMark; ~~strikethrough~~ is GFM and ==highlight==
+    // is nobody's standard, so those two are added — and only those. Tables
+    // and autolinks stay with the code that already handles them.
     return [
-      markdown({ codeLanguages: languages, extensions: [Strikethrough, todoBlocks, mdTags] }),
+      markdown({ codeLanguages: languages, extensions: [Strikethrough, Highlight, todoBlocks, mdTags] }),
       formatKeymap,
     ];
   }

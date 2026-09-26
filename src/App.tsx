@@ -529,6 +529,8 @@ export default function App({
       "--md-link": theme.syntax.link,
       "--md-url": theme.syntax.url,
       "--md-strike": theme.syntax.strike,
+      "--md-highlight": theme.syntax.highlight,
+      "--md-highlight-bg": alpha(theme.syntax.highlight, 0.25),
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
