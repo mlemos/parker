@@ -859,15 +859,94 @@ fn set_git_sync_interval(minutes: u32) -> Result<(), String> {
 // Inspired by the Health Dashboard's commit menu: a rich per-file status, a
 // real (editable) commit message, separate commit/push, and a history view.
 
+/// The longest any git command may take. A push that waits on a password
+/// nobody will type, or on a network that isn't there, is killed here — the
+/// timed sync and the quit both wait for git, and neither may hang.
+const GIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
 fn run_git(args: &[&str]) -> Result<std::process::Output, String> {
-    Command::new("git")
-        // Keep non-ASCII note names literal instead of octal-escaped.
-        .arg("-c")
+    run_with_timeout(git_command(&notes_dir(), args), GIT_TIMEOUT)
+}
+
+/// A git command that can never stop to ask anything. The repo's hooks and
+/// config are the user's and stay as they are (decided 24/09); this only
+/// makes sure no prompt can hold Parker up:
+/// - GIT_TERMINAL_PROMPT=0: no username/password prompt (a credential helper,
+///   like the macOS keychain, still answers);
+/// - ssh in BatchMode: no passphrase or host-key question — on top of the
+///   repo's own `core.sshCommand` when it has one, not instead of it;
+/// - stdin closed: nothing to read an answer from.
+fn git_command(dir: &std::path::Path, args: &[&str]) -> Command {
+    let mut c = Command::new("git");
+    // Keep non-ASCII note names literal instead of octal-escaped.
+    c.arg("-c")
         .arg("core.quotepath=false")
         .args(args)
-        .current_dir(notes_dir())
+        .current_dir(dir)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .stdin(std::process::Stdio::null());
+    // Only the commands that talk to a remote use ssh; the status chip runs
+    // the others every few seconds, and they needn't read the config first.
+    if matches!(args.first(), Some(&("push" | "fetch" | "pull" | "ls-remote"))) {
+        c.env("GIT_SSH_COMMAND", format!("{} -o BatchMode=yes", repo_ssh(dir)));
+    }
+    c
+}
+
+/// The repo's own `core.sshCommand`, or plain ssh.
+fn repo_ssh(dir: &std::path::Path) -> String {
+    Command::new("git")
+        .args(["config", "--get", "core.sshCommand"])
+        .current_dir(dir)
+        .stdin(std::process::Stdio::null())
         .output()
-        .map_err(|e| format!("git not available: {e}"))
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "ssh".to_string())
+}
+
+/// Run `cmd` and collect its output, killing it if it runs past `limit`.
+/// Both pipes are drained on their own threads while it runs, so a command
+/// with a lot to say can't fill a pipe and stall before the limit.
+fn run_with_timeout(mut cmd: Command, limit: std::time::Duration) -> Result<std::process::Output, String> {
+    use std::io::Read;
+    use std::process::Stdio;
+    let mut child = cmd
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("git not available: {e}"))?;
+    let drain = |p: Option<Box<dyn Read + Send>>| {
+        std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            if let Some(mut p) = p {
+                let _ = p.read_to_end(&mut buf);
+            }
+            buf
+        })
+    };
+    let out = drain(child.stdout.take().map(|p| Box::new(p) as Box<dyn Read + Send>));
+    let err = drain(child.stderr.take().map(|p| Box::new(p) as Box<dyn Read + Send>));
+    let start = std::time::Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if start.elapsed() >= limit => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!("git took longer than {} s and was stopped", limit.as_secs()));
+            }
+            Ok(None) => std::thread::sleep(std::time::Duration::from_millis(20)),
+            Err(e) => return Err(format!("git failed: {e}")),
+        }
+    };
+    Ok(std::process::Output {
+        status,
+        stdout: out.join().unwrap_or_default(),
+        stderr: err.join().unwrap_or_default(),
+    })
 }
 
 fn git_is_repo() -> bool {
@@ -2113,6 +2192,47 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    // Git may never hold the app up (Onda 4): a command past its limit is
+    // killed and reported, and one that finishes brings all its output back.
+    #[test]
+    fn a_command_past_its_limit_is_stopped() {
+        let mut c = std::process::Command::new("sleep");
+        c.arg("5");
+        let t = std::time::Instant::now();
+        let r = super::run_with_timeout(c, std::time::Duration::from_millis(200));
+        assert!(t.elapsed() < std::time::Duration::from_secs(2));
+        assert!(r.unwrap_err().contains("was stopped"));
+    }
+
+    #[test]
+    fn a_command_within_its_limit_brings_all_its_output() {
+        let mut c = std::process::Command::new("sh");
+        // More than a pipe buffer on stdout, plus a line on stderr.
+        c.args(["-c", "yes parker | head -c 200000; echo oops >&2; exit 3"]);
+        let o = super::run_with_timeout(c, std::time::Duration::from_secs(10)).unwrap();
+        assert_eq!(o.stdout.len(), 200000);
+        assert_eq!(String::from_utf8_lossy(&o.stderr).trim(), "oops");
+        assert_eq!(o.status.code(), Some(3));
+    }
+
+    #[test]
+    fn git_can_never_stop_to_ask() {
+        let dir = std::env::temp_dir();
+        let env = |args: &[&str]| -> std::collections::HashMap<String, Option<String>> {
+            super::git_command(&dir, args)
+                .get_envs()
+                .map(|(k, v)| (k.to_string_lossy().into_owned(), v.map(|v| v.to_string_lossy().into_owned())))
+                .collect()
+        };
+        let push = env(&["push"]);
+        assert_eq!(push["GIT_TERMINAL_PROMPT"].as_deref(), Some("0"));
+        assert!(push["GIT_SSH_COMMAND"].as_deref().unwrap().ends_with("-o BatchMode=yes"));
+        // Local commands don't touch ssh, so they don't pay for reading its config.
+        let status = env(&["status"]);
+        assert_eq!(status["GIT_TERMINAL_PROMPT"].as_deref(), Some("0"));
+        assert!(!status.contains_key("GIT_SSH_COMMAND"));
+    }
+
     #[test]
     fn a_settings_section_is_a_short_lowercase_word() {
         let s = |v: &str| super::settings_section(Some(v.to_string()));
