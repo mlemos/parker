@@ -2258,6 +2258,21 @@ body.resizing {
   padding-left: 8px;
   box-shadow: inset 0 0 0 1px var(--accent);
 }
+/* Under a tab being renamed, when the rename acts on a link (symlinked
+   note): the file it points at keeps its name. Fixed, placed from the field
+   (RenameInput): the tab strip scrolls sideways and would clip it. */
+.tab-rename-hint {
+  position: fixed;
+  z-index: 50;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--popover-bg);
+  color: var(--secondary);
+  font-size: 11.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
 .tab-rename {
   width: 150px;
   border: none;

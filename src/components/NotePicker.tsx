@@ -335,6 +335,7 @@ export function NotePicker({
                   e.preventDefault();
                   if (confirming !== n.name) onOpen(n.name);
                 }}
+                title={n.link ? `A link to ${n.link}` : undefined}
               >
                 <div className="picker-main">
                   <span className="picker-name">
@@ -357,7 +358,10 @@ export function NotePicker({
 
                 {confirming === n.name ? (
                   <div className="picker-confirm">
-                    <span className="picker-confirm-label">Move to Trash?</span>
+                    <span className="picker-confirm-label" title={n.link}>
+                      {/* A link goes to the Trash; the file it points at doesn't. */}
+                      {n.link ? "Trash the link? The file stays." : "Move to Trash?"}
+                    </span>
                     <button
                       className="picker-del-yes"
                       onMouseDown={(e) => {

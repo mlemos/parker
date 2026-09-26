@@ -29,6 +29,11 @@ struct NoteMeta {
     name: String,
     modified: u64, // seconds since UNIX epoch, 0 if unknown
     size: u64,     // bytes; 0 is how an empty note tells itself apart in a list
+    /// Where the note really lives, when it is a symlink to a file: the app
+    /// edits that file through the link, and says so before a rename or a
+    /// trash acts on the link instead.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    link: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -325,7 +330,9 @@ fn walk_notes(dir: &PathBuf) -> Vec<(String, PathBuf)> {
             let Ok(ft) = entry.file_type() else { continue };
             if ft.is_dir() {
                 stack.push((name, path));
-            } else if ft.is_file() && is_listed_note(&name) {
+            } else if (ft.is_file() || (ft.is_symlink() && path.is_file())) && is_listed_note(&name) {
+                // A link to a file is a note like any other; a link to a
+                // folder is still not followed (see above).
                 out.push((name, path));
             }
         }
@@ -363,7 +370,13 @@ fn temp_path(path: &PathBuf) -> PathBuf {
 /// The rename swaps in a new inode, so the old file's permissions are copied
 /// across first — a file from outside the notes folder may have been given
 /// mode bits on purpose, and a save is not the moment to lose them.
+///
+/// A symlink is written THROUGH: the rename happens next to the file it
+/// points at. Renaming over the link itself would replace it with a plain
+/// copy, and the real file would stop getting the edits, silently.
 pub(crate) fn atomic_write(path: &PathBuf, content: &str) -> Result<(), String> {
+    let real = link_target(path);
+    let path = real.as_ref().unwrap_or(path);
     let tmp = temp_path(path);
     fs::write(&tmp, content).map_err(|e| e.to_string())?;
     if let Ok(meta) = fs::metadata(path) {
@@ -371,6 +384,16 @@ pub(crate) fn atomic_write(path: &PathBuf, content: &str) -> Result<(), String> 
     }
     fs::rename(&tmp, path).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// Where a symlink ends up, when `path` is one to a file; None otherwise
+/// (a plain file, a missing path, a link to a folder or to nothing).
+pub(crate) fn link_target(path: &std::path::Path) -> Option<PathBuf> {
+    let is_link = fs::symlink_metadata(path).map(|m| m.file_type().is_symlink()).unwrap_or(false);
+    if !is_link {
+        return None;
+    }
+    path.canonicalize().ok().filter(|p| p.is_file())
 }
 
 // ---- Note & session commands ---------------------------------------------
@@ -402,7 +425,8 @@ async fn list_notes() -> Result<Vec<NoteMeta>, String> {
             .map(|d| d.as_secs())
             .unwrap_or(0);
         let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
-        notes.push(NoteMeta { name, modified, size });
+        let link = link_target(&path).map(|p| p.to_string_lossy().into_owned());
+        notes.push(NoteMeta { name, modified, size, link });
     }
     notes.sort_by(|a, b| b.modified.cmp(&a.modified));
     Ok(notes)
@@ -415,6 +439,8 @@ struct NoteHit {
     size: u64,
     in_name: bool,           // matched by filename
     snippet: Option<String>, // first matching content line (content matches)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    link: Option<String>, // see NoteMeta
 }
 
 /// Search notes by filename AND content. Empty query returns all notes.
@@ -435,7 +461,8 @@ async fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
         let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
 
         if q.is_empty() {
-            hits.push(NoteHit { name, modified, size, in_name: true, snippet: None });
+            let link = link_target(&path).map(|p| p.to_string_lossy().into_owned());
+            hits.push(NoteHit { name, modified, size, in_name: true, snippet: None, link });
             continue;
         }
 
@@ -449,7 +476,8 @@ async fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
         });
 
         if in_name || snippet.is_some() {
-            hits.push(NoteHit { name, modified, size, in_name, snippet });
+            let link = link_target(&path).map(|p| p.to_string_lossy().into_owned());
+            hits.push(NoteHit { name, modified, size, in_name, snippet, link });
         }
     }
     // Filename matches first, then most-recently-modified.
@@ -637,9 +665,43 @@ fn rename_note(app: tauri::AppHandle, from: String, to: String) -> Result<(), St
     if let Some(parent) = to_path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    fs::rename(&from_path, &to_path).map_err(|e| e.to_string())?;
+    move_note(&from_path, &to_path)?;
     windows::note_renamed(&app, &from, &to);
     Ok(())
+}
+
+/// Which of these notes are symlinks, and to what — for the tabs' tooltips
+/// and the rename warning. Only the names asked about are looked at.
+#[tauri::command]
+fn note_links(names: Vec<String>) -> std::collections::HashMap<String, String> {
+    names
+        .into_iter()
+        .filter_map(|n| {
+            let path = safe_note_path(&n).ok()?;
+            let real = link_target(&path)?;
+            Some((n, real.to_string_lossy().into_owned()))
+        })
+        .collect()
+}
+
+/// Rename a note on disk. A symlink is renamed as a link — the file it points
+/// at keeps its own name — and a RELATIVE link that changes folders is made
+/// again with an absolute target, since its old relative path would now point
+/// somewhere else.
+fn move_note(from: &std::path::Path, to: &std::path::Path) -> Result<(), String> {
+    let rel_link = fs::read_link(from).ok().filter(|t| t.is_relative());
+    match rel_link {
+        Some(rel) if from.parent() != to.parent() => {
+            let abs = from.parent().unwrap_or(std::path::Path::new("/")).join(rel);
+            let abs = abs.canonicalize().unwrap_or(abs);
+            #[cfg(unix)]
+            std::os::unix::fs::symlink(&abs, to).map_err(|e| e.to_string())?;
+            #[cfg(not(unix))]
+            return Err("can't move a link on this system".into());
+            fs::remove_file(from).map_err(|e| e.to_string())
+        }
+        _ => fs::rename(from, to).map_err(|e| e.to_string()),
+    }
 }
 
 fn read_session() -> Session {
@@ -2132,6 +2194,7 @@ pub fn run() {
             set_editor_prefs,
             set_preview_sync,
             set_preview_images,
+            note_links,
             open_help,
             open_settings,
             set_theme,
@@ -2311,6 +2374,62 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    // ---- Symlinked notes (Onda 4 c) -------------------------------------------
+    // A note can be a link to a file elsewhere (~/Dropbox/work.md). Saving
+    // must reach that file; renaming and trashing act on the link.
+
+    #[cfg(unix)]
+    #[test]
+    fn a_save_goes_through_the_link_to_the_real_file() {
+        let dir = scratch("link-write");
+        let real = dir.join("elsewhere.md");
+        fs::write(&real, "old").unwrap();
+        let link = dir.join("note.md");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+        super::atomic_write(&link, "new").unwrap();
+        assert_eq!(fs::read_to_string(&real).unwrap(), "new");
+        assert!(fs::symlink_metadata(&link).unwrap().file_type().is_symlink(), "the link is still a link");
+        assert!(!dir.join("elsewhere.md.parker-tmp").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_to_a_file_is_listed_and_says_where_it_points() {
+        let dir = scratch("link-list");
+        let notes = dir.join("notes");
+        fs::create_dir_all(&notes).unwrap();
+        let real = dir.join("real.md");
+        fs::write(&real, "x").unwrap();
+        std::os::unix::fs::symlink(&real, notes.join("work.md")).unwrap();
+        // A link to nothing, and a link to a folder, are not notes.
+        std::os::unix::fs::symlink(dir.join("gone.md"), notes.join("broken.md")).unwrap();
+        std::os::unix::fs::symlink(&dir, notes.join("loop")).unwrap();
+        let names: Vec<String> = super::walk_notes(&notes).into_iter().map(|(n, _)| n).collect();
+        assert_eq!(names, vec!["work.md".to_string()]);
+        assert_eq!(super::link_target(&notes.join("work.md")), Some(real.canonicalize().unwrap()));
+        assert_eq!(super::link_target(&real), None);
+        assert_eq!(super::link_target(&notes.join("broken.md")), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn renaming_a_link_renames_the_link_and_keeps_it_pointing_home() {
+        let dir = scratch("link-move");
+        fs::create_dir_all(dir.join("notes/sub")).unwrap();
+        fs::write(dir.join("real.md"), "x").unwrap();
+        // Relative, as `ln -s ../real.md` makes it.
+        std::os::unix::fs::symlink("../real.md", dir.join("notes/a.md")).unwrap();
+        // Same folder: still the same relative link.
+        super::move_note(&dir.join("notes/a.md"), &dir.join("notes/b.md")).unwrap();
+        assert_eq!(fs::read_link(dir.join("notes/b.md")).unwrap(), PathBuf::from("../real.md"));
+        // Another folder: "../real.md" would point elsewhere, so it is remade absolute.
+        super::move_note(&dir.join("notes/b.md"), &dir.join("notes/sub/b.md")).unwrap();
+        assert_eq!(fs::read_to_string(dir.join("notes/sub/b.md")).unwrap(), "x");
+        assert!(fs::read_link(dir.join("notes/sub/b.md")).unwrap().is_absolute());
+        assert!(!dir.join("notes/b.md").exists());
+        assert!(dir.join("real.md").exists(), "the real file keeps its name");
     }
 
     #[test]
