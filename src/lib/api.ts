@@ -5,6 +5,8 @@ export interface NoteMeta {
   name: string;
   modified: number;
   size: number; // bytes
+  /** The real file, when the note is a symlink to one (edits go through). */
+  link?: string;
 }
 
 export interface NoteHit {
@@ -13,6 +15,7 @@ export interface NoteHit {
   size: number; // bytes
   in_name: boolean; // matched by filename
   snippet: string | null; // matching content line
+  link?: string; // see NoteMeta
 }
 
 export interface Session {
@@ -108,6 +111,8 @@ export const api = {
   renameNote: (from: string, to: string) =>
     invoke<void>("rename_note", { from, to }),
   deleteNote: (name: string) => invoke<void>("delete_note", { name }),
+  /** The open notes that are symlinks, each with the file it points at. */
+  noteLinks: (names: string[]) => invoke<Record<string, string>>("note_links", { names }),
   loadSession: () => invoke<Session>("load_session"),
   /** Append one JSON line to changes.jsonl — the reload/conflict diary. */
   logChange: (line: string) => invoke<void>("log_change", { line }),

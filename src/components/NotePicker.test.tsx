@@ -246,6 +246,19 @@ describe("NotePicker", () => {
       expect(deleteNote).not.toHaveBeenCalled();
     });
 
+    // A symlinked note: the Trash takes the link, and the file it points at
+    // stays where it is — the question says so (Onda 4 c).
+    it("says the file stays when the note is a link", async () => {
+      searchNotes.mockResolvedValue([hit("alpha.md"), hit("work.md", { link: "/home/me/Dropbox/work.md" })]);
+      const { user } = setup();
+      await listed(2);
+      expect((rows()[1] as HTMLElement).title).toBe("A link to /home/me/Dropbox/work.md");
+      await user.click(within(rows()[1] as HTMLElement).getByLabelText("Move to Trash"));
+      expect(within(rows()[1] as HTMLElement).getByText("Trash the link? The file stays.")).toBeDefined();
+      await user.click(within(rows()[1] as HTMLElement).getByText("Delete"));
+      expect(deleteNote).toHaveBeenCalledWith("work.md");
+    });
+
     it("arms the question from the row's trash button", async () => {
       const { user } = setup();
       await listed(3);

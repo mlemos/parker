@@ -75,6 +75,7 @@ export function EditorGroup({
   previewSync,
   images = "local",
   notesDir = "",
+  links = {},
   renamingName,
   homeDir,
   noteWindow,
@@ -94,6 +95,7 @@ export function EditorGroup({
   previewSync: boolean; // the preview follows the editor
   images?: ImageMode; // Settings › Privacy & Security › Images in preview
   notesDir?: string; // where a note's local images resolve
+  links?: Record<string, string>; // open notes that are symlinks → their file
   renamingName: string | null;
   homeDir: string; // for showing an outside file's path as ~/…
   /** Set when this is the one pane of a note window: no new tab, no split,
@@ -286,6 +288,7 @@ export function EditorGroup({
                   initial={displayName(name)}
                   onCommit={(v) => cb.onCommitRename(name, v)}
                   onCancel={cb.onCancelRename}
+                  hint={links[name] ? `Renames the link. ${links[name]} keeps its own name.` : undefined}
                 />
               </div>
             ) : (
@@ -354,7 +357,9 @@ export function EditorGroup({
                     ? `Preview of ${name}`
                     : isExternal(name)
                       ? `${name}  —  outside your notes folder`
-                      : `${name}  —  double-click to rename`
+                      : links[name]
+                        ? `${name}  —  a link to ${links[name]}`
+                        : `${name}  —  double-click to rename`
                 }
               >
                 {/* Status sits left of the name and the close button right of

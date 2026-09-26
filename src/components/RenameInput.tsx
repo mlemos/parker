@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Inline editor shown in place of a tab's name while renaming.
 // Enter (or blur) commits; Escape cancels. The base name (before the
@@ -7,14 +7,24 @@ export function RenameInput({
   initial,
   onCommit,
   onCancel,
+  hint,
 }: {
   initial: string;
   onCommit: (value: string) => void;
   onCancel: () => void;
+  /** Said under the field while it is open (a rename that acts on a link). */
+  hint?: string;
 }) {
   const [value, setValue] = useState(initial);
   const ref = useRef<HTMLInputElement>(null);
   const done = useRef(false);
+  const [at, setAt] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!hint || !ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    setAt({ top: r.bottom + 6, left: r.left });
+  }, [hint]);
 
   useEffect(() => {
     const el = ref.current;
@@ -36,6 +46,7 @@ export function RenameInput({
   };
 
   return (
+    <>
     <input
       ref={ref}
       className="tab-rename"
@@ -54,5 +65,11 @@ export function RenameInput({
       }}
       onBlur={commit}
     />
+    {hint && (
+      <span className="tab-rename-hint" role="note" style={at ?? undefined}>
+        {hint}
+      </span>
+    )}
+    </>
   );
 }

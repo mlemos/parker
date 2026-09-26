@@ -155,6 +155,9 @@ export default function App({
   // and the amber marks. A global switch, like the gutter and wrapping.
   const [previewSync, setPreviewSync] = useState<boolean>(true);
   const [previewImages, setPreviewImages] = useState<ImageMode>(DEFAULT_IMAGE_MODE);
+  // Open notes that are symlinks → the file each points at (tab tooltip, and
+  // the rename warning). Asked again whenever the open notes change.
+  const [links, setLinks] = useState<Record<string, string>>({});
   // Until the saved toggles have been read, a flip must not be written back —
   // it would overwrite the file with the defaults before they were loaded.
   const prefsLoaded = useRef(false);
@@ -432,6 +435,14 @@ export default function App({
   useEffect(() => {
     if (sessionRestored.current) scheduleSessionSave();
   }, [openKey, focusedId, layout, themeId, scheduleSessionSave]);
+
+  useEffect(() => {
+    const names = buffers.map((b) => b.name).filter((n) => !isExternal(n));
+    if (!names.length) return setLinks({});
+    api.noteLinks(names).then(setLinks).catch(() => setLinks({}));
+    // openKey is the list of names; the buffers' contents don't matter here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openKey]);
 
   // Reflect the theme's named UI roles as CSS variables on the root element —
   // before the frame paints (a layout effect), so no frame is drawn without.
@@ -1630,6 +1641,7 @@ export default function App({
           previewSync={previewSync}
           images={previewImages}
           notesDir={notesDir}
+          links={links}
           renamingName={renamingName}
           homeDir={homeDir}
           multiGroup={multiGroup}

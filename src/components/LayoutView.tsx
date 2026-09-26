@@ -59,6 +59,8 @@ interface Common {
   /** Which images the preview loads, and the folder local ones resolve in. */
   images: ImageMode;
   notesDir: string;
+  /** Open notes that are symlinks, with the file each points at. */
+  links: Record<string, string>;
   renamingName: string | null;
   homeDir: string;
   multiGroup: boolean;
@@ -118,6 +120,7 @@ export function LayoutView({
         previewSync={common.previewSync}
         images={common.images}
         notesDir={common.notesDir}
+        links={common.links}
         renamingName={common.renamingName}
         homeDir={common.homeDir}
         noteWindow={common.noteWindow}
