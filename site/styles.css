@@ -715,7 +715,7 @@ h1 {
 .footer .brand { justify-content: center; }
 .footer .mark-head { width: 26px; height: 26px; }
 .footer-tag { color: var(--text-2); font-size: 15px; margin: 2px 0 6px; }
-.footer-links { display: flex; gap: 24px; font-size: 14px; }
+.footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 24px; font-size: 14px; }
 .footer-links a { color: var(--text-2); transition: color .15s ease; }
 .footer-links a:hover { color: var(--text); }
 .footer-author { color: var(--text-2); font-size: 14px; margin: 4px 0 2px; }
@@ -1237,3 +1237,71 @@ button.todo-out:focus-visible { outline: 2px solid var(--accent); outline-offset
 .prose a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .prose code { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
 .prose-date { color: var(--text-2); opacity: 0.8; font-size: 14px; margin-top: 32px; }
+
+/* ───────────── /agents: the set-up steps and the skill, rendered ───────────── */
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 760px;
+  display: grid;
+  gap: 18px;
+}
+.step {
+  position: relative;
+  min-width: 0; /* a long command scrolls inside its box instead of widening the page */
+  padding: 26px 28px 24px 76px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.step-n {
+  position: absolute;
+  left: 26px;
+  top: 24px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-2);
+}
+.step h3 { margin: 3px 0 10px; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.step h4 { margin: 0 0 4px; font-size: 14.5px; font-weight: 600; }
+.step p { margin: 0; color: var(--text-2); font-size: 15px; line-height: 1.6; }
+.step p b, .step p strong { color: var(--text); font-weight: 600; }
+.step a { color: var(--accent-hi); }
+.step code, .card code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.step-agent + .step-agent { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border-soft); }
+.step .fine { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+.cmd {
+  max-width: 100%;
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+.cmd code { padding: 0; background: none; font-size: 12.5px; white-space: pre; }
+
+.section-head a { color: var(--accent-hi); }
+
+@media (max-width: 640px) {
+  .step { padding: 22px 18px 20px 18px; }
+  .step-n { position: static; margin-bottom: 10px; }
+}
+
+/* Headlines break where the sense does, not where the width runs out. */
+h1, h2 { text-wrap: balance; }
+.nw { white-space: nowrap; }
