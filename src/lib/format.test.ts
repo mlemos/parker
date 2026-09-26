@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import type { StateCommand } from "@codemirror/state";
-import { insertLink, toggleBold, toggleCode, toggleItalic, toggleStrike } from "./format.ts";
+import { insertLink, toggleBold, toggleCode, toggleItalic, toggleStrike, toggleHighlight } from "./format.ts";
 
 // A document with its selection drawn in: `|` is the caret, «…» a selection.
 function parse(src: string) {
@@ -83,12 +83,14 @@ describe("italic against bold", () => {
   });
 });
 
-describe("code and strikethrough", () => {
+describe("code, strikethrough and highlight", () => {
   it("use their own marks", () => {
     expect(apply(toggleCode, "«x»")).toBe("`«x»`");
     expect(apply(toggleCode, "`«x»`")).toBe("«x»");
     expect(apply(toggleStrike, "«x»")).toBe("~~«x»~~");
     expect(apply(toggleStrike, "~~«x»~~")).toBe("«x»");
+    expect(apply(toggleHighlight, "«x»")).toBe("==«x»==");
+    expect(apply(toggleHighlight, "==«x»==")).toBe("«x»");
   });
 });
 
