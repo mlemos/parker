@@ -49,6 +49,8 @@ import { GitMenu } from "./components/GitMenu";
 import { QuitConfirm } from "./components/QuitConfirm";
 import { LayoutView } from "./components/LayoutView";
 import type { LayoutHandlers } from "./components/LayoutView";
+import { FirstRun } from "./components/FirstRun";
+import type { FirstRunBackend } from "./components/FirstRun";
 import { DEFAULT_IMAGE_MODE, imageModeOf } from "./lib/images";
 import type { ImageMode } from "./lib/images";
 import "./App.css";
@@ -90,6 +92,16 @@ async function readOrCloud(name: string): Promise<Buffer> {
     throw e;
   }
 }
+/** The welcome screen's commands, the real ones. */
+const firstRunBackend: FirstRunBackend = {
+  lookForNotes: api.lookForNotes,
+  inspect: api.inspectFolder,
+  icloud: api.icloudState,
+  pickFolder: api.pickNotesDir,
+  openSystemSettings: api.openSystemSettings,
+  finish: api.finishFirstRun,
+};
+
 const writeText = (name: string, content: string) =>
   isExternal(name) ? api.writeFile(name, content) : api.writeNote(name, content);
 
@@ -123,6 +135,10 @@ export default function App({
   // Before that the default would be announced, and the others would follow.
   const themeSettled = useRef(single);
   const [notesDir, setNotesDir] = useState<string>("");
+  // The Mac's very first open: the welcome screen instead of the workspace,
+  // until a folder is chosen (FirstRun). Nothing reads the folder before.
+  const [firstRun, setFirstRun] = useState(false);
+  const firstNote = useRef<string | null>(null);
   const [homeDir, setHomeDir] = useState<string>("");
   const [ready, setReady] = useState(false);
   // Whether the saved session was read back in full. Nothing may be written
@@ -186,6 +202,8 @@ export default function App({
   const lastWrite = useRef<Map<string, { text: string; seq: number }>>(new Map());
   const sessionTimer = useRef<number | null>(null);
   const didInit = useRef(false);
+  // The restore held back by a first run, run when the welcome is done.
+  const restoreAfterFirstRun = useRef<(() => Promise<void>) | null>(null);
 
   const theme = themeById(themeId);
 
@@ -377,7 +395,13 @@ export default function App({
         // nothing open — the last tab was closed, or every note it listed is
         // gone — comes back as the empty pane it was; making a note here is
         // how Untitled files used to pile up on every launch.
-        if (restored.length === 0 && isFirstLaunch(session)) {
+        if (restored.length === 0 && firstNote.current) {
+          // Just chosen on the welcome screen: its Welcome note.
+          const name = firstNote.current;
+          firstNote.current = null;
+          const text = await readText(name).catch(() => "");
+          restored.push({ name, content: text, disk: text, dirty: false });
+        } else if (restored.length === 0 && isFirstLaunch(session)) {
           const name = await api.createNote("md");
           restored.push({ name, content: "", disk: "", dirty: false });
         }
@@ -421,8 +445,16 @@ export default function App({
       }
     };
     const deadline = new Promise<void>((resolve) => setTimeout(resolve, BOOT_MS));
-    const boot = noteWindow ? openSingle(noteWindow.name) : restore();
-    Promise.race([boot, deadline]).then(() => setReady(true));
+    const start = async () => {
+      // A first run shows the welcome screen, and restores only once it's done.
+      if (!noteWindow && (await api.isFirstRun().catch(() => false))) {
+        restoreAfterFirstRun.current = restore;
+        setFirstRun(true);
+        return;
+      }
+      await (noteWindow ? openSingle(noteWindow.name) : restore());
+    };
+    Promise.race([start(), deadline]).then(() => setReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1518,6 +1550,21 @@ export default function App({
 
   if (!ready) {
     return <div className="parker-loading">Parker</div>;
+  }
+
+  if (firstRun) {
+    return (
+      <FirstRun
+        backend={firstRunBackend}
+        onDone={async (note) => {
+          firstNote.current = note;
+          setNotesDir(await api.notesDirPath().catch(() => ""));
+          await restoreAfterFirstRun.current?.();
+          restoreAfterFirstRun.current = null;
+          setFirstRun(false);
+        }}
+      />
+    );
   }
 
   // Notes reloaded from disk that the user has not typed over yet. The tab

@@ -12,6 +12,8 @@ import { accelFromEvent, prettyShortcut } from "./lib/shortcut";
 import { TEXT_WIDTHS, textWidthOf } from "./lib/text-width";
 import { IMAGE_MODES, imageModeOf } from "./lib/images";
 import type { ImageMode } from "./lib/images";
+import { settingsIphoneLine } from "./lib/first-run";
+import type { FolderInfo, ICloudState } from "./lib/first-run";
 import type { TextWidth } from "./lib/text-width";
 import type { AgentsInfo, SettingsInfo } from "./lib/api";
 
@@ -41,6 +43,9 @@ export interface SettingsBackend {
   saveSkillZip(): Promise<boolean>;
   createStarterReadme(): Promise<void>;
   openUrl(url: string): Promise<void>;
+  /** What Parker can tell about a folder, and iCloud's state (Onda 5). */
+  inspectFolder(path: string): Promise<FolderInfo>;
+  icloudState(): Promise<ICloudState>;
   /** Live updates from the other windows; returns an unsubscribe. */
   onTheme(cb: (id: string) => void): () => void;
   onPrefs(cb: (s: Partial<SettingsInfo>) => void): () => void;
@@ -133,6 +138,7 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [iphone, setIphone] = useState<string | null>(null);
 
   const refreshAgents = useCallback(() => {
     backend.agentsInfo().then(setAgents).catch((e) => setError(String(e)));
@@ -151,6 +157,19 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
   }, [backend, refreshAgents]);
 
   useEffect(() => applyWindowTheme(themeId), [themeId]);
+
+  // How to open this same folder on the iPhone, when it can be (Mac → iPhone).
+  const notesDir = info?.notes_dir;
+  useEffect(() => {
+    if (!notesDir) return;
+    let live = true;
+    Promise.all([backend.inspectFolder(notesDir), backend.icloudState()])
+      .then(([f, ic]) => live && setIphone(settingsIphoneLine(f, ic)))
+      .catch(() => live && setIphone(null));
+    return () => {
+      live = false;
+    };
+  }, [backend, notesDir]);
 
   const choose = (id: SectionId) => {
     setSection(id);
@@ -247,6 +266,11 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
                   if (picked && picked !== info.notes_dir) setPendingDir(picked);
                 })}>Change…</button>
               </Row>
+              {iphone && (
+                <p className="setwin-iphone" aria-label="On the iPhone">
+                  <b>On the iPhone.</b> {iphone}
+                </p>
+              )}
               {pendingDir && (
                 <div className="settings-confirm">
                   <div className="settings-sub">

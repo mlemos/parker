@@ -1,5 +1,6 @@
 // Thin typed wrappers around the Rust commands defined in src-tauri/src/lib.rs.
 import { invoke } from "@tauri-apps/api/core";
+import type { FolderInfo, ICloudState } from "./first-run";
 
 export interface NoteMeta {
   name: string;
@@ -157,6 +158,13 @@ export const api = {
     invoke<CommitResult>("git_commit", { message, push }),
   gitPush: () => invoke<CommitResult>("git_push"),
   pickNotesDir: () => invoke<string | null>("pick_notes_dir"),
+  // ---- First run and where the folder syncs (Onda 5) ----
+  isFirstRun: () => invoke<boolean>("is_first_run"),
+  lookForNotes: () => invoke<FolderInfo>("look_for_notes"),
+  inspectFolder: (path: string) => invoke<FolderInfo>("inspect_folder", { path }),
+  icloudState: () => invoke<ICloudState>("icloud_state"),
+  openSystemSettings: (pane: "icloud" | "privacy") => invoke<void>("open_system_settings", { pane }),
+  finishFirstRun: (path: string) => invoke<string | null>("finish_first_run", { path }),
   setNotesDir: (path: string, moveExisting: boolean) =>
     invoke<string>("set_notes_dir", { path, moveExisting }),
   // Files outside the notes folder, addressed by absolute path. Rust serves

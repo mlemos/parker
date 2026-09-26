@@ -40,6 +40,18 @@ function fakeBackend(over: Partial<SettingsBackend> = {}, agents: Partial<Agents
     setEditorPrefs: vi.fn(async () => {}),
     setPreviewSync: vi.fn(async () => {}),
     setPreviewImages: vi.fn(async (_mode: string) => {}),
+    inspectFolder: vi.fn(async (path: string) => ({
+      path,
+      display: "Documents › Parker",
+      exists: true,
+      readable: true,
+      notes: 42,
+      other: 0,
+      git: false,
+      git_remote: null,
+      sync: { service: "icloud", label: "iCloud Drive" },
+    })),
+    icloudState: vi.fn(async () => ({ drive: true, documents: true })),
     setTheme: vi.fn(async () => {}),
     agentsInfo: vi.fn(async () => ({ ...AGENTS, ...agents })),
     installClaudeCodeSkill: vi.fn(async () => {}),
@@ -276,5 +288,24 @@ describe("SettingsWindow — Privacy & Security", () => {
     await user.click(screen.getByRole("radio", { name: "None" }));
     expect(b.setPreviewImages).toHaveBeenLastCalledWith("none");
     expect(screen.queryByRole("note")).toBeNull();
+  });
+});
+
+describe("SettingsWindow — the notes folder on the iPhone", () => {
+  it("says how to open the same folder there, when it's in iCloud", async () => {
+    await open("General");
+    expect((await screen.findByLabelText("On the iPhone")).textContent).toMatch(/Continue with iCloud Drive/);
+  });
+
+  it("says nothing when the iPhone can't reach it", async () => {
+    const backend = fakeBackend({
+      inspectFolder: vi.fn(async (path: string) => ({
+        path, display: "~/Notes", exists: true, readable: true, notes: 3, other: 0, git: false, git_remote: null,
+        sync: { service: "unknown", label: "" },
+      })),
+    });
+    await open("General", backend);
+    await waitFor(() => expect(backend.b.inspectFolder).toHaveBeenCalled());
+    expect(screen.queryByLabelText("On the iPhone")).toBeNull();
   });
 });

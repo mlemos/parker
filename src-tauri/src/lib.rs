@@ -23,6 +23,7 @@ mod windows;
 #[cfg(target_os = "macos")]
 mod filedrop;
 mod monitor;
+mod folder;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct NoteMeta {
@@ -293,12 +294,117 @@ pub(crate) fn notes_dir() -> PathBuf {
     }
 }
 
-/// First launch, or a Mac where ~/Documents/Parker was removed: make the
-/// default folder. A folder the user chose is never made here.
+/// A Mac where the default folder was removed: make it again. Never on a
+/// first run — there the welcome screen makes the folder the person chose,
+/// when they press Continue — and never a folder the user chose.
 fn ensure_default_notes_dir() {
+    if first_run() {
+        return;
+    }
     if load_settings().notes_dir.map(|p| p.trim().is_empty()).unwrap_or(true) {
         let _ = fs::create_dir_all(default_notes_dir());
     }
+}
+
+// ---- First run (Onda 5) ------------------------------------------------------
+// The first open on a Mac is a welcome screen, not a folder made in silence:
+// Parker looks in Documents › Parker (after saying it will, so macOS's
+// Documents prompt comes explained), says what it found, where it syncs and
+// what to do on the iPhone, and creates the folder only on Continue.
+
+/// This Mac has never run Parker: no settings and no session. Someone who
+/// used Parker before has a session even if they never changed a setting, so
+/// the welcome is only ever seen once, by a new person.
+fn first_run() -> bool {
+    !settings_path().exists() && !session_path().exists()
+}
+
+#[tauri::command]
+fn is_first_run() -> bool {
+    first_run()
+}
+
+fn home() -> PathBuf {
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))
+}
+
+/// The first remote's URL, shortened for the screen ("github.com/me/notes").
+fn remote_of(dir: &std::path::Path) -> Option<String> {
+    let run = |args: &[&str]| run_with_timeout(git_command(dir, args), std::time::Duration::from_secs(5)).ok();
+    let names = run(&["remote"])?;
+    let name = String::from_utf8_lossy(&names.stdout).lines().next()?.trim().to_string();
+    let url = run(&["remote", "get-url", &name])?;
+    let url = String::from_utf8_lossy(&url.stdout).trim().to_string();
+    (!url.is_empty()).then(|| short_remote(&url))
+}
+
+/// "git@github.com:owner/repo.git" or "https://github.com/owner/repo.git" →
+/// "github.com/owner/repo".
+fn short_remote(url: &str) -> String {
+    let u = url.trim().trim_end_matches(".git");
+    let u = u.split("://").nth(1).unwrap_or(u);
+    let u = u.rsplit('@').next().unwrap_or(u);
+    u.replacen(':', "/", 1).trim_matches('/').to_string()
+}
+
+#[tauri::command]
+async fn inspect_folder(path: String) -> folder::FolderInfo {
+    folder::inspect(std::path::Path::new(path.trim()), &home(), &remote_of)
+}
+
+#[tauri::command]
+async fn icloud_state() -> folder::ICloudState {
+    folder::icloud_state(&home())
+}
+
+/// The folder to suggest: the first default place that exists, else the
+/// first one (to be created). Asking is what triggers macOS's Documents
+/// prompt; a refusal comes back as a folder that isn't `readable`.
+#[tauri::command]
+async fn look_for_notes() -> folder::FolderInfo {
+    let home = home();
+    let places = folder::default_places(&home, variant::NOTES_DIR, &folder::icloud_state(&home));
+    let infos: Vec<_> = places.iter().map(|p| folder::inspect(p, &home, &remote_of)).collect();
+    if let Some(denied) = infos.iter().find(|i| !i.readable) {
+        return denied.clone();
+    }
+    infos.iter().find(|i| i.exists).cloned().unwrap_or_else(|| infos[0].clone())
+}
+
+/// System Settings, on the pane the welcome screen points at.
+#[tauri::command]
+fn open_system_settings(pane: String) -> Result<(), String> {
+    let url = match pane.as_str() {
+        "icloud" => "x-apple.systempreferences:com.apple.systempreferences.AppleIDSettings?iCloud",
+        "privacy" => "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders",
+        _ => return Err(format!("no such pane: {pane}")),
+    };
+    Command::new("open").arg(url).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
+const WELCOME_NOTE: &str = "Welcome to Parker.md";
+const WELCOME_TEXT: &str = "# Welcome to Parker
+
+Notes are plain Markdown files in this folder. Any app, and any AI agent, can read them.
+
+/TODO Write your first note (⌘N)
+/TODO Find any note with ⌘O
+/TODO Press ⌘⏎ on this line to see a to-do change state
+";
+
+/// The welcome screen's Continue: make the folder if it isn't there, point
+/// Parker at it, and put a Welcome note in it when it has no notes yet.
+/// Returns the note to open, if one was made.
+#[tauri::command]
+fn finish_first_run(app: tauri::AppHandle, path: String) -> Result<Option<String>, String> {
+    let dir = set_notes_dir(app, path, false)?;
+    let dir = PathBuf::from(dir);
+    let has_notes = walk_notes(&dir).iter().any(|(n, _)| folder::is_note_file(n));
+    if has_notes {
+        return Ok(None);
+    }
+    atomic_write(&dir.join(WELCOME_NOTE), WELCOME_TEXT)?;
+    Ok(Some(WELCOME_NOTE.to_string()))
 }
 
 /// A note is named by its path relative to the notes folder — "note.md", or
@@ -2156,7 +2262,11 @@ pub fn run() {
         .setup(|app| {
             ensure_default_notes_dir();
             // The preview's local images come from the notes folder only.
-            allow_images(app.handle(), &notes_dir());
+            // Not on a first run: nothing may touch ~/Documents before the
+            // welcome screen has said why (finish_first_run does it then).
+            if !first_run() {
+                allow_images(app.handle(), &notes_dir());
+            }
             // Build the main window in code (not via config) so we can center
             // the macOS traffic lights inside our 40px custom title bar. The
             // same factory builds the note windows — windows.rs.
@@ -2191,7 +2301,10 @@ pub fn run() {
                 // Watch the notes folder: when a file changes on disk (git
                 // pull, another machine/editor), tell the frontend so it can
                 // reload the open tab instead of letting autosave clobber it.
-                rewatch_notes(app.handle());
+                // A first run has no folder yet: finish_first_run starts it.
+                if !first_run() {
+                    rewatch_notes(app.handle());
+                }
 
                 // One perf sample a minute into perf.jsonl, so slow memory
                 // growth is diagnosable after the fact (⌘⇧D shows it live).
@@ -2255,6 +2368,12 @@ pub fn run() {
             set_preview_sync,
             set_preview_images,
             note_links,
+            is_first_run,
+            inspect_folder,
+            icloud_state,
+            look_for_notes,
+            open_system_settings,
+            finish_first_run,
             open_help,
             open_settings,
             set_theme,
@@ -2354,6 +2473,14 @@ mod tests {
         let status = env(&["status"]);
         assert_eq!(status["GIT_TERMINAL_PROMPT"].as_deref(), Some("0"));
         assert!(!status.contains_key("GIT_SSH_COMMAND"));
+    }
+
+    #[test]
+    fn a_remote_is_shortened_for_the_screen() {
+        assert_eq!(super::short_remote("git@github.com:owner/repo.git"), "github.com/owner/repo");
+        assert_eq!(super::short_remote("https://github.com/owner/repo.git"), "github.com/owner/repo");
+        assert_eq!(super::short_remote("ssh://user@host/me/notes"), "host/me/notes");
+        assert_eq!(super::short_remote("https://user@host.example.com/me/notes.git"), "host.example.com/me/notes");
     }
 
     #[test]
@@ -2536,7 +2663,7 @@ mod tests {
         if git(&["init", "-q"]).map(|o| !o.status.success()).unwrap_or(true) {
             return; // no git on this machine
         }
-        let _ = git(&["config", "user.email", "t@example.invalid"]);
+        let _ = git(&["config", "user.email", "t@example.com"]);
         let _ = git(&["config", "user.name", "t"]);
         fs::write(dir.join("a.md"), "a").unwrap();
         fs::write(dir.join(".git/index.lock"), "").unwrap(); // a git that died
