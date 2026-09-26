@@ -1,4 +1,5 @@
 import MarkdownIt from "markdown-it";
+import mark from "markdown-it-mark";
 import { todoPlugin } from "./todo-markdown-it";
 import { lineMapPlugin } from "./line-map";
 import { imageAllowed, imageHost, imageKind } from "./images";
@@ -12,6 +13,8 @@ const md = new MarkdownIt({
   typographer: true,
 });
 
+// ==Highlighted== text, the way Obsidian, Bear and Typora write it: <mark>.
+md.use(mark);
 // To-do lines render as to-do items here too, not as the literal text "/DONE".
 md.use(todoPlugin);
 // Every block carries the source line it starts on, for the preview to follow.

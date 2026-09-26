@@ -970,6 +970,9 @@ body.resizing {
 .md-body .todo > :not(.todo-head) del {
   color: color-mix(in srgb, var(--md-strike) var(--todo-child-mark-mix), var(--editor-bg));
 }
+.md-body .todo > :not(.todo-head) mark {
+  color: color-mix(in srgb, var(--md-highlight) var(--todo-child-mark-mix), var(--editor-bg));
+}
 /* A nested to-do's own head is a head: full colour again. */
 .md-body .todo .todo-head strong { color: var(--md-bold); }
 .md-body .todo .todo-head em { color: var(--md-italic); }
@@ -979,6 +982,7 @@ body.resizing {
 .md-body .todo .todo-head a { color: var(--md-link); }
 .md-body .todo .todo-head s,
 .md-body .todo .todo-head del { color: var(--md-strike); }
+.md-body .todo .todo-head mark { color: var(--md-highlight); }
 .md-body .todo-head {
   display: block;
   /* The first line starts back in the gutter, where the box goes; the box's
@@ -1174,6 +1178,12 @@ body.resizing {
 .md-body s,
 .md-body del {
   color: var(--md-strike);
+}
+.md-body mark {
+  color: var(--md-highlight);
+  background: var(--md-highlight-bg);
+  padding: 0.05em 0.25em;
+  border-radius: 3px;
 }
 .md-body ul,
 .md-body ol {
@@ -1683,6 +1693,15 @@ body.resizing {
   color: var(--md-url);
   text-decoration: underline;
 }
+/* ==Highlighted== text: the theme's highlight ink on a wash of itself, a
+   marker pen run over the words — laid out like the code chip, so the text
+   stays on the column grid. */
+.editor-wrap .cm-md-highlight {
+  color: var(--md-highlight);
+  background: var(--md-highlight-bg);
+  border-radius: 3px;
+  box-shadow: 0 -1px 0 var(--md-highlight-bg), 0 1px 0 var(--md-highlight-bg);
+}
 /* Struck text: the theme's strike colour, and only that. The tildes are in
    view here, so the line through it would say the same thing twice; the
    preview, where the tildes are gone, draws the line. */
@@ -1714,6 +1733,9 @@ body.resizing {
 }
 .editor-wrap [class*="cm-todo-child-"] .cm-md-strike {
   color: color-mix(in srgb, var(--md-strike) var(--todo-child-mark-mix), var(--editor-bg));
+}
+.editor-wrap [class*="cm-todo-child-"] .cm-md-highlight {
+  color: color-mix(in srgb, var(--md-highlight) var(--todo-child-mark-mix), var(--editor-bg));
 }
 
 /* ---- Folding ------------------------------------------------------------ */

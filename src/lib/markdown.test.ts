@@ -71,6 +71,15 @@ describe("renderMarkdown / untrusted input", () => {
   });
 });
 
+describe("renderMarkdown / highlight", () => {
+  it("renders ==text== as <mark>, with inline marks inside", () => {
+    expect(renderMarkdown("a ==big **deal**== here")).toContain("a <mark>big <strong>deal</strong></mark> here");
+  });
+  it("leaves a lone = and === alone", () => {
+    expect(renderMarkdown("a = b === c")).not.toContain("<mark>");
+  });
+});
+
 describe("renderMarkdown / task lists", () => {
   it("turns GFM checkboxes into disabled inputs", () => {
     const html = renderMarkdown("- [ ] milk\n- [x] bread");
