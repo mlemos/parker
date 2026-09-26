@@ -29,6 +29,7 @@ export const tauriBackend: SettingsBackend = {
     await emit(SYNC_INTERVAL_EVENT);
   },
   setEditorPrefs: api.setEditorPrefs,
+  setPreviewImages: (mode) => api.setPreviewImages(mode),
   setPreviewSync: api.setPreviewSync,
   // The theme is one for the app; every window follows parker://theme, and
   // the editor saves it with the session.

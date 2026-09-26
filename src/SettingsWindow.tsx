@@ -5,11 +5,13 @@
 // parker://theme, parker://notes-dir).
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { Bot, GitBranch, PenLine, SlidersHorizontal } from "lucide-react";
+import { Bot, GitBranch, PenLine, Shield, SlidersHorizontal } from "lucide-react";
 import { THEMES, themeById, DEFAULT_THEME_ID } from "./lib/themes";
 import { prettyPath } from "./lib/path";
 import { accelFromEvent, prettyShortcut } from "./lib/shortcut";
 import { TEXT_WIDTHS, textWidthOf } from "./lib/text-width";
+import { IMAGE_MODES, imageModeOf } from "./lib/images";
+import type { ImageMode } from "./lib/images";
 import type { TextWidth } from "./lib/text-width";
 import type { AgentsInfo, SettingsInfo } from "./lib/api";
 
@@ -30,6 +32,7 @@ export interface SettingsBackend {
   setGitSyncInterval(minutes: number): Promise<void>;
   setEditorPrefs(gutter: boolean, wrap: boolean, ligatures: boolean, width: number): Promise<void>;
   setPreviewSync(on: boolean): Promise<void>;
+  setPreviewImages(mode: ImageMode): Promise<void>;
   setTheme(id: string): Promise<void>;
   agentsInfo(): Promise<AgentsInfo>;
   installClaudeCodeSkill(): Promise<void>;
@@ -43,16 +46,17 @@ export interface SettingsBackend {
   onPrefs(cb: (s: Partial<SettingsInfo>) => void): () => void;
 }
 
-export type SectionId = "general" | "editor" | "git" | "agents";
+export type SectionId = "general" | "editor" | "git" | "privacy" | "agents";
 
 const SECTIONS: { id: SectionId; label: string; icon: ReactNode }[] = [
   { id: "general", label: "General", icon: <SlidersHorizontal size={15} strokeWidth={1.8} /> },
   { id: "editor", label: "Editor", icon: <PenLine size={15} strokeWidth={1.8} /> },
   { id: "git", label: "Backup & Git", icon: <GitBranch size={15} strokeWidth={1.8} /> },
+  { id: "privacy", label: "Privacy & Security", icon: <Shield size={15} strokeWidth={1.8} /> },
   { id: "agents", label: "AI Agents", icon: <Bot size={15} strokeWidth={1.8} /> },
 ];
 
-const SECTION_KEY = "parker.settings.section";
+export const SECTION_KEY = "parker.settings.section";
 const SYNC_INTERVALS = [0, 5, 15, 30, 60] as const;
 const intervalLabel = (m: number) => (m === 0 ? "Off" : m === 60 ? "1 h" : `${m} min`);
 export const AGENTS_URL = "https://getparker.dev/agents";
@@ -338,6 +342,33 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
                   ))}
                 </div>
               </Row>
+            </>
+          )}
+
+          {info && section === "privacy" && (
+            <>
+              <p className="setwin-intro">Parker makes no network requests of its own. The one thing a note can ask for is an image from the web — this is where you decide.</p>
+              <Row
+                title="Images in preview"
+                sub="Local images are files next to your notes; they never leave this Mac."
+              >
+                <div className="seg" role="radiogroup" aria-label="Images in preview">
+                  {IMAGE_MODES.map((m) => {
+                    const on = imageModeOf(info.preview_images) === m.id;
+                    return (
+                      <button key={m.id} role="radio" aria-checked={on} className={"seg-btn" + (on ? " on" : "")} disabled={busy} onClick={() => run(async () => {
+                        await backend.setPreviewImages(m.id);
+                        setInfo({ ...info, preview_images: m.id });
+                      })}>{m.label}</button>
+                    );
+                  })}
+                </div>
+              </Row>
+              {imageModeOf(info.preview_images) === "all" && (
+                <p className="setwin-warn" role="note">
+                  Remote images are fetched from their servers when a note opens: whoever hosts them can see when, and from which IP address.
+                </p>
+              )}
             </>
           )}
 

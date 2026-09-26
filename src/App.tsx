@@ -49,6 +49,8 @@ import { GitMenu } from "./components/GitMenu";
 import { QuitConfirm } from "./components/QuitConfirm";
 import { LayoutView } from "./components/LayoutView";
 import type { LayoutHandlers } from "./components/LayoutView";
+import { DEFAULT_IMAGE_MODE, imageModeOf } from "./lib/images";
+import type { ImageMode } from "./lib/images";
 import "./App.css";
 
 // Events Rust addresses to one window (quit, pop-out, a note handed over…)
@@ -152,6 +154,7 @@ export default function App({
   // The side-by-side preview follows the editor — cursor, selection, scroll
   // and the amber marks. A global switch, like the gutter and wrapping.
   const [previewSync, setPreviewSync] = useState<boolean>(true);
+  const [previewImages, setPreviewImages] = useState<ImageMode>(DEFAULT_IMAGE_MODE);
   // Until the saved toggles have been read, a flip must not be written back —
   // it would overwrite the file with the defaults before they were loaded.
   const prefsLoaded = useRef(false);
@@ -516,6 +519,7 @@ export default function App({
       editor_ligatures: boolean;
       editor_width: number;
       preview_sync: boolean;
+      preview_images?: string;
     }>("parker://prefs", (e) => {
       const s = e.payload;
       setGutterOn(s.editor_gutter);
@@ -523,6 +527,7 @@ export default function App({
       setLigaturesOn(s.editor_ligatures);
       setTextWidth(textWidthOf(s.editor_width));
       setPreviewSync(s.preview_sync);
+      setPreviewImages(imageModeOf(s.preview_images));
     });
     return () => {
       p.then((un) => un());
@@ -541,6 +546,7 @@ export default function App({
         setLigaturesOn(s.editor_ligatures);
         setTextWidth(textWidthOf(s.editor_width));
         setPreviewSync(s.preview_sync);
+        setPreviewImages(imageModeOf(s.preview_images));
         prefsLoaded.current = true;
       })
       .catch(() => {});
@@ -1622,6 +1628,8 @@ export default function App({
           wrapOn={wrapOn}
           width={textWidth}
           previewSync={previewSync}
+          images={previewImages}
+          notesDir={notesDir}
           renamingName={renamingName}
           homeDir={homeDir}
           multiGroup={multiGroup}

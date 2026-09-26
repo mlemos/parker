@@ -46,6 +46,8 @@ export interface SettingsInfo {
   editor_width: number;
   /** The side-by-side preview follows the editor. */
   preview_sync: boolean;
+  /** "none" | "local" | "all" — Settings › Privacy & Security. */
+  preview_images: string;
 }
 
 /** The Parker skill for Claude Code, and whether the notes folder has a
@@ -132,7 +134,9 @@ export const api = {
   setPreviewSync: (enabled: boolean) =>
     invoke<void>("set_preview_sync", { enabled }),
   /** Open (or focus) the Settings window. */
-  openSettings: () => invoke<void>("open_settings"),
+  /** Opens (or brings back) Settings, on `section` when given. */
+  openSettings: (section?: string) => invoke<void>("open_settings", { section: section ?? null }),
+  setPreviewImages: (mode: string) => invoke<void>("set_preview_images", { mode }),
   /** The theme in force, for the windows Rust opens next and the colour under
    *  the open ones' pages. */
   setTheme: (id: string, bg: string) => invoke<void>("set_theme", { id, bg }),

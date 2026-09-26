@@ -29,6 +29,7 @@ import { RenameInput } from "./RenameInput";
 import { MarkdownPreview } from "./MarkdownPreview";
 import type { TextWidth } from "../lib/text-width";
 import type { NoteWindowControls } from "./LayoutView";
+import type { ImageMode } from "../lib/images";
 
 const TAB_MIME = "application/x-parker-tab";
 
@@ -72,6 +73,8 @@ export function EditorGroup({
   wrapOn,
   width,
   previewSync,
+  images = "local",
+  notesDir = "",
   renamingName,
   homeDir,
   noteWindow,
@@ -89,6 +92,8 @@ export function EditorGroup({
   wrapOn: boolean;
   width: TextWidth;
   previewSync: boolean; // the preview follows the editor
+  images?: ImageMode; // Settings › Privacy & Security › Images in preview
+  notesDir?: string; // where a note's local images resolve
   renamingName: string | null;
   homeDir: string; // for showing an outside file's path as ~/…
   /** Set when this is the one pane of a note window: no new tab, no split,
@@ -588,6 +593,8 @@ export function EditorGroup({
             name={activeBuf.name}
             changed={activeBuf.changed}
             sync={previewSync}
+            images={images}
+            notesDir={notesDir}
           />
         ) : activeBuf ? (
           <Editor
