@@ -236,14 +236,26 @@ fn settings_path() -> PathBuf {
 static SETTINGS: std::sync::OnceLock<std::sync::RwLock<Settings>> = std::sync::OnceLock::new();
 
 fn settings_cache() -> &'static std::sync::RwLock<Settings> {
-    SETTINGS.get_or_init(|| {
-        std::sync::RwLock::new(
-            fs::read_to_string(settings_path())
-                .ok()
-                .and_then(|s| serde_json::from_str(&s).ok())
-                .unwrap_or_default(),
-        )
-    })
+    SETTINGS.get_or_init(|| std::sync::RwLock::new(read_json_or_keep(&settings_path())))
+}
+
+/// Read one of Parker's own JSON files, or its defaults. A file that exists
+/// but can't be parsed (cut short, hand-edited, written by who knows what) is
+/// moved aside to `<name>.broken` first: the next save would otherwise write
+/// the defaults over it, and whatever it held — the notes folder the user
+/// chose, the tabs they had open — would be gone for good. Keys this version
+/// doesn't know (a file from a newer Parker) are ignored, not an error.
+fn read_json_or_keep<T: serde::de::DeserializeOwned + Default>(path: &std::path::Path) -> T {
+    let Ok(text) = fs::read_to_string(path) else { return T::default() };
+    match serde_json::from_str(&text) {
+        Ok(v) => v,
+        Err(e) => {
+            let aside = path.with_extension("json.broken");
+            eprintln!("{} can't be read ({e}); kept as {}", path.display(), aside.display());
+            let _ = fs::rename(path, &aside);
+            T::default()
+        }
+    }
 }
 
 fn load_settings() -> Settings {
@@ -269,15 +281,24 @@ fn default_notes_dir() -> PathBuf {
     base.join(variant::NOTES_DIR)
 }
 
-/// The resolved notes directory (from settings, or the default), created if
-/// missing.
+/// The resolved notes directory (from settings, or the default). Not created
+/// here: a folder the user chose that has gone away (an unmounted disk) must
+/// stay gone, not come back empty on the internal disk — see
+/// make_parent_within. Only the default is made, once, at launch
+/// (ensure_default_notes_dir).
 pub(crate) fn notes_dir() -> PathBuf {
-    let dir = match load_settings().notes_dir {
+    match load_settings().notes_dir {
         Some(p) if !p.trim().is_empty() => PathBuf::from(p),
         _ => default_notes_dir(),
-    };
-    let _ = fs::create_dir_all(&dir);
-    dir
+    }
+}
+
+/// First launch, or a Mac where ~/Documents/Parker was removed: make the
+/// default folder. A folder the user chose is never made here.
+fn ensure_default_notes_dir() {
+    if load_settings().notes_dir.map(|p| p.trim().is_empty()).unwrap_or(true) {
+        let _ = fs::create_dir_all(default_notes_dir());
+    }
 }
 
 /// A note is named by its path relative to the notes folder — "note.md", or
@@ -378,11 +399,19 @@ pub(crate) fn atomic_write(path: &PathBuf, content: &str) -> Result<(), String> 
     let real = link_target(path);
     let path = real.as_ref().unwrap_or(path);
     let tmp = temp_path(path);
-    fs::write(&tmp, content).map_err(|e| e.to_string())?;
-    if let Ok(meta) = fs::metadata(path) {
-        let _ = fs::set_permissions(&tmp, meta.permissions());
+    // On any failure — a full disk mid-write, a rename refused — the note is
+    // untouched (the new text never replaced it) and no half-written temp file
+    // is left lying next to it.
+    let done = fs::write(&tmp, content).and_then(|_| {
+        if let Ok(meta) = fs::metadata(path) {
+            let _ = fs::set_permissions(&tmp, meta.permissions());
+        }
+        fs::rename(&tmp, path)
+    });
+    if let Err(e) = done {
+        let _ = fs::remove_file(&tmp);
+        return Err(e.to_string());
     }
-    fs::rename(&tmp, path).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -443,6 +472,32 @@ struct NoteHit {
     link: Option<String>, // see NoteMeta
 }
 
+/// The part of a line to show for a match of `q` (already lowercase): the
+/// line itself when it is short, otherwise ~140 characters around the match,
+/// so a match deep in a very long line still shows up in its snippet.
+fn snippet_of(line: &str, q: &str) -> Option<String> {
+    let lower = line.to_lowercase();
+    let at = lower.find(q)?;
+    let line = line.trim();
+    let chars: Vec<char> = line.chars().collect();
+    if chars.len() <= 140 {
+        return Some(line.to_string());
+    }
+    // Where the match starts, in characters (lowercasing can change byte
+    // lengths, so count on the lowercase text up to the match).
+    let start_c = lower[..at].chars().count().saturating_sub(line.len() - line.trim_start().len());
+    let from = start_c.saturating_sub(40).min(chars.len().saturating_sub(140));
+    let to = (from + 140).min(chars.len());
+    let mut out: String = chars[from..to].iter().collect();
+    if from > 0 {
+        out.insert(0, '…');
+    }
+    if to < chars.len() {
+        out.push('…');
+    }
+    Some(out)
+}
+
 /// Search notes by filename AND content. Empty query returns all notes.
 /// Filename matches rank first; content matches carry a snippet of the line.
 #[tauri::command]
@@ -468,12 +523,9 @@ async fn search_notes(query: String) -> Result<Vec<NoteHit>, String> {
 
         let in_name = name.to_lowercase().contains(&q);
         // Look for the first content line containing the query (for a snippet).
-        let snippet = fs::read_to_string(&path).ok().and_then(|content| {
-            content
-                .lines()
-                .find(|line| line.to_lowercase().contains(&q))
-                .map(|line| line.trim().chars().take(140).collect::<String>())
-        });
+        let snippet = fs::read_to_string(&path)
+            .ok()
+            .and_then(|content| content.lines().find_map(|line| snippet_of(line, &q)));
 
         if in_name || snippet.is_some() {
             let link = link_target(&path).map(|p| p.to_string_lossy().into_owned());
@@ -556,10 +608,24 @@ fn fetch_in_background(app: tauri::AppHandle, name: String, path: PathBuf) {
 #[tauri::command]
 async fn write_note(name: String, content: String) -> Result<(), String> {
     let path = safe_note_path(&name)?;
-    if let Some(parent) = path.parent() {
-        let _ = fs::create_dir_all(parent);
-    }
+    make_parent_within(&notes_dir(), &path)?;
     atomic_write(&path, &content)
+}
+
+/// Make the folders between the notes folder and a note ("trips/" for
+/// "trips/lisbon.md") — never the notes folder itself. If that is gone (an
+/// external disk unmounted, the folder renamed in the Finder), creating it
+/// would put a fresh, empty "/Volumes/Work/Notes" on the internal disk and
+/// save into it, and nobody would know where the notes went. The save fails
+/// instead, and the tab says it couldn't save.
+fn make_parent_within(root: &std::path::Path, path: &std::path::Path) -> Result<(), String> {
+    if !root.is_dir() {
+        return Err(format!("Your notes folder isn't there anymore: {}", root.display()));
+    }
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 /// Move a note to the OS Trash (recoverable), never a hard unlink.
@@ -601,9 +667,7 @@ fn create_note(ext: Option<String>, folder: Option<String>) -> Result<String, St
         let name = format!("{prefix}Untitled-{n}.{ext}");
         let path = dir.join(&name);
         if !path.exists() {
-            if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-            }
+            make_parent_within(&dir, &path)?;
             atomic_write(&path, "")?;
             return Ok(name);
         }
@@ -662,9 +726,7 @@ fn rename_note(app: tauri::AppHandle, from: String, to: String) -> Result<(), St
         return Err(format!("a note named {to:?} already exists"));
     }
     // "a/b.md" moves the note into a — made on the way if need be.
-    if let Some(parent) = to_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
+    make_parent_within(&notes_dir(), &to_path)?;
     move_note(&from_path, &to_path)?;
     windows::note_renamed(&app, &from, &to);
     Ok(())
@@ -705,10 +767,7 @@ fn move_note(from: &std::path::Path, to: &std::path::Path) -> Result<(), String>
 }
 
 fn read_session() -> Session {
-    fs::read_to_string(session_path())
-        .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
+    read_json_or_keep(&session_path())
 }
 
 #[tauri::command]
@@ -2095,6 +2154,7 @@ pub fn run() {
 
     builder
         .setup(|app| {
+            ensure_default_notes_dir();
             // The preview's local images come from the notes folder only.
             allow_images(app.handle(), &notes_dir());
             // Build the main window in code (not via config) so we can center
@@ -2374,6 +2434,117 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    // ---- Data torture (Onda 4) ----------------------------------------------
+    // Robustness, not attack: what the files Parker keeps and edits can look
+    // like after a crash, a sync, a downgrade or another program.
+
+    #[test]
+    fn a_note_that_isnt_utf8_fails_to_read_and_is_never_written() {
+        // The frontend opens no tab for a note it can't read, so nothing
+        // exists that could autosave over it; the read is what has to fail.
+        let dir = scratch("latin1");
+        let p = dir.join("old.md");
+        fs::write(&p, b"caf\xe9 cr\xe8me").unwrap();
+        assert!(fs::read_to_string(&p).is_err());
+        assert_eq!(fs::read(&p).unwrap(), b"caf\xe9 cr\xe8me");
+    }
+
+    #[test]
+    fn a_broken_settings_file_is_kept_aside_not_overwritten() {
+        let dir = scratch("broken-json");
+        let p = dir.join("settings.json");
+        fs::write(&p, r#"{"notes_dir": "/Volumes/Work/Notes", "zoom": 1.2"#).unwrap(); // cut short
+        let s: super::Settings = super::read_json_or_keep(&p);
+        assert_eq!(s.notes_dir, None, "the defaults, for now");
+        assert!(!p.exists());
+        assert!(fs::read_to_string(dir.join("settings.json.broken")).unwrap().contains("/Volumes/Work/Notes"));
+    }
+
+    #[test]
+    fn settings_from_a_newer_parker_still_load() {
+        let dir = scratch("future-json");
+        let p = dir.join("settings.json");
+        fs::write(&p, r#"{"notes_dir":"/n","zoom":1.1,"updates_channel":"beta","panels":{"tasks":true}}"#).unwrap();
+        let s: super::Settings = super::read_json_or_keep(&p);
+        assert_eq!(s.notes_dir.as_deref(), Some("/n"));
+        assert_eq!(s.zoom, 1.1);
+        assert!(p.exists(), "nothing wrong with it: left where it is");
+        // A missing file is the defaults, silently.
+        let none: super::Session = super::read_json_or_keep(&dir.join("absent.json"));
+        assert!(none.open.is_empty());
+    }
+
+    #[test]
+    fn a_failed_write_leaves_the_note_and_no_temp_file() {
+        let dir = scratch("failed-write");
+        // A folder where the note should be: the rename over it fails, as a
+        // full disk or a locked file would make it.
+        let p = dir.join("note.md");
+        fs::create_dir_all(p.join("inside")).unwrap();
+        assert!(super::atomic_write(&p, "text").is_err());
+        assert!(p.join("inside").is_dir());
+        assert!(!dir.join("note.md.parker-tmp").exists());
+    }
+
+    #[test]
+    fn a_save_never_recreates_a_notes_folder_that_went_away() {
+        let dir = scratch("gone-root");
+        let root = dir.join("Volumes/Work/Notes");
+        let r = super::make_parent_within(&root, &root.join("trips/lisbon.md"));
+        assert!(r.unwrap_err().contains("isn't there"));
+        assert!(!root.exists(), "no empty stand-in folder was made");
+        // With the folder there, a subfolder for the note is made as before.
+        fs::create_dir_all(&root).unwrap();
+        super::make_parent_within(&root, &root.join("trips/lisbon.md")).unwrap();
+        assert!(root.join("trips").is_dir());
+    }
+
+    #[test]
+    fn a_huge_note_saves_and_searches() {
+        let dir = scratch("huge");
+        let p = dir.join("huge.md");
+        // One 5 MB line with the word near its end, and 20 MB overall.
+        let mut text = "x".repeat(5_000_000);
+        text.push_str(" needle in the haystack ");
+        text.push_str(&"\nfiller line of text".repeat(750_000));
+        let t = std::time::Instant::now();
+        super::atomic_write(&p, &text).unwrap();
+        assert_eq!(fs::metadata(&p).unwrap().len() as usize, text.len());
+        let line = text.lines().next().unwrap();
+        let snip = super::snippet_of(line, "needle").unwrap();
+        assert!(snip.contains("needle"), "{snip}");
+        assert!(snip.chars().count() <= 142);
+        assert!(snip.starts_with('…'));
+        assert!(t.elapsed() < std::time::Duration::from_secs(5));
+    }
+
+    #[test]
+    fn a_short_line_is_its_own_snippet() {
+        assert_eq!(super::snippet_of("  Buy oat milk  ", "oat").as_deref(), Some("Buy oat milk"));
+        assert_eq!(super::snippet_of("nothing here", "oat"), None);
+        let long = format!("{}Needle{}", "a".repeat(30), "b".repeat(300));
+        let s = super::snippet_of(&long, "needle").unwrap();
+        assert!(s.starts_with("aaaa") && s.contains("Needle") && s.ends_with('…'));
+    }
+
+    #[test]
+    fn a_stale_git_lock_fails_fast_and_says_why() {
+        let dir = scratch("index-lock");
+        let git = |args: &[&str]| super::run_with_timeout(super::git_command(&dir, args), std::time::Duration::from_secs(20));
+        if git(&["init", "-q"]).map(|o| !o.status.success()).unwrap_or(true) {
+            return; // no git on this machine
+        }
+        let _ = git(&["config", "user.email", "t@example.invalid"]);
+        let _ = git(&["config", "user.name", "t"]);
+        fs::write(dir.join("a.md"), "a").unwrap();
+        fs::write(dir.join(".git/index.lock"), "").unwrap(); // a git that died
+        let t = std::time::Instant::now();
+        let o = git(&["add", "-A"]).unwrap();
+        assert!(!o.status.success());
+        assert!(String::from_utf8_lossy(&o.stderr).contains("index.lock"));
+        assert!(t.elapsed() < std::time::Duration::from_secs(5));
     }
 
     // ---- Symlinked notes (Onda 4 c) -------------------------------------------
