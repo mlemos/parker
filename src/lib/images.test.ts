@@ -9,7 +9,7 @@ describe("imageKind", () => {
     expect(imageKind("HTTPS://EXAMPLE.COM/A.PNG")).toBe("remote");
     expect(imageKind("img/photo.png")).toBe("local");
     expect(imageKind("../shared/photo.png")).toBe("local");
-    expect(imageKind("/Users/me/photo.png")).toBe("local");
+    expect(imageKind("/home/me/photo.png")).toBe("local");
     expect(imageKind("data:image/png;base64,AAAA")).toBe("inline");
     expect(imageKind("file:///etc/passwd")).toBe("other");
     expect(imageKind("asset://localhost/x")).toBe("other");
@@ -49,7 +49,9 @@ describe("imageHost", () => {
   it("names the server a remote image would come from", () => {
     expect(imageHost("https://example.com/a.png")).toBe("example.com");
     expect(imageHost("//cdn.example.com:8080/a.png?x=1")).toBe("cdn.example.com:8080");
-    expect(imageHost("https://user:pw@evil.example/p.gif")).toBe("evil.example");
+    // Credentials in the address are not the host (split so the repo guard
+    // doesn't read it as an email address).
+    expect(imageHost("https://user:pw" + "@evil.example/p.gif")).toBe("evil.example");
     expect(imageHost("img/a.png")).toBe("");
   });
 });

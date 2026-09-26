@@ -11,15 +11,18 @@ on:
 permissions:
   contents: read
 
+# Actions are pinned by commit SHA, not by tag: a tag can be moved to other
+# code, a SHA can't. Dependabot (.github/dependabot.yml) proposes the updates.
+
 jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0 # scan the whole tree, not just the tip commit
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
@@ -32,7 +35,7 @@ jobs:
       - name: Versions agree
         run: node scripts/check-versions.mjs
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 9
       - run: pnpm install --frozen-lockfile
@@ -50,12 +53,12 @@ jobs:
   backend:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 9
       - run: pnpm install --frozen-lockfile
@@ -65,7 +68,7 @@ jobs:
       - name: Build the frontend
         run: pnpm build
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: src-tauri
 
@@ -78,3 +81,27 @@ jobs:
       # the same fixtures as the TypeScript suite) and the design-token contract.
       - name: iOS core tests
         run: swift test --package-path ios/ParkerCore
+
+  # Known vulnerabilities in what ships: the npm packages in the app bundle
+  # and the Rust crates. Not blocking for now — the first weeks measure how
+  # much noise it makes before it gets to fail a build.
+  audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 9
+      - name: npm packages (production only)
+        run: pnpm audit --prod
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: src-tauri
+      - name: Rust crates
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit --file src-tauri/Cargo.lock
