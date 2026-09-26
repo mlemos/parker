@@ -1,4 +1,4 @@
-// Inline formatting from the keyboard. ⌘B, ⌘I, ⌘E and ⌘⇧X put markdown's
+// Inline formatting from the keyboard. ⌘B, ⌘I, ⌘E, ⌘⇧X and ⌘⇧H put markdown's
 // marks around the selection — or the word under the caret — and take them
 // off again when they are already there; ⌘K makes a link. Pure state
 // commands: they read the document and describe a change, and never touch
@@ -24,6 +24,7 @@ const BOLD: Mark = { text: "**", is: (n) => n >= 2 };
 const ITALIC: Mark = { text: "*", is: (n) => n >= 1 && n !== 2 };
 const CODE: Mark = { text: "`", is: (n) => n >= 1 };
 const STRIKE: Mark = { text: "~~", is: (n) => n >= 2 };
+const HIGHLIGHT: Mark = { text: "==", is: (n) => n >= 2 };
 
 /** How many `ch` in a row end at `pos` (dir -1) or start at `pos` (dir 1).
  *  A newline is never `ch`, so a run stops at the line. */
@@ -115,6 +116,7 @@ export const toggleBold = toggle(BOLD);
 export const toggleItalic = toggle(ITALIC);
 export const toggleCode = toggle(CODE);
 export const toggleStrike = toggle(STRIKE);
+export const toggleHighlight = toggle(HIGHLIGHT);
 
 const WHOLE_LINK = /^\[([^\]]*)\]\([^)]*\)$/;
 
@@ -163,6 +165,7 @@ export const formatKeymap = Prec.high(
     { key: "Mod-i", run: toggleItalic },
     { key: "Mod-e", run: toggleCode },
     { key: "Shift-Mod-x", run: toggleStrike },
+    { key: "Shift-Mod-h", run: toggleHighlight },
     { key: "Mod-k", run: insertLink },
   ])
 );

@@ -96,6 +96,7 @@ const EDITOR: Section[] = [
       ["Bold / italic — the selection, or the word at the caret", ["⌘B", "⌘I"]],
       ["Inline code", ["⌘E"]],
       ["Strikethrough", ["⌘⇧X"]],
+      ["Highlight", ["⌘⇧H"]],
       ["Link — a selected address becomes the target", ["⌘K"]],
       ["Open a link in the browser", ["⌘Click"]],
     ],
