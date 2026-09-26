@@ -966,6 +966,10 @@ body.resizing {
 .md-body .todo > :not(.todo-head) a {
   color: color-mix(in srgb, var(--md-link) var(--todo-child-mark-mix), var(--editor-bg));
 }
+.md-body .todo > :not(.todo-head) s,
+.md-body .todo > :not(.todo-head) del {
+  color: color-mix(in srgb, var(--md-strike) var(--todo-child-mark-mix), var(--editor-bg));
+}
 /* A nested to-do's own head is a head: full colour again. */
 .md-body .todo .todo-head strong { color: var(--md-bold); }
 .md-body .todo .todo-head em { color: var(--md-italic); }
@@ -973,6 +977,8 @@ body.resizing {
 .md-body .todo .todo-head em strong { color: var(--md-bold-italic); }
 .md-body .todo .todo-head code { color: var(--md-code); }
 .md-body .todo .todo-head a { color: var(--md-link); }
+.md-body .todo .todo-head s,
+.md-body .todo .todo-head del { color: var(--md-strike); }
 .md-body .todo-head {
   display: block;
   /* The first line starts back in the gutter, where the box goes; the box's
@@ -1164,6 +1170,10 @@ body.resizing {
 .md-body strong em,
 .md-body em strong {
   color: var(--md-bold-italic);
+}
+.md-body s,
+.md-body del {
+  color: var(--md-strike);
 }
 .md-body ul,
 .md-body ol {
@@ -1673,6 +1683,12 @@ body.resizing {
   color: var(--md-url);
   text-decoration: underline;
 }
+/* Struck text: the theme's strike colour, and the line through it — the
+   parser alone only tags it. */
+.editor-wrap .cm-md-strike {
+  color: var(--md-strike);
+  text-decoration: line-through;
+}
 /* Under a to-do, a mark keeps its hue and loses intensity — its own dial
    (--todo-child-mark-mix), not the line's — so a nested line stays a nested
    line and its bold is still bold-coloured. */
@@ -1695,6 +1711,9 @@ body.resizing {
 .editor-wrap [class*="cm-todo-child-"] .cm-md-url,
 .editor-wrap [class*="cm-todo-child-"] .cm-ext-url {
   color: color-mix(in srgb, var(--md-url) var(--todo-child-mark-mix), var(--editor-bg));
+}
+.editor-wrap [class*="cm-todo-child-"] .cm-md-strike {
+  color: color-mix(in srgb, var(--md-strike) var(--todo-child-mark-mix), var(--editor-bg));
 }
 
 /* ---- Folding ------------------------------------------------------------ */

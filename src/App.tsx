@@ -528,6 +528,7 @@ export default function App({
       "--md-code-bg": alpha(theme.syntax.inlineCode, 0.14),
       "--md-link": theme.syntax.link,
       "--md-url": theme.syntax.url,
+      "--md-strike": theme.syntax.strike,
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
