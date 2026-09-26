@@ -199,8 +199,10 @@ function monoStyles(p: SyntaxColors) {
     // cover. The url after a link's text is the same case — its own node
     // inside the link's, coloured by the rule that comes after.
     { tag: [t.quote], color: p.quote },
-    { tag: [t.link], color: p.link, textDecoration: "underline" },
-    { tag: [t.url], color: p.url, textDecoration: "underline" },
+    // Links too are classes dressed in App.css (--md-link / --md-url), so a
+    // link under a to-do can dim by the marks' dial and not the line's.
+    { tag: [t.link], class: "cm-md-link" },
+    { tag: [t.url], class: "cm-md-url" },
     // The text of a plain fence (no language): the code colour, no background.
     { tag: [t.monospace], color: p.inlineCode },
     // NOTE: intentionally NO rule for processingInstruction/meta so markdown
