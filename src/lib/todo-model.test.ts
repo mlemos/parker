@@ -285,10 +285,11 @@ describe("planMarkerDelete on list items", () => {
     expect(planMarkerDelete("- item", 1, true)).toEqual({ from: 0, to: 2 });
   });
 
-  it("keeps the indentation, and takes a Markdown checkbox with its bullet", () => {
+  it("keeps the indentation; \"[ ]\" after the bullet is text, not a checkbox", () => {
     expect(planMarkerDelete("  - nested", 4, true)).toEqual({ from: 2, to: 4 });
-    expect(planMarkerDelete("- [ ] task", 6, true)).toEqual({ from: 0, to: 6 });
-    expect(planMarkerDelete("- [x] done", 6, true)).toEqual({ from: 0, to: 6 });
+    expect(planMarkerDelete("- [ ] task", 2, true)).toEqual({ from: 0, to: 2 });
+    expect(planMarkerDelete("- [ ] task", 6, true)).toBeNull();
+    expect(planMarkerDelete("- [x] done", 6, true)).toBeNull();
   });
 
   it("leaves Backspace alone inside the text, and on plain lines", () => {

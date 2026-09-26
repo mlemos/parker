@@ -24,8 +24,7 @@ const BOX = "1ch";
 
 /** The leading part of a line the continuation should hang under: the
  *  indentation, then a list marker (`- `, `* `, `+ `, `1. `, `1) `), a quote
- *  marker (`> `), or a to-do tag with its space; a task checkbox (`[ ] `)
- *  after a list marker as well. Returns the prefix as text columns plus
+ *  marker (`> `), or a to-do tag with its space. Returns the prefix as text columns plus
  *  whether a to-do box stands in for the tag — null when the line has no
  *  prefix to hang under (a plain paragraph, a heading). */
 export function hangingPrefix(text: string): { cols: number; box: boolean } | null {
@@ -41,7 +40,7 @@ export function hangingPrefix(text: string): { cols: number; box: boolean } | nu
     return { cols: ws + gap, box: true };
   }
 
-  const marker = /^(?:[-*+]|\d{1,3}[.)]|>)[ \t]+(?:\[[ xX]\][ \t]+)?/.exec(rest);
+  const marker = /^(?:[-*+]|\d{1,3}[.)]|>)[ \t]+/.exec(rest);
   if (marker) return { cols: ws + marker[0].length, box: false };
 
   // Indented text with no marker still hangs under its own start — a

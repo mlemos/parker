@@ -19,7 +19,7 @@ public enum HangingIndent {
     }
 
     private static let marker = try! NSRegularExpression(
-        pattern: "^(?:[-*+]|\\d{1,3}[.)]|>)[ \\t]+(?:\\[[ xX]\\][ \\t]+)?"
+        pattern: "^(?:[-*+]|\\d{1,3}[.)]|>)[ \\t]+"
     )
 
     /// The leading part of a line the continuation should hang under, or nil
