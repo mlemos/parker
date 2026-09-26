@@ -89,6 +89,10 @@ impl Externals {
         if fresh {
             if let Some(dir) = real.parent() {
                 self.watch(app, dir);
+                // Its images, next to it, load in the preview like a note's.
+                if let Some(app) = app {
+                    super::allow_images(app, dir);
+                }
             }
         }
         Ok(real.to_string_lossy().into_owned())

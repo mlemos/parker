@@ -1,5 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { renderMarkdown } from "../lib/markdown";
+import { localImagePath } from "../lib/images";
+import type { ImageMode } from "../lib/images";
+import { api } from "../lib/api";
 import { openExternal } from "../lib/open";
 import { LINE_ATTR, blockAt, blocksBetween, blocksWithLines } from "../lib/line-map";
 import { cursorOf, onCursor, onViewport, viewportOf } from "../lib/preview-sync";
@@ -19,6 +23,8 @@ export function MarkdownPreview({
   name,
   changed,
   sync,
+  images = "local",
+  notesDir = "",
 }: {
   content: string;
   /** The note shown, for listening to the right editor. */
@@ -27,8 +33,24 @@ export function MarkdownPreview({
   changed?: number[];
   /** Follow the editor. */
   sync: boolean;
+  /** Which images load (Settings › Privacy & Security). */
+  images?: ImageMode;
+  /** The notes folder, where a note's local images resolve. */
+  notesDir?: string;
 }) {
-  const html = useMemo(() => renderMarkdown(content), [content]);
+  const html = useMemo(
+    () =>
+      renderMarkdown(content, {
+        images,
+        // A local image is served by the asset protocol, which Rust opens only
+        // for the notes folder and the folders of opened external files.
+        resolveLocal: (src) => {
+          const path = notesDir || name.startsWith("/") ? localImagePath(notesDir, name, src) : null;
+          return path ? convertFileSrc(path) : null;
+        },
+      }),
+    [content, images, notesDir, name]
+  );
   const root = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
 
@@ -36,6 +58,12 @@ export function MarkdownPreview({
    *  and the page would replace Parker. Anything that isn't an address to
    *  the outside (a relative path, an anchor) is left alone, for now. */
   const followLink = (e: React.MouseEvent<HTMLDivElement>) => {
+    // The box of a blocked image links to the setting that blocked it.
+    if ((e.target as HTMLElement).closest('[data-action="privacy-settings"]')) {
+      e.preventDefault();
+      api.openSettings("privacy").catch(() => {});
+      return;
+    }
     const a = (e.target as HTMLElement).closest("a[href]");
     if (!a) return;
     e.preventDefault();

@@ -92,6 +92,25 @@ struct Settings {
     /// scroll and the amber marks. On unless turned off.
     #[serde(default = "yes")]
     preview_sync: bool,
+    /// Which images the preview loads: "none", "local" (files next to the
+    /// note, which never leave the Mac) or "all" (remote ones too, which the
+    /// servers hosting them see being fetched). Local unless changed.
+    #[serde(default = "local_images")]
+    preview_images: String,
+}
+
+/// serde default for `preview_images`.
+fn local_images() -> String {
+    "local".to_string()
+}
+
+/// A saved or requested image mode, or the default for anything unknown.
+fn image_mode(m: &str) -> &'static str {
+    match m {
+        "none" => "none",
+        "all" => "all",
+        _ => "local",
+    }
 }
 
 /// serde default for `zoom` — a missing value means "no zoom", not 0×.
@@ -128,6 +147,7 @@ impl Default for Settings {
             editor_ligatures: false,
             editor_width: 100,
             preview_sync: true,
+            preview_images: local_images(),
         }
     }
 }
@@ -695,6 +715,7 @@ struct SettingsInfo {
     editor_ligatures: bool,
     editor_width: u32,
     preview_sync: bool,
+    preview_images: String,
 }
 
 #[tauri::command]
@@ -714,6 +735,7 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
         editor_ligatures: s.editor_ligatures,
         preview_sync: s.preview_sync,
         editor_width: s.editor_width,
+        preview_images: image_mode(&s.preview_images).to_string(),
     }
 }
 
@@ -746,6 +768,27 @@ fn set_preview_sync(app: tauri::AppHandle, enabled: bool) -> Result<(), String> 
     Ok(())
 }
 
+/// Let the preview load images from under `dir` through the asset protocol.
+/// The scope starts empty (tauri.conf.json): only the notes folder and the
+/// folders of external files the user opened are ever added, so a note can't
+/// point an <img> at ~/.ssh and have it read.
+pub(crate) fn allow_images<R: tauri::Runtime>(app: &tauri::AppHandle<R>, dir: &std::path::Path) {
+    use tauri::Manager;
+    if let Err(e) = app.asset_protocol_scope().allow_directory(dir, true) {
+        eprintln!("images: can't allow {}: {e}", dir.display());
+    }
+}
+
+/// Settings › Privacy & Security: which images the preview may load.
+#[tauri::command]
+fn set_preview_images(app: tauri::AppHandle, mode: String) -> Result<(), String> {
+    let mut s = load_settings();
+    s.preview_images = image_mode(&mode).to_string();
+    write_settings(&s)?;
+    broadcast_prefs(&app, &s);
+    Ok(())
+}
+
 /// The editor toggles are one setting for the whole app, and every window
 /// shows them: a flip in one window is told to all of them, the flipper
 /// included (it already holds the value; a second set is nothing).
@@ -759,6 +802,7 @@ fn broadcast_prefs(app: &tauri::AppHandle, s: &Settings) {
             "editor_ligatures": s.editor_ligatures,
             "editor_width": s.editor_width,
             "preview_sync": s.preview_sync,
+            "preview_images": image_mode(&s.preview_images),
         }),
     );
 }
@@ -1345,6 +1389,7 @@ fn set_notes_dir(
     // Point the file watcher at the new folder (no restart needed).
     #[cfg(desktop)]
     rewatch_notes(&app);
+    allow_images(&app, &new_dir);
     // Note windows name their notes relative to the old folder.
     windows::close_all(&app);
 
@@ -1589,8 +1634,25 @@ fn show_help_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 /// Settings. It reaches the rest of the app only through commands and the
 /// events every window already follows (prefs, theme, zoom, notes-dir).
 fn show_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    show_settings_at(app, None);
+}
+
+/// A settings section id as the window knows them — anything else is dropped,
+/// so the value can go into a URL and an event as it is.
+fn settings_section(s: Option<String>) -> Option<String> {
+    s.filter(|s| !s.is_empty() && s.len() <= 32 && s.bytes().all(|b| b.is_ascii_lowercase()))
+}
+
+/// Settings, opened on `section` when given (the preview's "Privacy
+/// settings…" link opens it on Privacy & Security).
+fn show_settings_at<R: tauri::Runtime>(app: &tauri::AppHandle<R>, section: Option<String>) {
     use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+    let section = settings_section(section);
     if let Some(w) = app.get_webview_window("settings") {
+        if let Some(sec) = &section {
+            use tauri::{Emitter, EventTarget};
+            let _ = app.emit_to(EventTarget::labeled("settings"), "parker://settings-section", sec);
+        }
         // Coming back from hidden: tell it to read everything again.
         if !w.is_visible().unwrap_or(true) {
             use tauri::{Emitter, EventTarget};
@@ -1602,7 +1664,10 @@ fn show_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         return;
     }
     let theme = current_theme().0;
-    let url = format!("index.html?view=settings&theme={theme}");
+    let url = match &section {
+        Some(sec) => format!("index.html?view=settings&theme={theme}&section={sec}"),
+        None => format!("index.html?view=settings&theme={theme}"),
+    };
     // Always at 100%: the zoom is the editor's, and a settings window that
     // grows with it would outgrow the screen for no reason.
     #[allow(unused_mut)]
@@ -1639,10 +1704,11 @@ fn toggle_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     show_settings_window(app);
 }
 
-/// Command for the toolbar button and ⌘, inside an editor window.
+/// Command for the toolbar button and ⌘, inside an editor window, and for a
+/// link that opens one section.
 #[tauri::command]
-fn open_settings(app: tauri::AppHandle) {
-    show_settings_window(&app);
+fn open_settings(app: tauri::AppHandle, section: Option<String>) {
+    show_settings_at(&app, section);
 }
 
 /// Command so the in-app (?) button can open the shortcuts window.
@@ -1888,6 +1954,8 @@ pub fn run() {
 
     builder
         .setup(|app| {
+            // The preview's local images come from the notes folder only.
+            allow_images(app.handle(), &notes_dir());
             // Build the main window in code (not via config) so we can center
             // the macOS traffic lights inside our 40px custom title bar. The
             // same factory builds the note windows — windows.rs.
@@ -1984,6 +2052,7 @@ pub fn run() {
             set_zoom,
             set_editor_prefs,
             set_preview_sync,
+            set_preview_images,
             open_help,
             open_settings,
             set_theme,
@@ -2044,6 +2113,17 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_settings_section_is_a_short_lowercase_word() {
+        let s = |v: &str| super::settings_section(Some(v.to_string()));
+        assert_eq!(s("privacy"), Some("privacy".to_string()));
+        assert_eq!(s(""), None);
+        assert_eq!(s("Privacy"), None);
+        assert_eq!(s("a&b=c"), None);
+        assert_eq!(s(&"x".repeat(40)), None);
+        assert_eq!(super::settings_section(None), None);
+    }
+
     #[test]
     fn a_theme_background_is_read_from_hex() {
         use tauri::window::Color;
@@ -2233,6 +2313,7 @@ mod tests {
             editor_ligatures: true,
             editor_width: 80,
             preview_sync: false,
+            preview_images: "all".into(),
         };
         let back: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
         assert_eq!(back.notes_dir, s.notes_dir);
@@ -2245,6 +2326,19 @@ mod tests {
         assert_eq!(back.editor_ligatures, s.editor_ligatures);
         assert_eq!(back.editor_width, s.editor_width);
         assert_eq!(back.preview_sync, s.preview_sync);
+        assert_eq!(back.preview_images, s.preview_images);
+    }
+
+    // Images arrived in the privacy round (25/09): a settings file without the
+    // key loads local images only, and an unknown value is read as that too.
+    #[test]
+    fn images_are_local_only_unless_chosen_otherwise() {
+        let s: Settings = serde_json::from_str(r#"{"zoom":1.0}"#).unwrap();
+        assert_eq!(s.preview_images, "local");
+        assert_eq!(super::image_mode("none"), "none");
+        assert_eq!(super::image_mode("all"), "all");
+        assert_eq!(super::image_mode("everything"), "local");
+        assert_eq!(super::image_mode(""), "local");
     }
 
     // The preview toggle arrived after 1.2.1; a settings file without it means

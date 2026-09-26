@@ -1223,6 +1223,25 @@ body.resizing {
 .md-body img {
   max-width: 100%;
 }
+/* An image Settings › Privacy & Security held back: no <img>, so nothing was
+   fetched — a quiet box that says what, and links to the setting. */
+.md-body .img-blocked {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  font-size: 0.85em;
+  color: var(--muted);
+}
+.md-body .img-blocked-link {
+  color: var(--accent);
+  cursor: pointer;
+}
+.md-body .img-blocked-link:hover {
+  text-decoration: underline;
+}
 /* The focused preview pane shows its accent underline like any pane. */
 .egroup.focused .md-preview {
   outline: none;
@@ -2763,6 +2782,17 @@ body.resizing {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
+}
+/* What a choice costs, said under it (remote images and privacy). */
+.setwin-warn {
+  margin: 10px 0 4px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  background: color-mix(in srgb, var(--todo-attn) 14%, transparent);
+  max-width: 62ch;
 }
 .setwin-intro {
   margin: 14px 0 4px;

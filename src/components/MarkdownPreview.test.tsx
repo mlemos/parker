@@ -85,3 +85,35 @@ describe("links in the preview", () => {
     expect(fireEvent.click(container.querySelector("p")!)).toBe(true);
   });
 });
+
+vi.mock("@tauri-apps/api/core", () => ({ convertFileSrc: (p: string) => `asset://localhost${encodeURI(p)}` }));
+const openSettings = vi.hoisted(() => vi.fn(async (_section?: string) => {}));
+vi.mock("../lib/api", () => ({ api: { openSettings } }));
+
+describe("images in the preview", () => {
+  it("serves a note's local image through the asset protocol, from the note's folder", () => {
+    const { container } = render(
+      <MarkdownPreview content="![tram](img/tram.jpg)" name="trips/lisbon.md" notesDir="/home/me/Parker" sync={false} />
+    );
+    expect(container.querySelector("img")!.getAttribute("src")).toBe(
+      "asset://localhost/home/me/Parker/trips/img/tram.jpg"
+    );
+  });
+
+  it("holds a remote image back by default, and its box opens Privacy settings", () => {
+    const { container } = render(
+      <MarkdownPreview content="![](https://tracker.example/p.gif)" name="n.md" notesDir="/home/me/Parker" sync={false} />
+    );
+    expect(container.querySelector("img")).toBeNull();
+    const link = container.querySelector('[data-action="privacy-settings"]')!;
+    expect(fireEvent.click(link)).toBe(false);
+    expect(openSettings).toHaveBeenCalledWith("privacy");
+  });
+
+  it("loads the remote image once everything is allowed", () => {
+    const { container } = render(
+      <MarkdownPreview content="![](https://example.com/a.png)" name="n.md" images="all" notesDir="/p" sync={false} />
+    );
+    expect(container.querySelector("img")!.getAttribute("src")).toBe("https://example.com/a.png");
+  });
+});

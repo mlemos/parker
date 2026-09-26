@@ -19,6 +19,7 @@ const SETTINGS: SettingsInfo = {
   editor_ligatures: false,
   editor_width: 0,
   preview_sync: true,
+  preview_images: "local",
 };
 const AGENTS: AgentsInfo = { claude_code: "missing", claude_code_dir: "~/.claude/skills/parker", readme: false };
 
@@ -38,6 +39,7 @@ function fakeBackend(over: Partial<SettingsBackend> = {}, agents: Partial<Agents
     setGitSyncInterval: vi.fn(async () => {}),
     setEditorPrefs: vi.fn(async () => {}),
     setPreviewSync: vi.fn(async () => {}),
+    setPreviewImages: vi.fn(async (_mode: string) => {}),
     setTheme: vi.fn(async () => {}),
     agentsInfo: vi.fn(async () => ({ ...AGENTS, ...agents })),
     installClaudeCodeSkill: vi.fn(async () => {}),
@@ -76,16 +78,17 @@ describe("initialSection", () => {
     expect(initialSection("agents")).toBe("agents");
     expect(initialSection("editor")).toBe("editor");
     expect(initialSection(null)).toBe("general");
-    expect(initialSection("privacy")).toBe("general"); // a section that doesn't exist (yet)
+    expect(initialSection("privacy")).toBe("privacy");
+    expect(initialSection("updates")).toBe("general"); // a section that doesn't exist (yet)
   });
 });
 
 describe("SettingsWindow — sections", () => {
-  it("lists the four sections and opens on General", async () => {
+  it("lists the five sections and opens on General", async () => {
     await open("General");
     const nav = screen.getByRole("navigation", { name: "Settings sections" });
     const names = within(nav).getAllByRole("button").map((b) => b.textContent);
-    expect(names).toEqual(["General", "Editor", "Backup & Git", "AI Agents"]);
+    expect(names).toEqual(["General", "Editor", "Backup & Git", "Privacy & Security", "AI Agents"]);
     expect(within(nav).getByRole("button", { name: "General" }).getAttribute("aria-current")).toBe("page");
   });
 
@@ -253,5 +256,25 @@ describe("SettingsWindow — AI Agents", () => {
     await user.click(await screen.findByRole("button", { name: "Install" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/Couldn't write/);
     expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("SettingsWindow — Privacy & Security", () => {
+  it("shows the image choice, local only by default, with no warning", async () => {
+    await open("Privacy & Security");
+    const group = screen.getByRole("radiogroup", { name: "Images in preview" });
+    const on = within(group).getAllByRole("radio").find((r) => r.getAttribute("aria-checked") === "true");
+    expect(on?.textContent).toBe("Local only");
+    expect(screen.queryByRole("note")).toBeNull();
+  });
+
+  it("saves a choice, and warns what remote images cost", async () => {
+    const { user, b } = await open("Privacy & Security");
+    await user.click(screen.getByRole("radio", { name: "Local and remote" }));
+    expect(b.setPreviewImages).toHaveBeenCalledWith("all");
+    expect(screen.getByRole("note").textContent).toMatch(/whoever hosts them can see/);
+    await user.click(screen.getByRole("radio", { name: "None" }));
+    expect(b.setPreviewImages).toHaveBeenLastCalledWith("none");
+    expect(screen.queryByRole("note")).toBeNull();
   });
 });

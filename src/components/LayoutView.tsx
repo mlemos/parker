@@ -4,6 +4,7 @@ import type { GroupCallbacks } from "./EditorGroup";
 import type { Buffer, LayoutNode, SplitNode } from "../lib/layout";
 import type { ThemeDef } from "../lib/themes";
 import type { TextWidth } from "../lib/text-width";
+import type { ImageMode } from "../lib/images";
 
 export interface LayoutHandlers {
   onFocus: (groupId: string) => void;
@@ -55,6 +56,9 @@ interface Common {
   wrapOn: boolean;
   width: TextWidth;
   previewSync: boolean;
+  /** Which images the preview loads, and the folder local ones resolve in. */
+  images: ImageMode;
+  notesDir: string;
   renamingName: string | null;
   homeDir: string;
   multiGroup: boolean;
@@ -112,6 +116,8 @@ export function LayoutView({
         wrapOn={common.wrapOn}
         width={common.width}
         previewSync={common.previewSync}
+        images={common.images}
+        notesDir={common.notesDir}
         renamingName={common.renamingName}
         homeDir={common.homeDir}
         noteWindow={common.noteWindow}
