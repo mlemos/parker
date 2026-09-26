@@ -30,6 +30,8 @@ export const tauriBackend: SettingsBackend = {
   },
   setEditorPrefs: api.setEditorPrefs,
   setPreviewImages: (mode) => api.setPreviewImages(mode),
+  inspectFolder: (path) => api.inspectFolder(path),
+  icloudState: () => api.icloudState(),
   setPreviewSync: api.setPreviewSync,
   // The theme is one for the app; every window follows parker://theme, and
   // the editor saves it with the session.

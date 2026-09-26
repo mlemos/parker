@@ -2798,6 +2798,18 @@ body.resizing {
   font-weight: 600;
   color: var(--text);
 }
+/* Under the notes folder: how to open the same folder on the iPhone. */
+.setwin-iphone {
+  margin: 2px 0 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--secondary);
+  max-width: 62ch;
+}
+.setwin-iphone b {
+  color: var(--text);
+  font-weight: 600;
+}
 /* What a choice costs, said under it (remote images and privacy). */
 .setwin-warn {
   margin: 10px 0 4px;
@@ -2907,4 +2919,302 @@ body.resizing {
 .editor-wrap .cm-cursor {
   border-left-width: 2px;
   margin-left: -1px;
+}
+
+/* ---- First run (Onda 5) --------------------------------------------------
+   The Mac's first open: where the notes will live. Laid out like the
+   prototype of 24/09 — a column of text, a card for the folder, an x-ray
+   under it, rows that explain the choice. Theme colours throughout. */
+.fr {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--canvas, var(--bg));
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+}
+/* The traffic lights sit on this strip; dragging it moves the window. */
+.fr-drag {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 40px;
+}
+.fr-body {
+  width: min(640px, 100% - 64px);
+  padding: 64px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.fr-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--secondary);
+}
+.fr-logo b {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+}
+.fr h1 {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+.fr-lead {
+  color: var(--secondary);
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 58ch;
+}
+.fr-lead b {
+  color: var(--text);
+}
+.fr-small {
+  font-size: 13px;
+}
+.fr-card {
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.fr-folder {
+  width: 40px;
+  height: 32px;
+  border-radius: 5px;
+  background: #3b9eff;
+  position: relative;
+  flex: none;
+}
+.fr-folder::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -5px;
+  width: 16px;
+  height: 7px;
+  border-radius: 3px 3px 0 0;
+  background: #3b9eff;
+}
+.fr-card-title {
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.fr-card-sub {
+  color: var(--secondary);
+  font-size: 13px;
+}
+.fr-tag {
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-weight: 500;
+}
+.fr-path {
+  display: block;
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.fr-xray,
+.fr-rows {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 13.5px;
+}
+.fr-xray {
+  padding: 4px 16px;
+  margin-top: -6px;
+  font-size: 13px;
+}
+.fr-xr {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.fr-xr:last-child {
+  border-bottom: 0;
+}
+.fr-k {
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: 2px;
+}
+.fr-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+  line-height: 1.5;
+}
+.fr-row:last-child {
+  border-bottom: 0;
+}
+.fr-state {
+  margin-top: 6px;
+}
+.fr-note {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--secondary);
+}
+.fr-mark {
+  display: inline-flex;
+  gap: 7px;
+  align-items: flex-start;
+}
+.fr-mark::before {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex: none;
+  margin-top: 2px;
+  box-sizing: border-box;
+}
+.fr-ok::before {
+  content: "✓";
+  color: var(--accent);
+}
+.fr-warn::before {
+  content: "!";
+  background: var(--todo-attn);
+  color: var(--canvas, var(--bg));
+}
+.fr-unknown::before {
+  content: "?";
+  background: var(--muted);
+  color: var(--canvas, var(--bg));
+}
+.fr-none {
+  color: var(--secondary);
+}
+.fr-none::before {
+  content: "–";
+  border: 1px solid var(--muted);
+  color: var(--muted);
+}
+.fr-rec {
+  background: color-mix(in srgb, var(--todo-attn) 14%, transparent);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.fr-rec .fr-btn {
+  margin-top: 8px;
+}
+.fr-updated {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.fr-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--secondary);
+}
+.fr-other {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--secondary);
+}
+.fr-other summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.fr-other ul {
+  margin: 4px 0 2px;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.fr-other b {
+  color: var(--text);
+}
+.fr-btns {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+}
+.fr-grow {
+  flex: 1;
+}
+.fr-btn {
+  font: inherit;
+  font-size: 13.5px;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--tab-bg, transparent);
+  color: var(--text);
+}
+.fr-btn.fr-pri {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.fr-btn:disabled,
+.fr-link:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.fr-link {
+  all: unset;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--accent);
+  font-size: 13.5px;
+}
+.fr-link:hover {
+  text-decoration: underline;
+}
+.fr-error {
+  color: var(--danger);
+  font-size: 13px;
+  margin: 0;
 }
