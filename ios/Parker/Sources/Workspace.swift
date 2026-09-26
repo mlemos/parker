@@ -17,6 +17,9 @@ final class Workspace {
     private(set) var lastError: String?
     private var watcher: FolderWatcher?
     private var accessing = false
+    /// The URL whose security scope Parker holds: the picked folder, or — for
+    /// Documents › Parker — the iCloud Drive root the grant was given for.
+    private var scope: URL?
 
     /// Files from outside the folder, open in place. Kept across launches by
     /// bookmark; the list is the "Files" section of Notes.
@@ -26,6 +29,19 @@ final class Workspace {
     var openRequest: NoteRef?
 
     private static let bookmarkKey = "notesFolderBookmark"
+    /// With a bookmark to the iCloud Drive root: the notes folder under it
+    /// ("Documents/Parker").
+    private static let subpathKey = "notesFolderSubpath"
+
+    /// Development builds use Documents › Parker (Dev), as the Mac's Dev build
+    /// does, and never touch the real notes.
+    static var devBuild: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
     private static let externalsKey = "externalFiles"
 
     init() {
@@ -52,7 +68,7 @@ final class Workspace {
 
     // ---- Choosing a folder ---------------------------------------------------------
 
-    /// "I already have notes": the folder the user picked in Files.
+    /// "Use another folder": the folder the user picked in Files.
     func choose(_ url: URL) {
         guard url.startAccessingSecurityScopedResource() else {
             lastError = "Couldn't open that folder."
@@ -61,52 +77,92 @@ final class Workspace {
         do {
             let bookmark = try url.bookmarkData()
             UserDefaults.standard.set(bookmark, forKey: Self.bookmarkKey)
+            UserDefaults.standard.removeObject(forKey: Self.subpathKey)
         } catch {
             lastError = "Couldn't keep access to that folder: \(error.localizedDescription)"
         }
-        open(url, accessing: true)
+        open(url, scope: url)
     }
 
-    /// "Start fresh": a folder of our own, born with one note that teaches by
-    /// tapping. In iCloud Drive › Parker when iCloud is on — every Mac with the
-    /// same account sees it — and in Files under On My iPhone › Parker when it
-    /// is not, with a word about it.
-    func startFresh() {
-        busy = true
-        Task.detached(priority: .userInitiated) {
-            // Resolving the ubiquity container can block; never on the main thread.
-            let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents", isDirectory: true)
-            await MainActor.run { self.finishStartFresh(ubiquity: ubiquity) }
+    // ---- Continue with iCloud Drive (Onda 5) ----------------------------------------
+
+    /// Whether iCloud Drive is on for this iPhone.
+    var driveOn: Bool { FileManager.default.ubiquityIdentityToken != nil }
+
+    /// The iCloud Drive root, where the Files picker opens for the grant. nil
+    /// when iCloud Drive is off. Resolving the container can block: off the
+    /// main thread.
+    func driveRoot() async -> URL? {
+        await Task.detached(priority: .userInitiated) {
+            FileManager.default.url(forUbiquityContainerIdentifier: nil).map(NotesHome.iCloudDriveRoot(fromContainer:))
+        }.value
+    }
+
+    /// The grant: the picker returned the iCloud Drive root. Keep access to it
+    /// and say what is at Documents › Parker.
+    func grant(root: URL) -> NotesHome.Found? {
+        guard root.startAccessingSecurityScopedResource() else {
+            lastError = "Couldn't open iCloud Drive."
+            return nil
+        }
+        pendingRoot = root
+        return NotesHome.locate(in: root, dev: Self.devBuild)
+    }
+    private(set) var pendingRoot: URL?
+
+    /// What the screens say about a folder.
+    func summary(of url: URL) -> FolderSummary { FolderSummary.of(url) }
+
+    /// Continue on Documents › Parker in iCloud Drive: made if it isn't there,
+    /// with a Welcome note when it has no notes, and remembered as the root's
+    /// bookmark plus the path under it.
+    func useDefault(_ folder: URL) {
+        guard let root = pendingRoot else { return }
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try addWelcomeIfEmpty(folder)
+            UserDefaults.standard.set(try root.bookmarkData(), forKey: Self.bookmarkKey)
+            let sub = String(folder.standardizedFileURL.path.dropFirst(root.standardizedFileURL.path.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            UserDefaults.standard.set(sub, forKey: Self.subpathKey)
+            UserDefaults.standard.removeObject(forKey: "ownFolder")
+            pendingRoot = nil
+            open(folder, scope: root)
+        } catch {
+            lastError = "Couldn't set up the folder: \(error.localizedDescription)"
         }
     }
 
-    private(set) var busy = false
-    private(set) var inICloud = false
-
-    private func finishStartFresh(ubiquity: URL?) {
-        busy = false
+    /// No iCloud Drive: On My iPhone › Parker, which the Mac can't reach —
+    /// the screens say so.
+    func startOnThisPhone() {
         let local = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let target = ubiquity ?? local
         do {
-            try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
-            let f = NotesFolder(url: target, coordinated: true)
-            if try f.list().isEmpty {
-                try f.write("Welcome to Parker.md", Self.welcomeNote)
-            }
+            try addWelcomeIfEmpty(local)
             UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
-            UserDefaults.standard.set(ubiquity != nil ? "icloud" : "local", forKey: "ownFolder")
-            inICloud = ubiquity != nil
-            open(target, accessing: false)
+            UserDefaults.standard.removeObject(forKey: Self.subpathKey)
+            UserDefaults.standard.set("local", forKey: "ownFolder")
+            inICloud = false
+            open(local, scope: nil)
         } catch {
             lastError = "Couldn't create the folder: \(error.localizedDescription)"
         }
     }
 
+    private func addWelcomeIfEmpty(_ url: URL) throws {
+        let f = NotesFolder(url: url, coordinated: true)
+        if try f.list().isEmpty { try f.write("Welcome to Parker.md", Self.welcomeNote) }
+    }
+
+    private(set) var busy = false
+    private(set) var inICloud = false
+
     func forget() {
         watcher?.stop(); watcher = nil
-        if accessing { folder?.url.stopAccessingSecurityScopedResource(); accessing = false }
+        scope?.stopAccessingSecurityScopedResource(); scope = nil
+        accessing = false
         folder = nil; notes = []
         UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
+        UserDefaults.standard.removeObject(forKey: Self.subpathKey)
         UserDefaults.standard.removeObject(forKey: "ownFolder")
     }
 
@@ -115,20 +171,26 @@ final class Workspace {
             var stale = false
             if let url = try? URL(resolvingBookmarkData: data, bookmarkDataIsStale: &stale),
                url.startAccessingSecurityScopedResource() {
-                open(url, accessing: true)
+                // A bookmark to the iCloud Drive root carries the notes
+                // folder's path under it.
+                if let sub = UserDefaults.standard.string(forKey: Self.subpathKey), !sub.isEmpty {
+                    open(url.appendingPathComponent(sub, isDirectory: true), scope: url)
+                } else {
+                    open(url, scope: url)
+                }
                 return
             }
         }
         switch UserDefaults.standard.string(forKey: "ownFolder") {
         case "local":
-            open(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0], accessing: false)
+            open(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0], scope: nil)
         case "icloud":
             busy = true
             Task.detached(priority: .userInitiated) {
                 let url = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents", isDirectory: true)
                 await MainActor.run {
                     self.busy = false
-                    if let url { self.inICloud = true; self.open(url, accessing: false) }
+                    if let url { self.inICloud = true; self.open(url, scope: nil) }
                     else { self.lastError = "iCloud Drive is off, so your Parker folder is out of reach on this phone." }
                 }
             }
@@ -136,11 +198,14 @@ final class Workspace {
         }
     }
 
-    private func open(_ url: URL, accessing: Bool) {
-        self.accessing = accessing
+    private func open(_ url: URL, scope: URL?) {
+        self.scope = scope
+        accessing = scope != nil
         let f = NotesFolder(url: url, coordinated: true)
         folder = f
-        folderLabel = accessing ? Self.displayName(of: url) : (inICloud ? "iCloud Drive › Parker" : "On My iPhone › Parker")
+        let isDefault = scope != nil && scope != url
+        folderLabel = isDefault ? "iCloud Drive › Documents › \(NotesHome.folderName(dev: Self.devBuild))"
+            : accessing ? Self.displayName(of: url) : (inICloud ? "iCloud Drive › Parker" : "On My iPhone")
         refresh()
         let w = FolderWatcher(folder: f, pollInterval: 3, queue: .main) { [weak self] _ in self?.refresh() }
         w.start()
@@ -357,7 +422,8 @@ final class Workspace {
     Headings, **bold** and `code` work too.
 
     On a Mac? Get Parker at getparker.dev
-    It opens this same folder.
+    Its welcome screen finds this folder by itself
+    when it is Documents › Parker in iCloud Drive.
 
     """
 }
