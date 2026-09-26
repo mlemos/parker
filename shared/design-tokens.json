@@ -474,6 +474,65 @@
       }
     },
     {
+      "id": "playa-down",
+      "label": "Playa Down",
+      "mode": "dark",
+      "ui": {
+        "editorBg": "#2a2017",
+        "editorFg": "#f5ede0",
+        "currentLine": "rgba(232, 160, 74, 0.14)",
+        "selection": "rgba(232, 160, 74, 0.32)",
+        "headerBg": "#3a2c1f",
+        "fieldBg": "#221a12",
+        "tabbarBg": "#33271b",
+        "tabActiveBg": "#453524",
+        "statusBg": "#3a2c1f",
+        "popoverBg": "#33271b",
+        "text": "#f5ede0",
+        "secondary": "#cdbc9f",
+        "muted": "#9a8a72",
+        "border": "rgba(245, 237, 224, 0.14)",
+        "accent": "#e8a04a",
+        "onAccent": "#221a12",
+        "danger": "#e0604f"
+      },
+      "syntax": {
+        "plain": "#f5ede0",
+        "heading": "#b78ae8",
+        "bold": "#b7d86e",
+        "italic": "#e8a04a",
+        "boldItalic": "#f08a4a",
+        "list": "#d8c8ac",
+        "inlineCode": "#7dbf6a",
+        "keyword": "#e0604f",
+        "string": "#7dbf6a",
+        "number": "#e69a4a",
+        "func": "#5fc4c0",
+        "comment": "#9a8a72",
+        "strike": "#9a8a72",
+        "highlight": "#ffd84a",
+        "punct": "#c2b198",
+        "link": "#6fb3d8",
+        "url": "#9cc9e8",
+        "quote": "#cdbc9f",
+        "invalid": "#e0604f"
+      },
+      "todo": {
+        "doing": "#4fd0c8",
+        "pause": "#5d8fe0",
+        "wait": "#a878e0",
+        "attn": "#e8a04a",
+        "done": "#7dbf6a",
+        "fail": "#e0604f"
+      },
+      "priority": {
+        "base": "#7dbf6a",
+        "low": "#e6c84f",
+        "mid": "#e69a4a",
+        "high": "#e0604f"
+      }
+    },
+    {
       "id": "matrix",
       "label": "Matrix",
       "mode": "dark",

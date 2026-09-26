@@ -620,6 +620,56 @@ const playaNightSyntax: SyntaxColors = {
   invalid: "#ff5a7a",
 };
 
+// Playa Down — the playa after the sun has gone behind the mountains: the
+// ground gone dark cocoa, the text the last cream light, and the daytime's
+// colours — sage, sun-orange, coral, a cool blue, a violet — saturated the way
+// things are at that hour. Darker than Playa, nothing glows the way it does
+// on Playa at Night. Drawn in the theme editor, 2026-09-26.
+const playaDownUI: ThemeUI = {
+  editorBg: "#2a2017",
+  editorFg: "#f5ede0",
+  currentLine: alpha("#e8a04a", 0.14),
+  selection: alpha("#e8a04a", 0.32),
+  headerBg: "#3a2c1f",
+  fieldBg: "#221a12",
+  tabbarBg: "#33271b",
+  tabActiveBg: "#453524",
+  statusBg: "#3a2c1f",
+  popoverBg: "#33271b",
+  text: "#f5ede0",
+  secondary: "#cdbc9f",
+  muted: "#9a8a72",
+  border: "rgba(245, 237, 224, 0.14)",
+  accent: "#e8a04a",
+  onAccent: "#221a12",
+  danger: "#e0604f",
+};
+
+// Parker Night's structure in dusk light: violet structure; lime, sun-orange
+// and a deeper orange for bold, italic and both; sage for code and strings;
+// coral keywords; a cool blue for links, a shade lighter for the address.
+const playaDownSyntax: SyntaxColors = {
+  plain: "#f5ede0",
+  heading: "#b78ae8",
+  bold: "#b7d86e",
+  italic: "#e8a04a",
+  boldItalic: "#f08a4a",
+  list: "#d8c8ac",
+  inlineCode: "#7dbf6a",
+  keyword: "#e0604f",
+  string: "#7dbf6a",
+  number: "#e69a4a",
+  func: "#5fc4c0",
+  comment: "#9a8a72",
+  strike: "#9a8a72",
+  highlight: "#ffd84a",
+  punct: "#c2b198",
+  link: "#6fb3d8",
+  url: "#9cc9e8",
+  quote: "#cdbc9f",
+  invalid: "#e0604f",
+};
+
 // Matrix — phosphor green on black, the falling-code look. One hue and a
 // brightness ladder, which is what a P1 tube actually gave you.
 const matrixUI: ThemeUI = {
@@ -740,6 +790,25 @@ const playaNightTodo: TodoColors = {
   fail: "#ff5a7a",
 };
 
+// Dusk: teal for motion, a cooler blue for the pause (far enough from the
+// teal to read at 8px), violet for waiting,
+// the sun for attention, sage for done and coral for failed — and the same
+// four for the ramp, green to coral.
+const playaDownTodo: TodoColors = {
+  doing: "#4fd0c8",
+  pause: "#5d8fe0",
+  wait: "#a878e0",
+  attn: "#e8a04a",
+  done: "#7dbf6a",
+  fail: "#e0604f",
+};
+const playaDownPriority: PriorityColors = {
+  base: "#7dbf6a",
+  low: "#e6c84f",
+  mid: "#e69a4a",
+  high: "#e0604f",
+};
+
 // One tube, mostly. DONE is the phosphor at full brightness and PAUSE is the
 // same tube dimmed; DOING drifts toward cyan because it has not arrived yet,
 // and WAIT greys out because the tube is somebody else's. The two that break
@@ -847,6 +916,16 @@ export const THEMES: ThemeDef[] = [
     syntax: playaNightSyntax,
     todo: playaNightTodo,
     priority: darkPriority,
+  },
+  {
+    id: "playa-down",
+    label: "Playa Down",
+    mode: "dark",
+    cm: editorTheme(playaDownUI, "dark", playaDownSyntax),
+    ui: playaDownUI,
+    syntax: playaDownSyntax,
+    todo: playaDownTodo,
+    priority: playaDownPriority,
   },
   {
     id: "matrix",

@@ -53,7 +53,7 @@ servers of ours — ever.
 - **Never lose data** — aggressive auto-save, always on, plus optional git backup as a safety net.
 - **Split & preview** — split panes and live Markdown preview, side by side — or give a note a window of its own.
 - **Folders** — plain subfolders, in the picker and on the iPhone; a search finds them, a new note lands where you are.
-- **Genuinely themeable** — ten themes: Parker Night & Day, Vercel Night & Day, GitHub Light & Dark, plus Playa, Playa at Night, Matrix and Blueprint.
+- **Genuinely themeable** — eleven themes: Parker Night & Day, Vercel Night & Day, GitHub Light & Dark, plus Playa, Playa at Night, Playa Down, Matrix and Blueprint.
 - **Your data, your rules** — plain `.md`, `.txt` and code on disk, in a folder you choose.
 
 ## 🔒 Your data, your rules
