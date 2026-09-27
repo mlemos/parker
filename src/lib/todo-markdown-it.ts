@@ -129,7 +129,10 @@ function entry(state: StateBlock, startLine: number, endLine: number, own: numbe
   text.content = state.src.slice(start + tag[0].length, max).trim();
   text.map = [startLine, startLine + 1];
   text.children = [];
-  state.push("parker_todo_text_close", "div", -1);
+  // Closes the head <div> that parker_todo_open's markup opened — not a level
+  // of its own. Counted as one (nesting -1), every to-do left the level one
+  // lower, and a tight list around it came out loose (26/09).
+  state.push("parker_todo_text_close", "div", 0);
 
   // The nested lines, parsed as markdown in their own right. blkIndent is
   // raised so their indentation is relative to the entry, which is what makes

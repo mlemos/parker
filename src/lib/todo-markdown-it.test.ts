@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import MarkdownIt from "markdown-it";
 import { renderMarkdown } from "./markdown.ts";
+import { todoPlugin } from "./todo-markdown-it.ts";
 
 const html = (src: string) => renderMarkdown(src);
 /** Block tags in order, stripped of attributes — the shape of the output,
@@ -199,5 +201,32 @@ describe("to-dos as a list", () => {
 
   it("still underlines ordinary text into a heading", () => {
     expect(html("A title\n---")).toContain("<h2");
+  });
+});
+
+// The to-do rule's tokens must open and close levels in pairs. They didn't
+// (25–26/09): the head's closing </div> counted as a level of its own, every
+// to-do left the level one lower, and markdown-it — which hides the <p> of a
+// tight list by level — hid nothing: a list with a to-do nested in an item
+// came out loose, its lines farther apart than the editor's.
+describe("to-do tokens and the lists around them", () => {
+  const md = new MarkdownIt().use(todoPlugin);
+  const levels = (src: string) => {
+    let level = 0;
+    for (const t of md.parse(src, {})) level += t.nesting;
+    return level;
+  };
+
+  it("leave the level where they found it", () => {
+    expect(levels("/TODO a\n/DONE b\n  - c\n  /WAIT d\n")).toBe(0);
+    expect(levels("- a\n- b\n  /TODO c\n")).toBe(0);
+  });
+
+  it("keep a tight list tight when an item holds a to-do", () => {
+    for (const src of ["- a\n- b\n  /TODO c\n", "- a\n- b\n  /TODO c\n\n> q", "- a\n  /TODO b\n- c\n"]) {
+      expect(html(src), src).not.toMatch(/<li[^>]*>\s*<p/);
+    }
+    // A list with a blank line between items is loose, to-do or not.
+    expect(html("- a\n\n- b\n  /TODO c\n")).toMatch(/<li[^>]*>\s*<p/);
   });
 });
