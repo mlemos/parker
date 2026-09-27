@@ -1139,9 +1139,12 @@ body.resizing {
      marker, and every marker — bullet, box — is centred on `--marker-axis`,
      so they line up on one vertical line.
      The bullets are drawn here rather than by the engine (whose marker sits
-     wherever it likes, differently per engine) so the axis is a fact. */
+     wherever it likes, differently per engine) so the axis is a fact.
+     The proportions are the editor's: there the marker takes the first of
+     the two columns before the text ("- x"), so its axis is a quarter of the
+     indent in — and a nested marker starts right under its parent's text. */
   --list-indent: 1.6em;
-  --marker-axis: 0.65em;
+  --marker-axis: calc(var(--list-indent) / 4);
   --marker-inset: calc(var(--marker-axis) - var(--todo-box-size) / 2);
 }
 .md-body > :first-child {
