@@ -47,12 +47,14 @@ describe("a to-do line as its own block", () => {
       "ListItem",
       "Paragraph",
     ]);
-    expect(pathOver(ENTRY_THEN_TODO, "/TODO")).toEqual(["Document", "TodoLine"]);
+    expect(pathOver(ENTRY_THEN_TODO, "/TODO")).toEqual(["Document", "TodoItem", "TodoLine"]);
   });
 
   it("keeps the list's colour off it", () => {
     expect(listColoured(ENTRY_THEN_TODO, false)).toEqual(["  - a detail\n/TODO Next thing"]);
-    expect(listColoured(ENTRY_THEN_TODO)).toEqual(["  - a detail"]);
+    // The sub-list is the /DONE's, and starts at its content column (the
+    // to-do's plus one): one space in, which paints nothing.
+    expect(listColoured(ENTRY_THEN_TODO)).toEqual([" - a detail"]);
   });
 
   // Two entries in a row used to render as one paragraph — markdown joins
@@ -70,7 +72,7 @@ describe("a to-do line as its own block", () => {
 
   it("breaks out of a plain paragraph too", () => {
     const doc = "Some prose about the release.\n/TODO Not part of that sentence\n";
-    expect(pathOver(doc, "/TODO")).toEqual(["Document", "TodoLine"]);
+    expect(pathOver(doc, "/TODO")).toEqual(["Document", "TodoItem", "TodoLine"]);
   });
 
   it("works for every state, and for the aliases", () => {
@@ -79,7 +81,7 @@ describe("a to-do line as its own block", () => {
       "WIP", "PAUSED", "HOLD", "WAITING", "BLOCKED", "MISSED", "DISMISSED",
     ]) {
       const doc = `/DONE Shipped\n  - a detail\n/${tag} Next\n`;
-      expect(pathOver(doc, `/${tag}`), tag).toEqual(["Document", "TodoLine"]);
+      expect(pathOver(doc, `/${tag}`), tag).toEqual(["Document", "TodoItem", "TodoLine"]);
     }
   });
 });
@@ -126,7 +128,7 @@ describe("a to-do line is not a paragraph", () => {
 
   it("leaves a line after it to be its own block", () => {
     const names = nodes("/TODO a\nmore text");
-    expect(names).toEqual(["Document", "TodoLine", "Paragraph"]);
+    expect(names).toEqual(["Document", "TodoItem", "TodoLine", "Paragraph"]);
   });
 });
 
@@ -143,15 +145,18 @@ describe("what it leaves alone", () => {
 
   it("keeps sub-items under their entry", () => {
     const doc = "/DONE Shipped\n  - first\n  - second\n";
-    expect(listColoured(doc)).toEqual(["  - first\n  - second"]);
+    expect(listColoured(doc)).toEqual([" - first\n  - second"]);
   });
 
   // A word that merely starts like a tag is not one — the grammar in
   // todo-model draws that line, and the block boundary has to agree.
   it("ignores lines that only look like a tag", () => {
     for (const line of ["/TODOS many", "/DO it", "TODO no slash", "text /TODO mid-line"]) {
-      const doc = `/DONE Shipped\n  - a detail\n${line}\n`;
+      // Under a list item, where a tag would break out and plain text is
+      // swallowed (lazy continuation) — these are swallowed.
+      const doc = `- Shipped\n  - a detail\n${line}\n`;
       expect(pathOver(doc, line.slice(0, 4)), line).toContain("ListItem");
+      expect(pathOver(doc, line.slice(0, 4)), line).not.toContain("TodoLine");
     }
   });
 
@@ -162,3 +167,40 @@ describe("what it leaves alone", () => {
     expect(pathOver(doc, "/TODO")).toContain("FencedCode");
   });
 });
+
+// What is nested under a to-do is its body (27/09), the preview's rule
+// (todo-markdown-it.ts): indented past the tag, blank lines or not, and
+// indented relative to the to-do's column plus one.
+describe("a to-do's body", () => {
+  const within = (doc: string, needle: string) => pathOver(doc, needle).slice(0, 2);
+
+  it("holds the lines indented under it, even four columns in", () => {
+    for (const doc of ["/TODO x\n  under *i*\n", "/TODO x\n    under *i*\n", "/TODO x\n\n    under *i*\n"]) {
+      expect(within(doc, "under"), doc).toEqual(["Document", "TodoItem"]);
+      expect(pathOver(doc, "under"), doc).toContain("Paragraph");
+      expect(pathOver(doc, "i*"), doc).toContain("Emphasis");
+    }
+  });
+
+  it("counts four more from its content column for code, as the preview does", () => {
+    expect(pathOver("/TODO x\n     code\n", "code")).toContain("CodeBlock");
+    expect(pathOver("  /TODO x\n       code\n", "code")).toContain("CodeBlock");
+    expect(pathOver("  /TODO x\n      text\n", "text")).not.toContain("CodeBlock");
+  });
+
+  it("ends at a line back at its column", () => {
+    expect(within("/TODO x\n  a\nback\n", "back")).toEqual(["Document", "Paragraph"]);
+    expect(within("  /TODO x\n    a\n  /TODO y\n", "/TODO y")).toEqual(["Document", "TodoItem"]);
+    expect(pathOver("  /TODO x\n    a\n  /TODO y\n", "/TODO y").filter((n) => n === "TodoItem")).toHaveLength(1);
+  });
+
+  it("nests a to-do under a to-do", () => {
+    const path = pathOver("/TODO x\n  /TODO y\n    under y\n", "under");
+    expect(path.filter((n) => n === "TodoItem")).toHaveLength(2);
+  });
+
+  it("is still not a code block after a blank line under a list item", () => {
+    expect(pathOver("- a\n  /TODO x\n    under\n", "under")).not.toContain("CodeBlock");
+  });
+});
+

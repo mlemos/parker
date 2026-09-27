@@ -883,7 +883,7 @@ body,
 }
 .cm-todo-child-cancel,
 .cm-todo-child-cancel span {
-  color: color-mix(in srgb, var(--muted) 70%, var(--editor-bg));
+  color: color-mix(in srgb, var(--muted) var(--todo-child-mix), var(--editor-bg));
 }
 
 body.resizing {
@@ -1082,7 +1082,7 @@ body.resizing {
   color: var(--todo-fail);
 }
 .md-body .todo-cancel {
-  color: color-mix(in srgb, var(--muted) 70%, var(--editor-bg));
+  color: color-mix(in srgb, var(--muted) var(--todo-child-mix), var(--editor-bg));
 }
 .md-body .todo-cancel > .todo-head {
   color: var(--muted);
@@ -1199,6 +1199,12 @@ body.resizing {
 .cm-editor .cm-ext-url {
   color: var(--md-url);
   text-decoration: underline;
+}
+/* …and the span inside it too: in a list, on a to-do line or under one, the
+   url's text sits in a span of the list's or the line's colour, which beat the
+   rule above and left a bare url looking like plain text there (27/09). */
+.editor-wrap .cm-ext-url span {
+  color: var(--md-url);
 }
 .cm-editor .cm-ext-link {
   border-radius: 3px;
@@ -1763,7 +1769,8 @@ body.resizing {
   color: color-mix(in srgb, var(--md-link) var(--todo-child-mark-mix), var(--editor-bg));
 }
 .editor-wrap [class*="cm-todo-child-"] .cm-md-url,
-.editor-wrap [class*="cm-todo-child-"] .cm-ext-url {
+.editor-wrap [class*="cm-todo-child-"] .cm-ext-url,
+.editor-wrap [class*="cm-todo-child-"] .cm-ext-url span {
   color: color-mix(in srgb, var(--md-url) var(--todo-child-mark-mix), var(--editor-bg));
 }
 .editor-wrap [class*="cm-todo-child-"] .cm-md-strike {
