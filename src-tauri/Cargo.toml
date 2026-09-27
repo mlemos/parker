@@ -32,6 +32,9 @@ dirs = "5"
 tauri-plugin-autostart = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-dialog = "2"
+# Parker updates itself from GitHub Releases (Onda 6): latest.json, a signed
+# .app.tar.gz, checked against the public key in tauri.conf.json.
+tauri-plugin-updater = "2"
 # Watch the notes folder so external edits (git pull, another machine, another
 # editor) reload in the app instead of being silently clobbered by autosave.
 notify = "6"

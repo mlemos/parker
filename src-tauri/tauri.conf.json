@@ -33,6 +33,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "icon": [
       "icons/32x32.png",
@@ -58,5 +59,11 @@
         "role": "Editor"
       }
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENBNjVEMEUwOTgwQkZCNDMKUldSRCt3dVk0TkJseWpTZWpQMGdZNnc2Tm1vZTdSRlV5am1nYloyazFYUm5jU1dzRE15dWdUdG8K",
+      "endpoints": ["https://github.com/mlemos/parker/releases/latest/download/latest.json"]
+    }
   }
 }

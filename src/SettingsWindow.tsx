@@ -5,7 +5,7 @@
 // parker://theme, parker://notes-dir).
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { Bot, GitBranch, PenLine, Shield, SlidersHorizontal } from "lucide-react";
+import { Bot, GitBranch, PenLine, RefreshCw, Shield, SlidersHorizontal } from "lucide-react";
 import { THEMES, themeById, DEFAULT_THEME_ID } from "./lib/themes";
 import { prettyPath } from "./lib/path";
 import { accelFromEvent, prettyShortcut } from "./lib/shortcut";
@@ -13,6 +13,8 @@ import { TEXT_WIDTHS, textWidthOf } from "./lib/text-width";
 import { IMAGE_MODES, imageModeOf } from "./lib/images";
 import type { ImageMode } from "./lib/images";
 import { settingsIphoneLine } from "./lib/first-run";
+import { checkResult } from "./lib/updates";
+import type { UpdateInfo } from "./lib/updates";
 import type { FolderInfo, ICloudState } from "./lib/first-run";
 import type { TextWidth } from "./lib/text-width";
 import type { AgentsInfo, SettingsInfo } from "./lib/api";
@@ -35,6 +37,9 @@ export interface SettingsBackend {
   setEditorPrefs(gutter: boolean, wrap: boolean, ligatures: boolean, width: number): Promise<void>;
   setPreviewSync(on: boolean): Promise<void>;
   setPreviewImages(mode: ImageMode): Promise<void>;
+  setUpdateCheck(on: boolean): Promise<void>;
+  /** Check for Updates…: what it found, or null when up to date. */
+  checkUpdatesNow(): Promise<UpdateInfo | null>;
   setTheme(id: string): Promise<void>;
   agentsInfo(): Promise<AgentsInfo>;
   installClaudeCodeSkill(): Promise<void>;
@@ -51,13 +56,14 @@ export interface SettingsBackend {
   onPrefs(cb: (s: Partial<SettingsInfo>) => void): () => void;
 }
 
-export type SectionId = "general" | "editor" | "git" | "privacy" | "agents";
+export type SectionId = "general" | "editor" | "git" | "privacy" | "updates" | "agents";
 
 const SECTIONS: { id: SectionId; label: string; icon: ReactNode }[] = [
   { id: "general", label: "General", icon: <SlidersHorizontal size={15} strokeWidth={1.8} /> },
   { id: "editor", label: "Editor", icon: <PenLine size={15} strokeWidth={1.8} /> },
   { id: "git", label: "Backup & Git", icon: <GitBranch size={15} strokeWidth={1.8} /> },
   { id: "privacy", label: "Privacy & Security", icon: <Shield size={15} strokeWidth={1.8} /> },
+  { id: "updates", label: "Updates", icon: <RefreshCw size={15} strokeWidth={1.8} /> },
   { id: "agents", label: "AI Agents", icon: <Bot size={15} strokeWidth={1.8} /> },
 ];
 
@@ -139,6 +145,7 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [iphone, setIphone] = useState<string | null>(null);
+  const [checked, setChecked] = useState<string | null>(null);
 
   const refreshAgents = useCallback(() => {
     backend.agentsInfo().then(setAgents).catch((e) => setError(String(e)));
@@ -393,6 +400,29 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
                   Remote images are fetched from their servers when a note opens: whoever hosts them can see when, and from which IP address.
                 </p>
               )}
+            </>
+          )}
+
+          {info && section === "updates" && (
+            <>
+              <p className="setwin-intro">Parker checks GitHub for a newer version a few seconds after it opens and once a day. When there is one, a small Update appears in the status bar — nothing is downloaded until you choose Update &amp; Restart.</p>
+              <Row title="Check for updates automatically" sub="Off, Parker only checks when you ask.">
+                <Switch on={info.update_check} disabled={busy} label="Check for updates automatically" onClick={() => run(async () => {
+                  await backend.setUpdateCheck(!info.update_check);
+                  setInfo({ ...info, update_check: !info.update_check });
+                })} />
+              </Row>
+              <Row title={`Parker ${info.version}`} sub={checked ?? "The version you have."}>
+                <button className="settings-btn" disabled={busy} onClick={() => run(async () => {
+                  setChecked("Checking…");
+                  try {
+                    const found = await backend.checkUpdatesNow();
+                    setChecked(checkResult(info.version, found) + (found ? " Use Update in the status bar, or Update to Parker " + found.version + "… in the Parker menu." : ""));
+                  } catch (e) {
+                    setChecked(checkResult(info.version, null, e instanceof Error ? e.message : String(e)));
+                  }
+                })}>Check now</button>
+              </Row>
             </>
           )}
 

@@ -53,6 +53,8 @@ import { FirstRun } from "./components/FirstRun";
 import type { FirstRunBackend } from "./components/FirstRun";
 import { DEFAULT_IMAGE_MODE, imageModeOf } from "./lib/images";
 import type { ImageMode } from "./lib/images";
+import type { UpdateInfo } from "./lib/updates";
+import { UpdateSheet } from "./components/UpdateSheet";
 import "./App.css";
 
 // Events Rust addresses to one window (quit, pop-out, a note handed over…)
@@ -153,6 +155,14 @@ export default function App({
   const [perfOpen, setPerfOpen] = useState(false);
   // ⌘Q / menu / tray asked to quit — waiting on the user's answer.
   const [quitAsk, setQuitAsk] = useState(false);
+  // Updates (Onda 6): Rust checks, and says what's available; the badge and
+  // the sheet are here. `sheet` is the update, or the answer to a manual
+  // Check for Updates… that found nothing or failed.
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [updateMeta, setUpdateMeta] = useState<{ current: string; blocked: string | null }>({ current: "", blocked: null });
+  const [updateSheet, setUpdateSheet] = useState<null | "update" | { status: "none" | "error"; message?: string }>(null);
+  const [updateProgress, setUpdateProgress] = useState<{ got: number; total: number | null } | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
   // Interface zoom, browser-style: one factor over the whole webview. Rust
   // owns the value (it applies the saved one before the first paint), so this
   // is only the ladder and the current rung.
@@ -579,6 +589,39 @@ export default function App({
       p.then((un) => un());
     };
   }, []);
+
+  // What Rust knows about updates, now and as it changes.
+  useEffect(() => {
+    api
+      .updateState()
+      .then((u) => {
+        setUpdate(u.available);
+        setUpdateMeta({ current: u.current, blocked: u.blocked });
+      })
+      .catch(() => {});
+    const found = listen<UpdateInfo | null>("parker://update", (e) => setUpdate(e.payload));
+    const progress = listen<[number, number | null]>("parker://update-progress", (e) =>
+      setUpdateProgress({ got: e.payload[0], total: e.payload[1] })
+    );
+    return () => {
+      found.then((un) => un());
+      progress.then((un) => un());
+    };
+  }, []);
+
+  // Update & Restart: every save flushed here first; Rust then downloads,
+  // installs, and restarts through the quit path, which flushes the rest.
+  const installUpdate = async () => {
+    setUpdateError(null);
+    setUpdateProgress({ got: 0, total: null });
+    try {
+      await flushAll();
+      await api.installUpdate();
+    } catch (e) {
+      setUpdateProgress(null);
+      setUpdateError(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   // Read back what Rust already applied, so ⌘= steps from the real rung
   // instead of from 100% — and the editor toggles along with it.
@@ -1421,8 +1464,16 @@ export default function App({
   // still the one that actually leaves — this only decides whether to take it.
   useEffect(() => {
     const p = thisWindow.listen("parker://confirm-quit", () => setQuitAsk(true));
+    // The menus' Check for Updates… / Update to Parker X.Y.Z…, sent to the
+    // window in front: show the update, or what the check found.
+    const show = thisWindow.listen("parker://update-show", () => setUpdateSheet("update"));
+    const result = thisWindow.listen<{ status: "available" | "none" | "error"; message?: string }>("parker://update-result", (e) =>
+      setUpdateSheet(e.payload.status === "available" ? "update" : { status: e.payload.status, message: e.payload.message })
+    );
     return () => {
       p.then((un) => un());
+      show.then((un) => un());
+      result.then((un) => un());
     };
   }, []);
 
@@ -1726,6 +1777,12 @@ export default function App({
         {/* Git is the folder's, not a window's: one menu, one sync timer, in
             the main window. */}
         {!single && <GitMenu onBeforeCommit={flushAll} />}
+        {update && (
+          // Quiet: a word in the status bar, no modal and no notification.
+          <button className="status-update" onClick={() => setUpdateSheet("update")} title={`Parker ${update.version} is available`}>
+            Update
+          </button>
+        )}
         <span className="status-spacer" />
         <span className="status-count">{statusCounts}</span>
         {single ? (
@@ -1771,6 +1828,26 @@ export default function App({
             } finally {
               await api.quit().catch(() => {});
             }
+          }}
+        />
+      )}
+
+      {updateSheet && (
+        <UpdateSheet
+          update={updateSheet === "update" ? update : null}
+          current={updateMeta.current}
+          blocked={updateMeta.blocked}
+          progress={updateProgress}
+          error={updateError}
+          result={updateSheet === "update" ? undefined : updateSheet}
+          onInstall={installUpdate}
+          onLater={() => {
+            setUpdateSheet(null);
+            setUpdateError(null);
+          }}
+          onSkip={() => {
+            if (update) api.skipUpdate(update.version).catch(() => {});
+            setUpdateSheet(null);
           }}
         />
       )}

@@ -24,6 +24,7 @@ mod windows;
 mod filedrop;
 mod monitor;
 mod folder;
+mod updates;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct NoteMeta {
@@ -103,6 +104,14 @@ struct Settings {
     /// servers hosting them see being fetched). Local unless changed.
     #[serde(default = "local_images")]
     preview_images: String,
+    /// Check GitHub for a newer Parker ~10 s after launch and once a day
+    /// (Settings › Updates). On unless turned off.
+    #[serde(default = "yes")]
+    update_check: bool,
+    /// A version "Skip This Version" hid: not offered again by the automatic
+    /// check, only by Check for Updates….
+    #[serde(default)]
+    update_skip: Option<String>,
 }
 
 /// serde default for `preview_images`.
@@ -154,6 +163,8 @@ impl Default for Settings {
             editor_width: 100,
             preview_sync: true,
             preview_images: local_images(),
+            update_check: true,
+            update_skip: None,
         }
     }
 }
@@ -943,6 +954,9 @@ struct SettingsInfo {
     editor_width: u32,
     preview_sync: bool,
     preview_images: String,
+    update_check: bool,
+    /// This Parker's version, for Settings › Updates.
+    version: String,
 }
 
 #[tauri::command]
@@ -963,6 +977,8 @@ fn get_settings(app: tauri::AppHandle) -> SettingsInfo {
         preview_sync: s.preview_sync,
         editor_width: s.editor_width,
         preview_images: image_mode(&s.preview_images).to_string(),
+        update_check: s.update_check,
+        version: app.package_info().version.to_string(),
     }
 }
 
@@ -1723,7 +1739,200 @@ pub(crate) fn finish_quit(app: &tauri::AppHandle) {
     if load_settings().git_auto_sync {
         auto_commit_push();
     }
+    // An update was installed: come back as the new version. The quit path
+    // has flushed every save and remembered the windows, so the session
+    // restores as it was.
+    if RESTART_AFTER_QUIT.load(std::sync::atomic::Ordering::SeqCst) {
+        app.restart();
+    }
     app.exit(0);
+}
+
+static RESTART_AFTER_QUIT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+// ---- Updates (Onda 6) ----------------------------------------------------------
+// The rules are in updates.rs; this is the wiring: the plugin (release builds
+// only), the menus, the schedule, and the commands the windows call.
+
+/// The "Check for Updates…" items of the app menu and the menu-bar menu,
+/// kept to be renamed "Update to Parker X.Y.Z…" when there is one.
+#[derive(Default)]
+struct UpdateMenus(std::sync::Mutex<Vec<tauri::menu::MenuItem<tauri::Wry>>>);
+
+const CHECK_LABEL: &str = "Check for Updates…";
+
+fn set_update_menus(app: &tauri::AppHandle, available: Option<&updates::UpdateInfo>) {
+    use tauri::Manager;
+    let label = available.map(|u| format!("Update to Parker {}…", u.version)).unwrap_or_else(|| CHECK_LABEL.to_string());
+    if let Some(m) = app.try_state::<UpdateMenus>() {
+        if let Ok(items) = m.0.lock() {
+            for i in items.iter() {
+                let _ = i.set_text(&label);
+            }
+        }
+    }
+}
+
+/// Tell every window, and the menus, what is available now.
+fn announce_update(app: &tauri::AppHandle, available: Option<&updates::UpdateInfo>) {
+    use tauri::Emitter;
+    set_update_menus(app, available);
+    let _ = app.emit("parker://update", available);
+}
+
+fn pending_info(app: &tauri::AppHandle) -> Option<updates::UpdateInfo> {
+    use tauri::Manager;
+    app.state::<updates::Pending>().0.lock().ok()?.as_ref().map(|p| p.info.clone())
+}
+
+/// Ask GitHub (the endpoint is in tauri.conf.json; a test build points it at
+/// a local latest.json through a config of its own — see the runbook).
+/// `manual` is Check for Updates…, which also offers a skipped version.
+#[cfg(all(desktop, not(debug_assertions)))]
+async fn check_for_update(app: &tauri::AppHandle, manual: bool) -> Result<Option<updates::UpdateInfo>, String> {
+    use tauri::Manager;
+    use tauri_plugin_updater::UpdaterExt;
+    let found = app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
+    let skipped = load_settings().update_skip;
+    let offered = found.filter(|u| updates::should_offer(&u.version, skipped.as_deref(), manual));
+    let info = offered.as_ref().map(|u| updates::UpdateInfo {
+        version: u.version.clone(),
+        current: u.current_version.clone(),
+        notes: u.body.clone().unwrap_or_default(),
+    });
+    if let Ok(mut p) = app.state::<updates::Pending>().0.lock() {
+        *p = offered.map(|update| updates::PendingUpdate { info: info.clone().unwrap(), update });
+    }
+    announce_update(app, info.as_ref());
+    Ok(info)
+}
+
+#[cfg(not(all(desktop, not(debug_assertions))))]
+async fn check_for_update(_app: &tauri::AppHandle, _manual: bool) -> Result<Option<updates::UpdateInfo>, String> {
+    Err("Parker Dev doesn't update itself.".into())
+}
+
+/// The automatic checks: ~10 s after launch, then once a day while open.
+#[cfg(all(desktop, not(debug_assertions)))]
+fn schedule_update_checks(app: tauri::AppHandle) {
+    use tauri::Manager;
+    std::thread::spawn(move || {
+        std::thread::sleep(updates::FIRST_CHECK);
+        loop {
+            let last = *app.state::<updates::LastCheck>().0.lock().unwrap();
+            if load_settings().update_check && updates::check_due(last, std::time::SystemTime::now()) {
+                if let Err(e) = tauri::async_runtime::block_on(check_for_update(&app, false)) {
+                    eprintln!("update check: {e}");
+                }
+                *app.state::<updates::LastCheck>().0.lock().unwrap() = Some(std::time::SystemTime::now());
+            }
+            std::thread::sleep(std::time::Duration::from_secs(3600));
+        }
+    });
+}
+
+fn update_blocked() -> Option<String> {
+    std::env::current_exe().ok().and_then(|p| updates::blocked_reason(&p.to_string_lossy()))
+}
+
+#[tauri::command]
+fn update_state(app: tauri::AppHandle) -> updates::UpdateState {
+    updates::UpdateState {
+        enabled: cfg!(all(desktop, not(debug_assertions))),
+        current: app.package_info().version.to_string(),
+        available: pending_info(&app),
+        blocked: update_blocked(),
+    }
+}
+
+/// Check for Updates…: always asks, and says what it found.
+#[tauri::command]
+async fn check_updates_now(app: tauri::AppHandle) -> Result<Option<updates::UpdateInfo>, String> {
+    check_for_update(&app, true).await
+}
+
+/// Skip This Version: hidden until a newer one.
+#[tauri::command]
+fn skip_update(app: tauri::AppHandle, version: String) -> Result<(), String> {
+    use tauri::Manager;
+    let mut s = load_settings();
+    s.update_skip = Some(version);
+    write_settings(&s)?;
+    if let Ok(mut p) = app.state::<updates::Pending>().0.lock() {
+        *p = None;
+    }
+    announce_update(&app, None);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_update_check(enabled: bool) -> Result<(), String> {
+    let mut s = load_settings();
+    s.update_check = enabled;
+    write_settings(&s)
+}
+
+/// Update & Restart: only now is anything downloaded. The package is checked
+/// against the public key, swapped in, and Parker restarts through the quit
+/// path. Progress goes to every window as parker://update-progress.
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(all(desktop, not(debug_assertions)))]
+    {
+        use tauri::{Emitter, Manager};
+        if let Some(why) = update_blocked() {
+            return Err(why);
+        }
+        let update = app
+            .state::<updates::Pending>()
+            .0
+            .lock()
+            .map_err(|_| "update state poisoned".to_string())?
+            .as_ref()
+            .map(|p| p.update.clone())
+            .ok_or("No update to install.")?;
+        let mut got = 0usize;
+        let progress = app.clone();
+        update
+            .download_and_install(
+                move |chunk, total| {
+                    got += chunk;
+                    let _ = progress.emit("parker://update-progress", (got, total));
+                },
+                || {},
+            )
+            .await
+            .map_err(|e| format!("The update couldn't be installed: {e}"))?;
+        RESTART_AFTER_QUIT.store(true, std::sync::atomic::Ordering::SeqCst);
+        request_quit(&app, false);
+        Ok(())
+    }
+    #[cfg(not(all(desktop, not(debug_assertions))))]
+    {
+        let _ = app;
+        Err("Parker Dev doesn't update itself.".into())
+    }
+}
+
+/// The menus' item: show the update when there is one, otherwise check.
+fn update_menu_clicked(app: &tauri::AppHandle) {
+    use tauri::{Emitter, EventTarget};
+    show_window(app);
+    let target = windows::focus_target(app).map(|w| w.label().to_string()).unwrap_or_else(|| "main".into());
+    if pending_info(app).is_some() {
+        let _ = app.emit_to(EventTarget::labeled(&target), "parker://update-show", ());
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let result = check_for_update(&app, true).await;
+        let payload = match result {
+            Ok(Some(_)) => serde_json::json!({ "status": "available" }),
+            Ok(None) => serde_json::json!({ "status": "none" }),
+            Err(e) => serde_json::json!({ "status": "error", "message": e }),
+        };
+        let _ = app.emit_to(EventTarget::labeled(&target), "parker://update-result", payload);
+    });
 }
 
 // ---- Menu-bar app wiring --------------------------------------------------
@@ -2045,10 +2254,18 @@ fn request_quit(app: &tauri::AppHandle, confirm: bool) {
 
 
 #[cfg(desktop)]
-fn build_menu<R: tauri::Runtime>(
-    handle: &tauri::AppHandle<R>,
-) -> tauri::Result<tauri::menu::Menu<R>> {
+fn build_menu(handle: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+    use tauri::Manager;
+
+    // "Check for Updates…", renamed "Update to Parker X.Y.Z…" when there is one.
+    let check_updates = MenuItemBuilder::with_id("check_updates", CHECK_LABEL).build(handle)?;
+    if handle.try_state::<UpdateMenus>().is_none() {
+        handle.manage(UpdateMenus::default());
+    }
+    if let Ok(mut items) = handle.state::<UpdateMenus>().0.lock() {
+        items.push(check_updates.clone());
+    }
 
     // Custom Quit: routes through request_quit so the frontend confirms and
     // flushes first. ⌘Q is the macOS convention and Parker now answers to it —
@@ -2071,6 +2288,7 @@ fn build_menu<R: tauri::Runtime>(
 
     let app_menu = SubmenuBuilder::new(handle, variant::TITLE)
         .item(&about)
+        .item(&check_updates)
         .separator()
         .item(&settings)
         .item(&help)
@@ -2122,9 +2340,19 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     let show = MenuItemBuilder::with_id("tray_show", "Show Parker").build(app)?;
     let settings = MenuItemBuilder::with_id("tray_settings", "Settings…").build(app)?;
     let about = MenuItemBuilder::with_id("tray_about", "About Parker").build(app)?;
+    let update = MenuItemBuilder::with_id("tray_update", CHECK_LABEL).build(app)?;
+    {
+        use tauri::Manager;
+        if app.try_state::<UpdateMenus>().is_none() {
+            app.manage(UpdateMenus::default());
+        }
+        if let Ok(mut items) = app.state::<UpdateMenus>().0.lock() {
+            items.push(update.clone());
+        }
+    }
     let quit = MenuItemBuilder::with_id("tray_quit", "Quit Parker").build(app)?;
     let menu = MenuBuilder::new(app)
-        .items(&[&show, &settings, &about])
+        .items(&[&show, &settings, &about, &update])
         .separator()
         .item(&quit)
         .build()?;
@@ -2145,6 +2373,7 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
             "tray_show" => show_window(app),
             "tray_settings" => show_settings_window(app),
             "tray_about" => show_about_window(app),
+            "tray_update" => update_menu_clicked(app),
             "tray_quit" => request_quit(app, true),
             _ => {}
         })
@@ -2236,7 +2465,13 @@ pub fn run() {
         // as an Opened event while the app is still launching, before setup
         // has run, and looking the state up then must not find it missing.
         .manage(external::ExternalState::default())
-        .manage(windows::WindowState::default());
+        .manage(windows::WindowState::default())
+        .manage(updates::Pending::default())
+        .manage(updates::LastCheck::default());
+    // The updater plugin only in release builds: Parker Dev never replaces
+    // itself with a release.
+    #[cfg(not(debug_assertions))]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
 
     #[cfg(desktop)]
     let builder = builder
@@ -2310,6 +2545,11 @@ pub fn run() {
                 // growth is diagnosable after the fact (⌘⇧D shows it live).
                 monitor::start_sampler();
 
+                // Updates: the plugin only exists in release builds, so
+                // Parker Dev never replaces itself with a release.
+                #[cfg(not(debug_assertions))]
+                schedule_update_checks(app.handle().clone());
+
                 // The note windows of the last session, above the main one.
                 windows::restore(app.handle(), &read_session().windows);
             }
@@ -2333,6 +2573,7 @@ pub fn run() {
             "quit" => request_quit(app, true),
             "settings" => toggle_settings_window(app),
             "about" => show_about_window(app),
+            "check_updates" => update_menu_clicked(app),
             "help" => show_help_window(app),
             #[cfg(desktop)]
             "open_file" => external::open_dialog(app),
@@ -2374,6 +2615,11 @@ pub fn run() {
             look_for_notes,
             open_system_settings,
             finish_first_run,
+            update_state,
+            check_updates_now,
+            skip_update,
+            set_update_check,
+            install_update,
             open_help,
             open_settings,
             set_theme,
@@ -2851,6 +3097,8 @@ mod tests {
             editor_width: 80,
             preview_sync: false,
             preview_images: "all".into(),
+            update_check: false,
+            update_skip: Some("1.5.1".into()),
         };
         let back: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
         assert_eq!(back.notes_dir, s.notes_dir);
@@ -2864,6 +3112,17 @@ mod tests {
         assert_eq!(back.editor_width, s.editor_width);
         assert_eq!(back.preview_sync, s.preview_sync);
         assert_eq!(back.preview_images, s.preview_images);
+        assert_eq!(back.update_check, s.update_check);
+        assert_eq!(back.update_skip, s.update_skip);
+    }
+
+    // Updates arrived with Onda 6: a settings file without the keys checks
+    // automatically and has skipped nothing.
+    #[test]
+    fn updates_are_checked_unless_turned_off() {
+        let s: Settings = serde_json::from_str(r#"{"zoom":1.0}"#).unwrap();
+        assert!(s.update_check);
+        assert_eq!(s.update_skip, None);
     }
 
     // Images arrived in the privacy round (25/09): a settings file without the

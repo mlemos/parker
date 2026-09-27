@@ -168,7 +168,7 @@ pub fn is_ubiquitous(_path: &Path) -> bool {
 /// iCloud Drive on, and Desktop & Documents in it.
 pub fn icloud_state(home: &Path) -> ICloudState {
     #[cfg(target_os = "macos")]
-    let drive = unsafe { objc2_foundation::NSFileManager::defaultManager().ubiquityIdentityToken().is_some() };
+    let drive = objc2_foundation::NSFileManager::defaultManager().ubiquityIdentityToken().is_some();
     #[cfg(not(target_os = "macos"))]
     let drive = false;
     ICloudState { drive, documents: drive && is_ubiquitous(&home.join("Documents")) }
