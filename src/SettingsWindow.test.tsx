@@ -20,6 +20,8 @@ const SETTINGS: SettingsInfo = {
   editor_width: 0,
   preview_sync: true,
   preview_images: "local",
+  update_check: true,
+  version: "1.5.0",
 };
 const AGENTS: AgentsInfo = { claude_code: "missing", claude_code_dir: "~/.claude/skills/parker", readme: false };
 
@@ -52,6 +54,8 @@ function fakeBackend(over: Partial<SettingsBackend> = {}, agents: Partial<Agents
       sync: { service: "icloud", label: "iCloud Drive" },
     })),
     icloudState: vi.fn(async () => ({ drive: true, documents: true })),
+    setUpdateCheck: vi.fn(async (_on: boolean) => {}),
+    checkUpdatesNow: vi.fn(async (): Promise<{ version: string; current: string; notes: string } | null> => null),
     setTheme: vi.fn(async () => {}),
     agentsInfo: vi.fn(async () => ({ ...AGENTS, ...agents })),
     installClaudeCodeSkill: vi.fn(async () => {}),
@@ -91,16 +95,17 @@ describe("initialSection", () => {
     expect(initialSection("editor")).toBe("editor");
     expect(initialSection(null)).toBe("general");
     expect(initialSection("privacy")).toBe("privacy");
-    expect(initialSection("updates")).toBe("general"); // a section that doesn't exist (yet)
+    expect(initialSection("updates")).toBe("updates");
+    expect(initialSection("sync")).toBe("general"); // a section that doesn't exist
   });
 });
 
 describe("SettingsWindow — sections", () => {
-  it("lists the five sections and opens on General", async () => {
+  it("lists the six sections and opens on General", async () => {
     await open("General");
     const nav = screen.getByRole("navigation", { name: "Settings sections" });
     const names = within(nav).getAllByRole("button").map((b) => b.textContent);
-    expect(names).toEqual(["General", "Editor", "Backup & Git", "Privacy & Security", "AI Agents"]);
+    expect(names).toEqual(["General", "Editor", "Backup & Git", "Privacy & Security", "Updates", "AI Agents"]);
     expect(within(nav).getByRole("button", { name: "General" }).getAttribute("aria-current")).toBe("page");
   });
 
@@ -233,7 +238,8 @@ describe("SettingsWindow — AI Agents", () => {
     const { user, b } = await open("AI Agents", fakeBackend({}, { claude_code: "current" }));
     await user.click(await screen.findByRole("button", { name: "Show in Finder" }));
     expect(b.revealClaudeCodeSkill).toHaveBeenCalledOnce();
-    expect(screen.queryByRole("button", { name: /Install|Update/ })).toBeNull();
+    // The skill's own buttons — not the Updates section in the sidebar.
+    expect(screen.queryByRole("button", { name: /^(Install|Update)( |$)/ })).toBeNull();
   });
 
   it("saves the zip for the Claude app, and stays quiet when cancelled", async () => {
@@ -307,5 +313,20 @@ describe("SettingsWindow — the notes folder on the iPhone", () => {
     await open("General", backend);
     await waitFor(() => expect(backend.b.inspectFolder).toHaveBeenCalled());
     expect(screen.queryByLabelText("On the iPhone")).toBeNull();
+  });
+});
+
+describe("SettingsWindow — Updates", () => {
+  it("turns the automatic check off and on", async () => {
+    const { user, b } = await open("Updates");
+    await user.click(screen.getByRole("switch", { name: "Check for updates automatically" }));
+    expect(b.setUpdateCheck).toHaveBeenCalledWith(false);
+  });
+
+  it("checks now and says what it found", async () => {
+    const { user } = await open("Updates");
+    expect(screen.getByText("Parker 1.5.0")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Check now" }));
+    expect(await screen.findByText("You're up to date — Parker 1.5.0.")).toBeDefined();
   });
 });

@@ -3,6 +3,7 @@
   "productName": "Parker Dev",
   "identifier": "dev.getparker.parker.dev",
   "bundle": {
-    "fileAssociations": []
+    "fileAssociations": [],
+    "createUpdaterArtifacts": false
   }
 }

@@ -1,6 +1,7 @@
 // Thin typed wrappers around the Rust commands defined in src-tauri/src/lib.rs.
 import { invoke } from "@tauri-apps/api/core";
 import type { FolderInfo, ICloudState } from "./first-run";
+import type { UpdateInfo, UpdateState } from "./updates";
 
 export interface NoteMeta {
   name: string;
@@ -52,6 +53,10 @@ export interface SettingsInfo {
   preview_sync: boolean;
   /** "none" | "local" | "all" — Settings › Privacy & Security. */
   preview_images: string;
+  /** Check for a newer Parker automatically (Settings › Updates). */
+  update_check: boolean;
+  /** This Parker's version. */
+  version: string;
 }
 
 /** The Parker skill for Claude Code, and whether the notes folder has a
@@ -165,6 +170,13 @@ export const api = {
   icloudState: () => invoke<ICloudState>("icloud_state"),
   openSystemSettings: (pane: "icloud" | "privacy") => invoke<void>("open_system_settings", { pane }),
   finishFirstRun: (path: string) => invoke<string | null>("finish_first_run", { path }),
+  // ---- Updates (Onda 6) ----
+  updateState: () => invoke<UpdateState>("update_state"),
+  checkUpdatesNow: () => invoke<UpdateInfo | null>("check_updates_now"),
+  skipUpdate: (version: string) => invoke<void>("skip_update", { version }),
+  setUpdateCheck: (enabled: boolean) => invoke<void>("set_update_check", { enabled }),
+  /** Downloads, installs, and restarts through the quit path. */
+  installUpdate: () => invoke<void>("install_update"),
   setNotesDir: (path: string, moveExisting: boolean) =>
     invoke<string>("set_notes_dir", { path, moveExisting }),
   // Files outside the notes folder, addressed by absolute path. Rust serves

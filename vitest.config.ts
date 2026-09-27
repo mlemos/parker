@@ -9,6 +9,7 @@ import react from "@vitejs/plugin-react";
 //                        navigation, confirmation steps). They opt into jsdom
 //                        with a `@vitest-environment jsdom` docblock, so the
 //                        fast majority isn't slowed down by a DOM it never uses.
+//   scripts/*.test.mjs   the release scripts' pure parts (latest.json).
 //
 // Not covered here: the CodeMirror wiring, which is tested through EditorState
 // and its commands rather than the rendered DOM, and anything that needs the
@@ -17,7 +18,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "scripts/*.test.mjs"],
     setupFiles: ["src/test-setup.ts"],
     // Call history as well as implementations: a mock that remembers last
     // test's calls turns "was this never called?" into a coin flip.
