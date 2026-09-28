@@ -3087,53 +3087,97 @@ body.resizing {
   inset: 0 0 auto 0;
   height: 40px;
 }
+/* One column, centred in the window both ways while it fits; when it doesn't
+   (the setup screen of a folder that needs explaining), the window scrolls
+   and the buttons stay in view at the bottom (.fr-btns). */
 .fr-body {
-  width: min(640px, 100% - 64px);
-  padding: 64px 0 40px;
+  width: min(540px, 100% - 64px);
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 44px 0 20px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 16px;
 }
-.fr-logo {
+.fr-top {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--secondary);
+  min-height: 34px;
 }
-.fr-logo b {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: var(--accent);
-  color: var(--on-accent);
-  display: grid;
-  place-items: center;
-  font-size: 15px;
+/* The site's lockup: the head (one path, masked, so it takes the text colour)
+   and the lowercase wordmark in Geist Mono. */
+.fr-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+}
+.fr-head {
+  display: inline-block;
+  width: 46px;
+  height: 46px;
+  background: currentColor;
+  -webkit-mask: url("./assets/parker-head.svg") center / contain no-repeat;
+  mask: url("./assets/parker-head.svg") center / contain no-repeat;
+}
+.fr-head-small {
+  width: 24px;
+  height: 24px;
+  color: var(--muted);
+}
+.fr-wordmark {
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-weight: 500;
+  font-size: 27px;
+  letter-spacing: -0.045em;
+}
+.fr-back {
+  all: unset;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 13.5px;
+}
+.fr-back::before {
+  content: "‹";
+  font-size: 17px;
+  margin-right: 5px;
+  position: relative;
+  top: 1px;
+}
+.fr-back:hover {
+  text-decoration: underline;
 }
 .fr h1 {
-  font-size: 26px;
-  letter-spacing: -0.02em;
-  margin: 4px 0 0;
-  font-weight: 600;
+  font-size: 28px;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  margin: 2px 0 0;
+  font-weight: 650;
 }
 .fr-lead {
   color: var(--secondary);
   font-size: 14.5px;
   line-height: 1.55;
-  margin: 0;
-  max-width: 58ch;
+  margin: -4px 0 0;
+  max-width: 52ch;
+}
+.fr-lead + .fr-lead {
+  margin-top: -8px;
+}
+.fr-terms {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.fr-terms a {
+  color: inherit;
 }
 .fr-lead b {
   color: var(--text);
 }
-.fr-small {
-  font-size: 13px;
-}
 .fr-card {
-  border: 1px solid var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  border: 1.5px solid var(--accent);
   border-radius: 12px;
   padding: 14px 16px;
   display: flex;
@@ -3170,6 +3214,9 @@ body.resizing {
   color: var(--secondary);
   font-size: 13px;
 }
+.fr-card-text {
+  min-width: 0;
+}
 .fr-tag {
   font-family: "Geist Mono Variable", ui-monospace, monospace;
   font-size: 10px;
@@ -3178,6 +3225,11 @@ body.resizing {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--accent);
   font-weight: 500;
+  white-space: nowrap;
+}
+.fr-tag-quiet {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  color: var(--secondary);
 }
 .fr-path {
   display: block;
@@ -3194,7 +3246,7 @@ body.resizing {
   font-size: 13.5px;
 }
 .fr-xray {
-  padding: 4px 16px;
+  padding: 2px 16px;
   margin-top: -6px;
   font-size: 13px;
 }
@@ -3277,14 +3329,24 @@ body.resizing {
   color: var(--muted);
 }
 .fr-rec {
-  background: color-mix(in srgb, var(--todo-attn) 14%, transparent);
+  background: color-mix(in srgb, var(--todo-attn) 12%, transparent);
   border-radius: 10px;
   padding: 10px 12px;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--secondary);
+}
+.fr-rec p {
+  margin: 0;
+}
+.fr-rec b {
+  color: var(--text);
 }
 .fr-rec .fr-btn {
   margin-top: 8px;
+  padding: 5px 12px;
+  font-size: 12.5px;
 }
 .fr-updated {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
@@ -3295,7 +3357,11 @@ body.resizing {
 .fr-hint {
   margin: 0;
   font-size: 13px;
+  line-height: 1.5;
   color: var(--secondary);
+}
+.fr-hint .fr-link {
+  font-size: 13px;
 }
 .fr-other {
   border: 1px solid var(--border);
@@ -3310,12 +3376,9 @@ body.resizing {
   font-weight: 600;
   font-size: 13.5px;
 }
-.fr-other ul {
-  margin: 4px 0 2px;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+.fr-other p {
+  margin: 6px 0 0;
+  line-height: 1.5;
 }
 .fr-other b {
   color: var(--text);
@@ -3324,7 +3387,11 @@ body.resizing {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 6px;
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 4px;
+  background: var(--canvas, var(--bg));
 }
 .fr-grow {
   flex: 1;

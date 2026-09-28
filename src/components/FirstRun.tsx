@@ -7,15 +7,17 @@
 // then one screen that explains the choice: where the folder is, whether it
 // syncs, and what to do on the iPhone. Nothing is created until Continue.
 //
-// Screens and words follow the prototype approved on 24/09 ("Parker Mac First
-// Run"); the sentences themselves live in lib/first-run.ts, tested.
+// Screens follow the prototype approved on 24/09 ("Parker Mac First Run"),
+// refined on 27/09 to match the iPhone's one for one: the site's lockup on the
+// first screen, Back and the head on the others, the same blocks. Every word
+// comes from shared/first-run-copy.json, which the iPhone reads too.
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   afterLook,
   contentsLine,
+  copy,
   gitLine,
-  icloudLine,
   iphoneLine,
   recommendDocuments,
   stateLine,
@@ -38,50 +40,65 @@ export interface FirstRunBackend {
 
 type Screen = "look" | "denied" | "found" | "create" | "confirm";
 
-const Mark = ({ tone, children }: { tone: Tone | "none"; children: ReactNode }) => (
+/** A sentence from shared/first-run-copy.json (the Mac's version). */
+const t = (key: string, vars?: Record<string, string | number>) => copy(key, vars);
+
+/** The copy's markdown — **bold** and [links](url) — as elements. */
+function md(text: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  const re = /\*\*(.+?)\*\*|\[(.+?)\]\((.+?)\)/g;
+  let at = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index > at) out.push(text.slice(at, m.index));
+    out.push(m[1] !== undefined ? <b key={m.index}>{m[1]}</b> : <a key={m.index} href={m[3]} target="_blank" rel="noreferrer">{m[2]}</a>);
+    at = m.index + m[0].length;
+  }
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
+
+const Mark = ({ tone, children }: { tone: Tone; children: ReactNode }) => (
   <span className={`fr-mark fr-${tone}`}>{children}</span>
 );
 
-function Logo() {
-  return (
-    <div className="fr-logo">
-      <b>P</b>Parker
-    </div>
-  );
-}
+/** The brand, as the site wears it: the head and the lowercase wordmark. On
+ *  the first screen only; the others carry the head alone, small. */
+const Lockup = () => (
+  <div className="fr-lockup" role="img" aria-label="Parker">
+    <span className="fr-head" aria-hidden />
+    <span className="fr-wordmark" aria-hidden>
+      parker
+    </span>
+  </div>
+);
 
-function FolderCard({ f, sub }: { f: FolderInfo; sub: string }) {
+function FolderCard({ f, tag }: { f: FolderInfo; tag: string }) {
   return (
     <div className="fr-card">
       <div className="fr-folder" aria-hidden />
-      <div>
+      <div className="fr-card-text">
         <div className="fr-card-title">
-          {f.display} <span className="fr-tag">suggested</span>
+          <span>{f.display}</span> <span className="fr-tag">{tag}</span>
         </div>
-        <div className="fr-card-sub">{sub}</div>
         <div className="fr-path">{f.path}</div>
       </div>
     </div>
   );
 }
 
-/** Screen 1's x-ray of the suggested folder: contents, iCloud, git. */
+/** The found / fresh-start screens' x-ray of the suggested folder. */
 function XRay({ f, icloud }: { f: FolderInfo; icloud: ICloudState }) {
-  const ic = icloudLine(f, icloud);
+  const sync = syncLine(f, icloud);
   const git = gitLine(f);
   return (
     <div className="fr-xray">
       <div className="fr-xr">
-        <span className="fr-k">Contents</span>
-        <Mark tone={f.exists && (f.notes || f.other) ? "ok" : "none"}>{contentsLine(f)}</Mark>
+        <span className="fr-k">{t("xray.sync")}</span>
+        <Mark tone={sync.tone}>{sync.text}</Mark>
       </div>
       <div className="fr-xr">
-        <span className="fr-k">iCloud</span>
-        <Mark tone={ic.tone}>{ic.text}</Mark>
-      </div>
-      <div className="fr-xr">
-        <span className="fr-k">Git</span>
-        <Mark tone={git.tone}>{f.git ? `Git repository${f.git_remote ? ` · ${f.git_remote}` : ""}` : f.exists ? "Not a git repository" : "—"}</Mark>
+        <span className="fr-k">{t("xray.git")}</span>
+        <Mark tone={git.tone}>{git.text}</Mark>
       </div>
     </div>
   );
@@ -161,49 +178,61 @@ export function FirstRun({ backend, onDone }: { backend: FirstRunBackend; onDone
     });
 
   const isSuggested = !!choice && !!suggested && choice.path === suggested.path;
+  const back = () => setScreen(screen === "confirm" ? from : "look");
 
   return (
     <div className="fr" role="main" aria-label="Welcome to Parker">
       <div className="fr-drag" data-tauri-drag-region />
-      <div className="fr-body">
-        <Logo />
+      <div className="fr-body" data-screen={screen}>
+        <div className="fr-top">
+          {screen === "look" ? (
+            <Lockup />
+          ) : (
+            <>
+              <button className="fr-back" disabled={busy} onClick={back}>
+                {t("back")}
+              </button>
+              <span className="fr-grow" />
+              <span className="fr-head fr-head-small" role="img" aria-label="Parker" />
+            </>
+          )}
+        </div>
+
         {screen === "look" && (
           <>
-            <h1>Hi, I'm Parker.</h1>
-            <p className="fr-lead">
-              Your notes are plain Markdown files in one folder — yours, readable by any app and any AI agent. Let's find them first: I'll look in{" "}
-              <b>Documents › Parker</b>.
-            </p>
-            <p className="fr-lead">macOS will ask whether I may look in your Documents folder.</p>
+            <h1>{t("welcome.title")}</h1>
+            <p className="fr-lead">{t("welcome.lead")}</p>
+            <p className="fr-lead">{md(t("welcome.look"))}</p>
             <div className="fr-btns">
               <button className="fr-link" disabled={busy} onClick={() => pick("look")}>
-                Choose a folder myself instead
+                {t("choose")}
               </button>
               <span className="fr-grow" />
               <button className="fr-btn fr-pri" disabled={busy} onClick={look}>
-                {busy ? "Looking…" : "Look in Documents"}
+                {busy ? t("welcome.looking") : t("welcome.primary")}
               </button>
             </div>
+            <p className="fr-terms">{md(t("welcome.terms"))}</p>
           </>
         )}
 
         {screen === "denied" && (
           <>
-            <h1>No worries.</h1>
-            <p className="fr-lead">I won't look in Documents. Choose where your notes should live instead — any folder works.</p>
-            <p className="fr-lead fr-small">
-              To use Documents › Parker later, allow it in System Settings › Privacy &amp; Security › Files &amp; Folders › Parker, then look again.
+            <h1>{t("denied.title")}</h1>
+            <p className="fr-lead">{t("denied.lead")}</p>
+            <p className="fr-hint">
+              {t("denied.detail")}{" "}
+              <button className="fr-link" disabled={busy} onClick={() => backend.openSystemSettings("privacy").catch(() => {})}>
+                {t("denied.settings")}
+              </button>
             </p>
             <div className="fr-btns">
-              <button className="fr-btn" disabled={busy} onClick={() => backend.openSystemSettings("privacy").catch(() => {})}>
-                Open Privacy Settings
-              </button>
-              <button className="fr-btn" disabled={busy} onClick={look}>
-                Look again
+              <button className="fr-link" disabled={busy} onClick={look}>
+                {t("retry")}
               </button>
               <span className="fr-grow" />
               <button className="fr-btn fr-pri" disabled={busy} onClick={() => pick("denied")}>
-                Choose a folder…
+                {t("choose")}
               </button>
             </div>
           </>
@@ -211,30 +240,29 @@ export function FirstRun({ backend, onDone }: { backend: FirstRunBackend; onDone
 
         {(screen === "found" || screen === "create") && suggested && (
           <>
-            <h1>{screen === "found" ? "Nice — your notes are right here." : "Fresh start."}</h1>
-            <p className="fr-lead">{screen === "found" ? "Right where I'd keep them." : "No notes yet — I'll make them a home, right here."}</p>
-            <FolderCard
-              f={suggested}
-              sub={screen === "found" ? contentsLine(suggested) : "A new folder, with a Welcome note to start."}
-            />
+            <h1>{t(screen === "found" ? "found.title" : "create.title")}</h1>
+            <p className="fr-lead">
+              {md(screen === "found" ? t("found.lead", { contents: contentsLine(suggested), folder: suggested.display }) : t("create.lead", { folder: suggested.display }))}
+            </p>
+            <FolderCard f={suggested} tag={t("card.suggested")} />
             <XRay f={suggested} icloud={icloud} />
             {screen === "create" && icloud.documents && (
               // A new Mac, iCloud still bringing the files over: creating now
               // would make iCloud keep both, as "Parker 2" (stress test, 24/09).
               <p className="fr-hint">
-                Used Parker on another Mac or on an iPhone? iCloud may still be bringing that folder here.{" "}
+                {t("create.arriving")}{" "}
                 <button className="fr-link" disabled={busy} onClick={look}>
-                  Look again
+                  {t("retry")}
                 </button>
               </p>
             )}
             <div className="fr-btns">
               <button className="fr-link" disabled={busy} onClick={() => pick(screen)}>
-                Create or select another folder…
+                {t("choose")}
               </button>
               <span className="fr-grow" />
               <button className="fr-btn fr-pri" disabled={busy} onClick={() => useSuggested(screen)}>
-                {screen === "found" ? "Use this folder" : "Create it"}
+                {t(screen === "found" ? "found.primary" : "create.primary")}
               </button>
             </div>
           </>
@@ -242,13 +270,15 @@ export function FirstRun({ backend, onDone }: { backend: FirstRunBackend; onDone
 
         {screen === "confirm" && choice && (
           <>
-            <h1>Here's your setup.</h1>
-            {updated && <div className="fr-updated">✓ Nice — Desktop &amp; Documents is on. Your notes will follow you.</div>}
+            <h1>{t("setup.title")}</h1>
+            {updated && <div className="fr-updated">{t("setup.updated")}</div>}
             <div className="fr-rows">
               <div className="fr-row">
-                <div className="fr-k">Folder</div>
+                <div className="fr-k">{t("setup.folder")}</div>
                 <div>
-                  <b>{choice.display}</b>
+                  <div className="fr-card-title">
+                    <span>{choice.display}</span> <span className={`fr-tag${isSuggested ? "" : " fr-tag-quiet"}`}>{t(isSuggested ? "card.suggested" : "card.yourChoice")}</span>
+                  </div>
                   <span className="fr-path">{choice.path}</span>
                   <div className="fr-state">
                     <Mark tone={!choice.exists || (!choice.notes && !choice.other) ? "none" : choice.notes ? "ok" : "unknown"}>{stateLine(choice)}</Mark>
@@ -256,65 +286,40 @@ export function FirstRun({ backend, onDone }: { backend: FirstRunBackend; onDone
                 </div>
               </div>
               <div className="fr-row">
-                <div className="fr-k">Suggested?</div>
-                <div>
-                  {isSuggested ? (
-                    <Mark tone="ok">Yes — the folder I suggest.</Mark>
-                  ) : (
-                    <Mark tone="unknown">Your pick — works just the same. I just won't look for it anywhere else.</Mark>
-                  )}
-                </div>
-              </div>
-              <div className="fr-row">
-                <div className="fr-k">iCloud sync</div>
+                <div className="fr-k">{t("setup.sync")}</div>
                 <div>
                   <Mark tone={syncLine(choice, icloud).tone}>{syncLine(choice, icloud).text}</Mark>
                   {recommendDocuments(choice) && (
                     <div className="fr-rec">
-                      <b>Recommended:</b> turn on <b>Desktop &amp; Documents</b> in iCloud settings, then come back here — this screen updates by itself. It puts
-                      your whole Documents folder in iCloud Drive, which counts toward your iCloud storage.
-                      <br />
+                      <p>{md(t("setup.recommend"))}</p>
                       <button className="fr-btn" onClick={() => backend.openSystemSettings("icloud").catch(() => {})}>
-                        Open iCloud Settings
+                        {t("setup.recommendButton")}
                       </button>
                     </div>
                   )}
                 </div>
               </div>
               <div className="fr-row">
-                <div className="fr-k">Git</div>
+                <div className="fr-k">{t("setup.git")}</div>
                 <div>
                   <Mark tone={gitLine(choice).tone}>{gitLine(choice).text}</Mark>
                   <span className="fr-note">{gitLine(choice).note}</span>
                 </div>
               </div>
               <div className="fr-row">
-                <div className="fr-k">On the iPhone</div>
+                <div className="fr-k">{t("setup.otherDevice")}</div>
                 <div>{iphoneLine(choice, icloud, isSuggested)}</div>
               </div>
             </div>
-            <details className="fr-other" open={choice.sync.service !== "icloud"}>
-              <summary>Other ways to sync</summary>
-              <p>
-                Parker doesn't sync anything itself — it reads and writes plain files, so any service that syncs a folder works: Dropbox, Google Drive,
-                OneDrive, Box and others.
-              </p>
-              <ul>
-                <li>
-                  On the Mac, keep your notes folder inside that service's folder (<b>Back</b> › Create or select another folder…).
-                </li>
-                <li>
-                  On the iPhone, install the service's app, then in Parker tap <b>Use another folder</b> and pick the same folder.
-                </li>
-              </ul>
+            <details className="fr-other">
+              <summary>{t("setup.otherWays")}</summary>
+              <p>{t("setup.otherWaysBody")}</p>
+              <p>{t("setup.otherWaysHow")}</p>
             </details>
             <div className="fr-btns">
-              <button className="fr-btn" disabled={busy} onClick={() => setScreen(from)}>
-                Back
-              </button>
               <span className="fr-grow" />
               <button className="fr-btn fr-pri" disabled={busy} onClick={finish}>
-                Continue
+                {t("continue")}
               </button>
             </div>
           </>

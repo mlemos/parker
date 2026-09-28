@@ -1,7 +1,11 @@
 // The words of the first run on a Mac (Onda 5), and of Settings where it
-// tells how to reach the same folder from the iPhone. Pure: they depend only
-// on what Rust found about a folder (folder.rs) and on iCloud's state, so
-// every sentence is tested against every situation the prototype drew.
+// tells how to reach the same folder from the iPhone. The words themselves are
+// in shared/first-run-copy.json, which the iPhone reads too (ParkerCore
+// FirstRunCopy), so the two apps say the same thing; this picks the right one
+// for what Rust found about a folder (folder.rs) and for iCloud's state.
+// shared/fixtures/first-run-lines.json holds the sentences for every situation,
+// checked here and on the iPhone.
+import copyFile from "../../shared/first-run-copy.json";
 
 export interface SyncInfo {
   /** "icloud" | "google-drive" | "dropbox" | "onedrive" | "box" | "cloud" | "local" | "unknown" */
@@ -28,43 +32,47 @@ export interface ICloudState {
   documents: boolean;
 }
 
-const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const STRINGS: Record<string, string> = copyFile.strings;
+
+export type Platform = "mac" | "iphone";
+
+/** A sentence of the first run in one app's version (the Mac's unless said),
+ *  with its {placeholders} filled. A missing key is a bug, and says so. */
+export function copy(key: string, vars: Record<string, string | number> = {}, platform: Platform = "mac"): string {
+  const s = STRINGS[`${key}@${platform}`] ?? STRINGS[key];
+  if (s === undefined) throw new Error(`first-run copy: no "${key}"`);
+  return s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
+}
+
+export const count = (n: number, one: string) => copy(n === 1 ? `unit.${one}` : `unit.${one}s`, { n });
 
 /** Screen 1's one-line summary of what's in the folder. */
 export function contentsLine(f: FolderInfo): string {
-  if (!f.exists) return "Doesn't exist yet — created when you continue";
-  if (!f.notes && !f.other) return "Empty";
-  return plural(f.notes, "note") + (f.other ? ` · ${plural(f.other, "other file")}` : "");
+  if (!f.exists) return copy("line.contents.new");
+  if (!f.notes && !f.other) return copy("line.contents.empty");
+  if (!f.other) return copy("line.contents.notes", { notes: count(f.notes, "note") });
+  return copy("line.contents.notesOther", { notes: count(f.notes, "note"), other: count(f.other, "otherFile") });
 }
 
-/** Screen 2's longer version, which says what Parker will do with it. */
+/** The setup screen's version, which says what Parker will do with it. */
 export function stateLine(f: FolderInfo): string {
-  if (!f.exists) return "Doesn't exist yet — Parker creates it when you press Continue.";
-  if (!f.notes && !f.other) return "Exists and is empty — Parker adds a Welcome note.";
-  if (!f.notes) return `Exists, with ${plural(f.other, "file")} but no notes yet. Parker leaves those files alone.`;
-  return `Exists, with ${plural(f.notes, "note")}${f.other ? ` and ${plural(f.other, "other file")} Parker leaves alone` : ""}.`;
+  if (!f.exists) return copy("line.state.new");
+  if (!f.notes && !f.other) return copy("line.state.empty");
+  if (!f.notes) return copy("line.state.onlyOther", { other: count(f.other, "file") });
+  if (!f.other) return copy("line.state.notes", { notes: count(f.notes, "note") });
+  return copy("line.state.notesOther", { notes: count(f.notes, "note"), other: count(f.other, "otherFile") });
 }
 
-export type Tone = "ok" | "warn" | "unknown";
+export type Tone = "ok" | "warn" | "unknown" | "none";
 
 /** Whether the folder syncs, as far as the Mac can tell — "stays on this Mac"
  *  only when that is a fact (Documents with Desktop & Documents off). */
 export function syncLine(f: FolderInfo, icloud: ICloudState): { tone: Tone; text: string } {
   const s = f.sync.service;
-  if (s === "icloud") {
-    if (!icloud.drive) return { tone: "warn", text: "In iCloud Drive, but iCloud Drive is off on this Mac." };
-    return { tone: "ok", text: `Syncs with iCloud Drive${f.path.includes("/Documents/") && icloud.documents ? " — Desktop & Documents is on." : "."}` };
-  }
-  if (s === "local") {
-    return {
-      tone: "warn",
-      text: icloud.drive
-        ? "Stays on this Mac — your Documents folder isn't in iCloud."
-        : "Stays on this Mac — iCloud Drive is off.",
-    };
-  }
-  if (s === "unknown") return { tone: "unknown", text: "Not in iCloud Drive. If it syncs some other way, see Other ways to sync below." };
-  return { tone: "unknown", text: `Not in iCloud Drive — this folder is in ${f.sync.label}. See Other ways to sync below.` };
+  if (s === "icloud") return icloud.drive ? { tone: "ok", text: copy("line.sync.icloud") } : { tone: "warn", text: copy("line.sync.icloudDriveOff") };
+  if (s === "local") return { tone: "warn", text: copy(icloud.drive ? "line.sync.here" : "line.sync.hereDriveOff") };
+  if (s === "unknown") return { tone: "unknown", text: copy("line.sync.unknown") };
+  return { tone: "ok", text: copy("line.sync.service", { service: f.sync.label }) };
 }
 
 /** Whether to recommend turning on Desktop & Documents: only for a folder in
@@ -79,55 +87,40 @@ export function filesAppPath(f: FolderInfo): string {
   return f.sync.service === "icloud" && !f.display.startsWith("iCloud Drive") ? `iCloud Drive › ${f.display}` : f.display;
 }
 
+const SERVICES = ["google-drive", "dropbox", "onedrive", "box"];
+
 /** What to do on the iPhone to open this same folder. `suggested` is whether
  *  it is Documents › Parker, the one folder the iPhone looks for by itself. */
 export function iphoneLine(f: FolderInfo, icloud: ICloudState, suggested: boolean): string {
   const s = f.sync.service;
-  if (suggested && s === "icloud" && icloud.drive)
-    return "Install Parker for iPhone and tap Continue with iCloud Drive — it finds this folder by itself.";
-  if (suggested) return "Your iPhone can't reach it yet. Turn on Desktop & Documents and it can — then, on the iPhone, Continue with iCloud Drive.";
-  if (s === "icloud") return `On the iPhone: Parker › Use another folder › ${filesAppPath(f)}.`;
-  if (s === "google-drive" || s === "dropbox" || s === "onedrive" || s === "box")
-    return `On the iPhone: Parker › Use another folder › ${f.display}. The ${f.sync.label} app must be installed.`;
-  if (s === "local") return "Your iPhone can't reach it while Documents stays on this Mac.";
-  return "If this folder stays on this Mac, your iPhone can't open it. To use Parker there, keep your notes in iCloud Drive or another synced folder.";
+  if (suggested) return copy(s === "icloud" && icloud.drive ? "line.other.suggested" : "line.other.suggestedOff");
+  if (s === "icloud") return copy("line.other.icloud", { folder: filesAppPath(f) });
+  if (SERVICES.includes(s)) return copy("line.other.service", { service: f.sync.label, folder: f.display });
+  if (s === "local") return copy("line.other.here");
+  return copy("line.other.unknown");
 }
 
 /** Settings' line under the notes folder: how to open the same folder on the
  *  iPhone — only when the iPhone can reach it at all (in iCloud Drive, or in
  *  a service with an iPhone app); otherwise nothing. */
 export function settingsIphoneLine(f: FolderInfo, icloud: ICloudState): string | null {
-  const reachable = (f.sync.service === "icloud" && icloud.drive) || ["google-drive", "dropbox", "onedrive", "box"].includes(f.sync.service);
+  const reachable = (f.sync.service === "icloud" && icloud.drive) || SERVICES.includes(f.sync.service);
   if (!reachable) return null;
   const suggested = /\/Documents\/Parker( \(Dev\))?$/.test(f.path) && f.sync.service === "icloud";
   return iphoneLine(f, icloud, suggested);
 }
 
-/** The git row. Git is history and backup, not sync. */
-export function gitLine(f: FolderInfo): { tone: Tone | "none"; text: string; note: string } {
+/** The git line: short on the found screen, with a note on the setup screen.
+ *  Git is history and backup, not sync. */
+export function gitLine(f: FolderInfo): { tone: Tone; text: string; note: string } {
   if (f.git)
     return {
       tone: "ok",
-      text: f.git_remote ? `A git repository (remote: ${f.git_remote}).` : "A git repository, with no remote.",
-      note:
-        "Parker can commit and push your changes — on a timer, or when you quit. Turn it on in Settings › Backup & Git." +
-        // iCloud and git together: iCloud may copy or evict files inside .git.
-        (f.sync.service === "icloud" ? " In iCloud, keep an eye on it: iCloud can duplicate files inside .git, or take them off this Mac." : ""),
+      text: f.git_remote ? copy("line.git.remote", { remote: f.git_remote }) : copy("line.git.noRemote"),
+      // iCloud and git together: iCloud may copy or evict files inside .git.
+      note: copy(f.sync.service === "icloud" ? "line.git.noteICloud" : "line.git.note"),
     };
-  return {
-    tone: "none",
-    text: `Not a git repository${f.exists ? "" : " (the folder doesn't exist yet)"}.`,
-    note: "Optional. If you make it one later, Parker can commit and push it — Settings › Backup & Git.",
-  };
-}
-
-/** Screen 1's line about iCloud. */
-export function icloudLine(f: FolderInfo, icloud: ICloudState): { tone: Tone; text: string } {
-  if (f.sync.service === "icloud" && icloud.drive) return { tone: "ok", text: "Syncs with iCloud Drive" };
-  return {
-    tone: f.sync.service === "local" ? "warn" : "unknown",
-    text: icloud.drive ? "Not in iCloud — Documents stays on this Mac" : "Not in iCloud — iCloud Drive is off",
-  };
+  return { tone: "none", text: copy(f.exists ? "line.git.none" : "line.git.new"), note: copy("line.git.noneNote") };
 }
 
 /** Where the welcome goes after "Look in Documents": found notes, a fresh
