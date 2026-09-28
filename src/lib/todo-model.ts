@@ -130,10 +130,13 @@ export function planRotate(doc: DocLike, from: number, to: number): Change[] {
 
   const untagged = lines.filter((l) => !l.tag);
   if (untagged.length) {
-    return untagged.map(({ line }) => ({
-      from: line.from + /^\s*/.exec(line.text)![0].length,
-      insert: "/TODO ",
-    }));
+    return untagged.map(({ line }) => {
+      // A list item's bullet becomes the checkbox: "- buy milk" → "/TODO buy
+      // milk", not "/TODO - buy milk" (27/09). A to-do is a list item.
+      const item = LIST_ITEM.exec(line.text);
+      const at = line.from + /^\s*/.exec(line.text)![0].length;
+      return item ? { from: at, to: line.from + item[0].length, insert: "/TODO " } : { from: at, insert: "/TODO " };
+    });
   }
   return lines.map(({ line, tag }) =>
     tagChange(line, tag!, nextInRotation(tag![2]))
@@ -211,10 +214,14 @@ export function cursorAfterRotate(
 ): number | null {
   if (changes.length !== 1) return null; // multi-line: keep the selection
   const c = changes[0];
-  if (c.to !== undefined || !c.insert) return null; // rewrote/removed a tag
-  const inserted = c.insert.length;
-  const mapped = head >= c.from ? head + inserted : head;
-  return Math.max(mapped, c.from + inserted);
+  if (!c.insert) return null; // removed a tag
+  // A tag rewritten in place ("/TODO" → "/DOING", never with a space): the
+  // editor maps the cursor. A new "/TODO " — inserted, or over a list item's
+  // bullet — puts it after the checkbox, or keeps it where it was in the text.
+  if (c.to !== undefined && c.insert !== "/TODO ") return null;
+  const end = c.to ?? c.from;
+  const mapped = head >= end ? head + c.insert.length - (end - c.from) : c.from + c.insert.length;
+  return Math.max(mapped, c.from + c.insert.length);
 }
 
 // ---- Grouping --------------------------------------------------------------

@@ -49,7 +49,14 @@ extension Todo {
         let untagged = lines.filter { $0.tag == nil }
         if !untagged.isEmpty {
             return untagged.map { entry in
-                Change(from: entry.line.from + leadingWhitespaceUTF16(entry.line.text), insert: "/TODO ")
+                // A list item's bullet becomes the checkbox: "- buy milk" →
+                // "/TODO buy milk", not "/TODO - buy milk" (27/09).
+                let text = entry.line.text
+                let at = entry.line.from + leadingWhitespaceUTF16(text)
+                if let m = listMark.firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length)) {
+                    return Change(from: at, to: entry.line.from + m.range.length, insert: "/TODO ")
+                }
+                return Change(from: at, insert: "/TODO ")
             }
         }
         return lines.map { entry in
@@ -108,9 +115,14 @@ extension Todo {
     public static func cursorAfterRotate(_ changes: [Change], head: Int) -> Int? {
         guard changes.count == 1 else { return nil } // multi-line: keep the selection
         let c = changes[0]
-        guard c.to == nil, let insert = c.insert else { return nil } // rewrote/removed a tag
+        guard let insert = c.insert else { return nil } // removed a tag
+        // A tag rewritten in place ("/TODO" → "/DOING", never with a space): the
+        // editor maps the cursor. A new "/TODO " — inserted, or over a list
+        // item's bullet — puts it after the checkbox, or keeps it in the text.
+        if c.to != nil && insert != "/TODO " { return nil }
         let inserted = insert.utf16.count
-        let mapped = head >= c.from ? head + inserted : head
+        let end = c.to ?? c.from
+        let mapped = head >= end ? head + inserted - (end - c.from) : c.from + inserted
         return max(mapped, c.from + inserted)
     }
 
@@ -142,6 +154,32 @@ extension Todo {
     }
 
     nonisolated(unsafe) private static let listMark = try! NSRegularExpression(pattern: "^(\\s*)([-*+]|(\\d+)\\.)(\\s+)")
+
+    /// Backspace (`backward`) or Delete at `col` on a line: the range of the
+    /// line to remove — a task's tag and the one space after it, or a list
+    /// item's bullet and its spaces — or nil for the editor's own delete. The
+    /// Mac's planMarkerDelete (todo-model.ts), on the same shared cases:
+    /// Backspace right after the checkbox, or after the space that follows
+    /// it, takes the checkbox, where it used to take only the space (27/09).
+    public static func planMarkerDelete(line: String, col: Int, backward: Bool) -> (from: Int, to: Int)? {
+        let u = Array(line.utf16)
+        if let tag = tag(of: line) {
+            let start = tag.indent.utf16.count
+            let end = tag.length
+            let hasSpace = end < u.count && u[end] == 0x20
+            let at = backward ? col == end || (hasSpace && col == end + 1) : col == start
+            return at ? (start, end + (hasSpace ? 1 : 0)) : nil
+        }
+        let ns = line as NSString
+        if let m = listMark.firstMatch(in: line, range: NSRange(location: 0, length: ns.length)) {
+            let start = m.range(at: 1).length
+            let end = m.range.length
+            let bulletEnd = start + m.range(at: 2).length
+            let at = backward ? col == end || col == bulletEnd : col == start
+            return at ? (start, end) : nil
+        }
+        return nil
+    }
 
     /// Enter on a task line starts the next task (same indentation, always
     /// /TODO — nobody wants a second DONE); on a list item, the next item. An
