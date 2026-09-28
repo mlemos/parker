@@ -50,7 +50,16 @@ export interface PaintRun {
   /** UTF-16 offsets in the line, as the file has it. */
   from: number;
   to: number;
+  /** The colour. */
   role: PaintRole;
+  /** The face, which isn't the colour's: `**~~x~~**` is strike-coloured and
+   *  bold. Bold under .cm-md-strong or a heading; italic under .cm-md-em or a
+   *  comment; underlined under a link, a url or a bare url; and the ground a
+   *  code span or ==highlighted== text lays under itself. Left out when off. */
+  bold?: true;
+  italic?: true;
+  underline?: true;
+  wash?: "code" | "highlight";
 }
 
 export interface LinePaint {
@@ -102,6 +111,20 @@ export function resolve(roles: Set<PaintRole>, bareUrl: boolean, onTodo: boolean
   for (let i = SYNTAX_ORDER.length - 1; i >= 0; i--) if (roles.has(SYNTAX_ORDER[i])) return SYNTAX_ORDER[i];
   return "plain";
 }
+
+function paintAt(roles: Set<PaintRole>, bareUrl: boolean, onTodo: boolean, i: number): PaintRun {
+  const run: PaintRun = { from: i, to: i + 1, role: resolve(roles, bareUrl, onTodo) };
+  if (roles.has("bold") || roles.has("heading")) run.bold = true;
+  if (roles.has("italic") || roles.has("comment")) run.italic = true;
+  if (roles.has("link") || roles.has("url") || bareUrl) run.underline = true;
+  // Code inside highlighted text lays its own ground on top.
+  if (roles.has("code")) run.wash = "code";
+  else if (roles.has("highlight")) run.wash = "highlight";
+  return run;
+}
+
+const sameFace = (a: PaintRun, b: PaintRun) =>
+  a.role === b.role && a.bold === b.bold && a.italic === b.italic && a.underline === b.underline && a.wash === b.wash;
 
 function docOf(lines: string[]): DocLike {
   const starts: number[] = [];
@@ -176,10 +199,10 @@ export function paintNote(text: string): LinePaint[] {
     for (let i = 0; i < line.text.length; i++) {
       if (tag && i >= tag[0] && i < tag[1]) continue;
       const at = line.from + i;
-      const role = resolve(roles[at] ?? new Set(), bare[at] === 1, onTodo);
+      const run = paintAt(roles[at] ?? new Set(), bare[at] === 1, onTodo, i);
       const last = runs[runs.length - 1];
-      if (last && last.role === role && last.to === i) last.to = i + 1;
-      else runs.push({ from: i, to: i + 1, role });
+      if (last && last.to === i && sameFace(last, run)) last.to = i + 1;
+      else runs.push(run);
     }
     out.push({ tone, tag, runs });
   }

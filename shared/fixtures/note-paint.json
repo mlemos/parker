@@ -12,7 +12,8 @@
       {
        "from": 0,
        "to": 5,
-       "role": "heading"
+       "role": "heading",
+       "bold": true
       }
      ]
     },
@@ -23,22 +24,27 @@
       {
        "from": 0,
        "to": 12,
-       "role": "heading"
+       "role": "heading",
+       "bold": true
       },
       {
        "from": 12,
        "to": 20,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 20,
        "to": 25,
-       "role": "heading"
+       "role": "heading",
+       "bold": true
       },
       {
        "from": 25,
        "to": 31,
-       "role": "code"
+       "role": "code",
+       "bold": true,
+       "wash": "code"
       }
      ]
     },
@@ -49,7 +55,8 @@
       {
        "from": 0,
        "to": 10,
-       "role": "heading"
+       "role": "heading",
+       "bold": true
       }
      ]
     },
@@ -60,7 +67,8 @@
       {
        "from": 0,
        "to": 6,
-       "role": "heading"
+       "role": "heading",
+       "bold": true
       }
      ]
     },
@@ -71,7 +79,8 @@
       {
        "from": 0,
        "to": 3,
-       "role": "heading"
+       "role": "heading",
+       "bold": true
       }
      ]
     },
@@ -104,7 +113,8 @@
       {
        "from": 6,
        "to": 10,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       },
       {
        "from": 10,
@@ -114,7 +124,8 @@
       {
        "from": 11,
        "to": 15,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       },
       {
        "from": 15,
@@ -124,7 +135,8 @@
       {
        "from": 16,
        "to": 22,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 22,
@@ -134,7 +146,8 @@
       {
        "from": 23,
        "to": 29,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 29,
@@ -144,17 +157,21 @@
       {
        "from": 30,
        "to": 31,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       },
       {
        "from": 31,
        "to": 37,
-       "role": "boldItalic"
+       "role": "boldItalic",
+       "bold": true,
+       "italic": true
       },
       {
        "from": 37,
        "to": 38,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       },
       {
        "from": 38,
@@ -164,7 +181,8 @@
       {
        "from": 39,
        "to": 45,
-       "role": "code"
+       "role": "code",
+       "wash": "code"
       },
       {
        "from": 45,
@@ -184,7 +202,8 @@
       {
        "from": 55,
        "to": 62,
-       "role": "highlight"
+       "role": "highlight",
+       "wash": "highlight"
       }
      ]
     },
@@ -200,17 +219,21 @@
       {
        "from": 7,
        "to": 14,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 14,
        "to": 22,
-       "role": "boldItalic"
+       "role": "boldItalic",
+       "bold": true,
+       "italic": true
       },
       {
        "from": 22,
        "to": 29,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 29,
@@ -220,17 +243,21 @@
       {
        "from": 34,
        "to": 38,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       },
       {
        "from": 38,
        "to": 50,
-       "role": "boldItalic"
+       "role": "boldItalic",
+       "bold": true,
+       "italic": true
       },
       {
        "from": 50,
        "to": 54,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       }
      ]
     },
@@ -241,17 +268,20 @@
       {
        "from": 0,
        "to": 2,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 2,
        "to": 17,
-       "role": "strike"
+       "role": "strike",
+       "bold": true
       },
       {
        "from": 17,
        "to": 19,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 19,
@@ -260,8 +290,22 @@
       },
       {
        "from": 24,
+       "to": 26,
+       "role": "highlight",
+       "wash": "highlight"
+      },
+      {
+       "from": 26,
+       "to": 38,
+       "role": "highlight",
+       "bold": true,
+       "wash": "highlight"
+      },
+      {
+       "from": 38,
        "to": 40,
-       "role": "highlight"
+       "role": "highlight",
+       "wash": "highlight"
       },
       {
        "from": 40,
@@ -271,7 +315,8 @@
       {
        "from": 45,
        "to": 59,
-       "role": "code"
+       "role": "code",
+       "wash": "code"
       }
      ]
     },
@@ -304,17 +349,20 @@
       {
        "from": 2,
        "to": 9,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 9,
        "to": 22,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 22,
        "to": 23,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 23,
@@ -324,7 +372,8 @@
       {
        "from": 35,
        "to": 48,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 48,
@@ -334,7 +383,8 @@
       {
        "from": 54,
        "to": 63,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 63,
@@ -355,7 +405,8 @@
       {
        "from": 4,
        "to": 17,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 17,
@@ -365,17 +416,20 @@
       {
        "from": 32,
        "to": 47,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 47,
        "to": 60,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 60,
        "to": 69,
-       "role": "link"
+       "role": "link",
+       "underline": true
       }
      ]
     },
@@ -391,7 +445,8 @@
       {
        "from": 1,
        "to": 23,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 23,
@@ -407,17 +462,20 @@
       {
        "from": 0,
        "to": 12,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 12,
        "to": 25,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 25,
        "to": 26,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 26,
@@ -427,17 +485,20 @@
       {
        "from": 31,
        "to": 42,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 42,
        "to": 56,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 56,
        "to": 57,
-       "role": "link"
+       "role": "link",
+       "underline": true
       }
      ]
     },
@@ -453,17 +514,20 @@
       {
        "from": 28,
        "to": 35,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 35,
        "to": 55,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 55,
        "to": 56,
-       "role": "link"
+       "role": "link",
+       "underline": true
       }
      ]
     }
@@ -485,7 +549,8 @@
       {
        "from": 15,
        "to": 23,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 23,
@@ -495,7 +560,8 @@
       {
        "from": 25,
        "to": 31,
-       "role": "code"
+       "role": "code",
+       "wash": "code"
       },
       {
        "from": 31,
@@ -505,17 +571,20 @@
       {
        "from": 36,
        "to": 40,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 40,
        "to": 53,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 53,
        "to": 54,
-       "role": "link"
+       "role": "link",
+       "underline": true
       }
      ]
     },
@@ -542,7 +611,8 @@
       {
        "from": 12,
        "to": 16,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       },
       {
        "from": 16,
@@ -552,7 +622,8 @@
       {
        "from": 21,
        "to": 34,
-       "role": "url"
+       "role": "url",
+       "underline": true
       }
      ]
     },
@@ -667,7 +738,8 @@
       {
        "from": 20,
        "to": 33,
-       "role": "url"
+       "role": "url",
+       "underline": true
       }
      ]
     },
@@ -805,7 +877,8 @@
       {
        "from": 16,
        "to": 24,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 24,
@@ -815,7 +888,8 @@
       {
        "from": 29,
        "to": 42,
-       "role": "url"
+       "role": "url",
+       "underline": true
       }
      ]
     },
@@ -834,7 +908,8 @@
       {
        "from": 24,
        "to": 28,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       },
       {
        "from": 28,
@@ -844,7 +919,8 @@
       {
        "from": 30,
        "to": 36,
-       "role": "code"
+       "role": "code",
+       "wash": "code"
       },
       {
        "from": 36,
@@ -854,17 +930,20 @@
       {
        "from": 38,
        "to": 42,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 42,
        "to": 55,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 55,
        "to": 56,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 56,
@@ -874,7 +953,8 @@
       {
        "from": 61,
        "to": 74,
-       "role": "url"
+       "role": "url",
+       "underline": true
       }
      ]
     },
@@ -917,7 +997,8 @@
       {
        "from": 20,
        "to": 25,
-       "role": "highlight"
+       "role": "highlight",
+       "wash": "highlight"
       }
      ]
     },
@@ -950,17 +1031,21 @@
       {
        "from": 11,
        "to": 12,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       },
       {
        "from": 12,
        "to": 18,
-       "role": "boldItalic"
+       "role": "boldItalic",
+       "bold": true,
+       "italic": true
       },
       {
        "from": 18,
        "to": 19,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       }
      ]
     },
@@ -1110,7 +1195,8 @@
       {
        "from": 16,
        "to": 24,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 24,
@@ -1120,7 +1206,8 @@
       {
        "from": 25,
        "to": 29,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       },
       {
        "from": 29,
@@ -1130,7 +1217,8 @@
       {
        "from": 30,
        "to": 36,
-       "role": "code"
+       "role": "code",
+       "wash": "code"
       },
       {
        "from": 36,
@@ -1140,17 +1228,20 @@
       {
        "from": 37,
        "to": 41,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 41,
        "to": 54,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 54,
        "to": 55,
-       "role": "link"
+       "role": "link",
+       "underline": true
       },
       {
        "from": 55,
@@ -1160,7 +1251,8 @@
       {
        "from": 56,
        "to": 69,
-       "role": "url"
+       "role": "url",
+       "underline": true
       },
       {
        "from": 69,
@@ -1180,7 +1272,8 @@
       {
        "from": 76,
        "to": 81,
-       "role": "highlight"
+       "role": "highlight",
+       "wash": "highlight"
       }
      ]
     },
@@ -1215,7 +1308,8 @@
       {
        "from": 28,
        "to": 36,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       }
      ]
     },
@@ -1231,7 +1325,8 @@
       {
        "from": 27,
        "to": 31,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       }
      ]
     },
@@ -1293,7 +1388,8 @@
       {
        "from": 19,
        "to": 23,
-       "role": "italic"
+       "role": "italic",
+       "italic": true
       }
      ]
     },
@@ -1323,7 +1419,8 @@
       {
        "from": 15,
        "to": 20,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       }
      ]
     },
@@ -1353,7 +1450,8 @@
       {
        "from": 13,
        "to": 18,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       }
      ]
     },
@@ -1411,7 +1509,8 @@
       {
        "from": 0,
        "to": 16,
-       "role": "heading"
+       "role": "heading",
+       "bold": true
       }
      ]
     },
@@ -1462,7 +1561,8 @@
       {
        "from": 19,
        "to": 39,
-       "role": "code"
+       "role": "code",
+       "wash": "code"
       },
       {
        "from": 39,
@@ -1497,7 +1597,8 @@
       {
        "from": 4,
        "to": 19,
-       "role": "bold"
+       "role": "bold",
+       "bold": true
       },
       {
        "from": 19,
@@ -1532,7 +1633,8 @@
       {
        "from": 0,
        "to": 8,
-       "role": "heading"
+       "role": "heading",
+       "bold": true
       }
      ]
     },

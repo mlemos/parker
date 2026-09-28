@@ -48,7 +48,7 @@ enum NoteStorage {
     }
 
     /// File text → editor storage, styled.
-    static func attributed(from text: String, theme: Theme) -> NSMutableAttributedString {
+    @MainActor static func attributed(from text: String, theme: Theme) -> NSMutableAttributedString {
         let out = NSMutableAttributedString()
         let lines = text.components(separatedBy: "\n")
         Perf.timed("paragraphs \(lines.count) lines") {
@@ -115,8 +115,19 @@ enum NoteStorage {
 
     // ---- Styling: the Mac's colours, line by line ----------------------------------------
 
-    static func style(_ s: NSMutableAttributedString, theme: Theme) {
+    /// The Mac's own painter (shared/parker-paint.js, run in JavaScriptCore):
+    /// the note parsed by the Mac's parser, coloured by its stylesheet's
+    /// rules. Nil only if the bundled script fails, and then a note is shown
+    /// uncoloured rather than not at all.
+    @MainActor static let painter: NotePainter? = {
+        guard let url = Bundle.main.url(forResource: "parker-paint", withExtension: "js"),
+              let script = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        return try? NotePainter(script: script)
+    }()
+
+    @MainActor static func style(_ s: NSMutableAttributedString, theme: Theme) {
         let whole = NSRange(location: 0, length: s.length)
+        let font = self.font
         let para = NSMutableParagraphStyle()
         // CSS `line-height: 1.6` is 1.6 × the font size; TextKit's multiple
         // would scale the font's own (taller) line height instead. Fix the
@@ -128,32 +139,29 @@ enum NoteStorage {
         // addAttributes, never setAttributes: the latter would strip the
         // .attachment attribute and turn every box back into a blank.
         s.addAttributes([.font: font, .foregroundColor: UIColor(theme.editorFg), .paragraphStyle: para, .baselineOffset: leading], range: whole)
+        s.removeAttribute(.underlineStyle, range: whole)
+        s.removeAttribute(.codeWash, range: whole)
 
-        // Who owns each line, from the file's text — the grammar works on that.
-        // Storage lines and file lines match one to one: an attachment is one
-        // character and never a newline.
-        let doc = TextDocument(plainText(s))
-        let owners = Todo.ownersForRange(doc, fromLine: 1, toLine: doc.lineCount)
+        let text = plainText(s)
+        let doc = TextDocument(text)
+        let paints = painter?.paint(text) ?? []
 
         // One column of the monospace face, for the hanging indent below. The
         // box is laid out as one column too (TodoAttachment), like the list
         // marker it stands in the place of.
         let column = self.column
 
-        let ns = s.string as NSString
         var location = 0
-        var inFence = false
         for (i, storageLine) in s.string.components(separatedBy: "\n").enumerated() {
             let length = (storageLine as NSString).length
             let range = NSRange(location: location, length: length)
             location += length + 1
             guard length > 0, i < doc.lineCount else { continue }
-            let fileLine = doc.line(i + 1).text
             // A wrapped list item or to-do continues under its text, not at
             // the margin — the Mac's rule, from the file's line. The paragraph
             // range includes the newline, which is where TextKit reads the
             // style of the line from.
-            if let prefix = HangingIndent.prefix(of: fileLine) {
+            if let prefix = HangingIndent.prefix(of: doc.line(i + 1).text) {
                 let hang = NSMutableParagraphStyle()
                 hang.setParagraphStyle(para)
                 hang.firstLineHeadIndent = 0
@@ -161,95 +169,64 @@ enum NoteStorage {
                 let paraRange = NSRange(location: range.location, length: min(length + 1, s.length - range.location))
                 s.addAttribute(.paragraphStyle, value: hang, range: paraRange)
             }
-            // A fenced block: its fences and its text wear the code colour,
-            // and nothing inside is markdown. (The Mac highlights a named
-            // language properly; this is the plain-fence look for all of them.)
-            if fileLine.hasPrefix("```") || fileLine.hasPrefix("~~~") {
-                inFence.toggle()
-                s.addAttribute(.foregroundColor, value: UIColor(Color(css: theme.def.syntax.inlineCode)), range: range)
-                continue
-            }
-            if inFence {
-                s.addAttribute(.foregroundColor, value: UIColor(Color(css: theme.def.syntax.inlineCode)), range: range)
-                continue
-            }
-            var marksOnly = false, dim = false
-            if let tag = Todo.tag(of: fileLine) {
-                let color = tag.state == .todo ? theme.editorFg : (tag.state == .cancel ? theme.muted : theme.stateColor(tag.state))
-                s.addAttribute(.foregroundColor, value: UIColor(color), range: range)
-                marksOnly = tag.state != .todo // an open to-do is body text, and keeps everything
-            } else if let owner = owners[i] {
-                // a nested line wears its to-do's colour, 55% into the background — App.css
-                // .cm-todo-child-* — and so do the marks inside it, each its own colour dimmed
-                // the same way, so bold is still bold's colour and the line still nested
-                let base = owner == .cancel ? theme.muted : theme.stateColor(owner)
-                s.addAttribute(.foregroundColor, value: UIColor(base).blended(with: UIColor(theme.editorBg), t: 0.45), range: range)
-                marksOnly = true
-                dim = true
-            }
-            // marks keep their own colours on every line — inside a list, on a to-do line
-            // of any state, under one — as the Mac's do (App.css .cm-md-*); matched on the
-            // STORAGE line, whose offsets are the range's (a box is one character where
-            // the file has the whole tag)
-            markdown(storageLine, in: range, of: s, theme: theme, marksOnly: marksOnly, dim: dim)
+            guard i < paints.count else { continue }
+            paint(paints[i], in: range, of: s, theme: theme)
         }
-        _ = ns
     }
 
-    /// The patterns, compiled once: a note is restyled on every keystroke.
-    private enum Re {
-        static let heading = try! NSRegularExpression(pattern: "^#{1,6} .*$")
-        static let quote = try! NSRegularExpression(pattern: "^\\s*>.*$")
-        // the whole item, as the Mac does (BulletList/OrderedList → t.list)
-        static let list = try! NSRegularExpression(pattern: "^\\s*([-*+]|\\d+\\.) .*$")
-        static let boldItalic = try! NSRegularExpression(pattern: "\\*\\*\\*[^*\\n]+?\\*\\*\\*|___[^_\\n]+?___")
-        // *x* or _x_, not touching ** / __ and not across spaces at the edges
-        static let italic = try! NSRegularExpression(pattern: "(?<![*\\w])\\*(?!\\*)[^*\\n]+?\\*(?!\\*)|(?<![_\\w])_(?!_)[^_\\n]+?_(?![_\\w])")
-        static let bold = try! NSRegularExpression(pattern: "\\*\\*[^*\\n]+?\\*\\*|__[^_\\n]+?__")
-        static let code = try! NSRegularExpression(pattern: "`[^`\\n]+`")
-        // [text](url) only: a bare url is plain text on the Mac too
-        static let link = try! NSRegularExpression(pattern: "\\[[^\\]]+\\]\\([^)]+\\)")
-        // the (url) part of a link, coloured on its own after the whole link is
-        static let linkUrl = try! NSRegularExpression(pattern: "(?<=\\])\\([^)]+\\)")
-    }
-
-    /// A little of the Mac's markdown tint: headings, list markers, bold, italic, inline code, links.
-    /// On a to-do line, or under one, the line's colour is the state's and only bold, italic
-    /// and inline code keep their own (`marksOnly`, App.css .cm-md-*); `dim` blends those into
-    /// the background the way a nested line's text is.
-    private static func markdown(_ line: String, in range: NSRange, of s: NSMutableAttributedString, theme: Theme, marksOnly: Bool = false, dim: Bool = false) {
-        let ns = line as NSString
-        let ink = { (c: Color) -> UIColor in dim ? UIColor(c).blended(with: UIColor(theme.editorBg), t: 0.45) : UIColor(c) }
-        // The Mac's rules (themes.ts syntaxStyles): marks (#, **, [], ()) wear
-        // the colour of what they mark, bold-italic is bold's colour in italic.
-        func paint(_ re: NSRegularExpression, _ color: Color, bold: Bool = false, italic: Bool = false, underline: Bool = false, wash: Bool = false) {
-            for m in re.matches(in: line, range: NSRange(location: 0, length: ns.length)) {
-                let r = NSRange(location: range.location + m.range.location, length: min(m.range.length, range.length - m.range.location))
-                guard r.length > 0 else { continue }
-                s.addAttribute(.foregroundColor, value: ink(color), range: r)
-                // inline code sits on a wash of its own colour (App.css --md-code-bg)
-                if wash { s.addAttribute(.codeWash, value: UIColor(color).withAlphaComponent(0.14), range: r) }
-                if bold || italic {
-                    let wasItalic = (s.attribute(.font, at: r.location, effectiveRange: nil) as? UIFont).map { $0.fontDescriptor.symbolicTraits.contains(.traitItalic) } ?? false
-                    let wasBold = (s.attribute(.font, at: r.location, effectiveRange: nil) as? UIFont).map { $0.fontDescriptor.symbolicTraits.contains(.traitBold) } ?? false
-                    let b = bold || wasBold, i = italic || wasItalic
-                    s.addAttribute(.font, value: b && i ? boldItalic : b ? self.bold : i ? self.italic : font, range: r)
-                }
-                if underline { s.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: r) }
+    /// One line's paint onto its storage range. The painter's offsets are the
+    /// file's; in storage a to-do's tag is one character, its box.
+    private static func paint(_ line: LinePaint, in range: NSRange, of s: NSMutableAttributedString, theme: Theme) {
+        let storage: (Int) -> Int = { f in
+            guard let tag = line.tag, tag.count == 2, f >= tag[1] else { return f }
+            return f - (tag[1] - tag[0]) + 1
+        }
+        let bg = UIColor(theme.editorBg)
+        let nested = theme.tokens.todo.nested
+        for run in line.runs {
+            let from = storage(run.from), to = storage(run.to)
+            guard from < range.length else { continue }
+            let r = NSRange(location: range.location + from, length: min(to, range.length) - from)
+            guard r.length > 0 else { continue }
+            var ink = UIColor(color(of: run.role, line: line, theme: theme))
+            // Under a to-do: the line's colour into the page by the line's dial,
+            // a mark's own colour by the marks' (App.css --todo-child-*mix).
+            if line.ownerState != nil {
+                ink = ink.blended(with: bg, t: 1 - CGFloat(run.isMark ? nested.marks : nested.line))
+            }
+            s.addAttribute(.foregroundColor, value: ink, range: r)
+            if run.bold || run.italic {
+                s.addAttribute(.font, value: run.bold && run.italic ? boldItalic : run.bold ? bold : italic, range: r)
+            }
+            if run.underline { s.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: r) }
+            if let wash = run.wash {
+                let (c, a) = wash == .code ? (theme.def.syntax.inlineCode, theme.tokens.washes.code) : (theme.def.syntax.highlight, theme.tokens.washes.highlight)
+                s.addAttribute(.codeWash, value: UIColor(Color(css: c)).withAlphaComponent(CGFloat(a)), range: r)
             }
         }
-        if !marksOnly {
-            if line.hasPrefix("#") { paint(Re.heading, theme.heading, bold: true); return }
-            paint(Re.quote, Color(css: theme.def.syntax.quote))
-            paint(Re.list, theme.list)
-        }
-        paint(Re.boldItalic, Color(css: theme.def.syntax.boldItalic), bold: true, italic: true)
-        paint(Re.italic, Color(css: theme.def.syntax.italic), italic: true)
-        paint(Re.bold, Color(css: theme.def.syntax.bold), bold: true)
-        paint(Re.code, Color(css: theme.def.syntax.inlineCode), wash: true)
-        if !marksOnly {
-            paint(Re.link, Color(css: theme.def.syntax.link), underline: true)
-            paint(Re.linkUrl, Color(css: theme.def.syntax.url), underline: true)
+    }
+
+    /// A role's colour, from the theme — the same variables the Mac's
+    /// stylesheet reads (App.tsx --md-*, themes.ts monoStyles).
+    private static func color(of role: PaintRun.Role, line: LinePaint, theme: Theme) -> Color {
+        let x = theme.def.syntax
+        switch role {
+        case .plain: return theme.editorFg
+        case .line: return theme.stateColor(line.lineState ?? line.ownerState ?? .todo)
+        case .heading: return Color(css: x.heading)
+        case .quote: return Color(css: x.quote)
+        case .list: return Color(css: x.list)
+        case .fence, .code: return Color(css: x.inlineCode)
+        case .comment: return Color(css: x.comment)
+        case .string: return Color(css: x.string)
+        case .label: return Color(css: x.func)
+        case .italic: return Color(css: x.italic)
+        case .bold: return Color(css: x.bold)
+        case .boldItalic: return Color(css: x.boldItalic)
+        case .link: return Color(css: x.link)
+        case .url: return Color(css: x.url)
+        case .highlight: return Color(css: x.highlight)
+        case .strike: return Color(css: x.strike)
         }
     }
 }
