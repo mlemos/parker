@@ -69,6 +69,9 @@ private func painter() throws -> NotePainter {
         let ms = Date().timeIntervalSince(start) * 1000
         print("painted \(lines.count) lines in \(Int(ms)) ms")
         #expect(lines.count == note.components(separatedBy: "\n").count)
-        #expect(ms < 250)
+        // A guard against a pathological slowdown, not a benchmark: ~70 ms on
+        // an M-series Mac, ~260 ms on a shared CI runner (which failed a 250 ms
+        // bound on 27/09). The time is printed; typing feel is judged on a device.
+        #expect(ms < 1000)
     }
 }
