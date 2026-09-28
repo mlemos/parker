@@ -1773,11 +1773,11 @@ body.resizing {
 .editor-wrap [class*="cm-todo-child-"] .cm-ext-url span {
   color: color-mix(in srgb, var(--md-url) var(--todo-child-mark-mix), var(--editor-bg));
 }
-.editor-wrap [class*="cm-todo-child-"] .cm-md-strike {
-  color: color-mix(in srgb, var(--md-strike) var(--todo-child-mark-mix), var(--editor-bg));
-}
 .editor-wrap [class*="cm-todo-child-"] .cm-md-highlight {
   color: color-mix(in srgb, var(--md-highlight) var(--todo-child-mark-mix), var(--editor-bg));
+}
+.editor-wrap [class*="cm-todo-child-"] .cm-md-strike {
+  color: color-mix(in srgb, var(--md-strike) var(--todo-child-mark-mix), var(--editor-bg));
 }
 
 /* ---- Folding ------------------------------------------------------------ */

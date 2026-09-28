@@ -8,6 +8,15 @@
 import { ALIASES, ORDER } from "./todo-model";
 import { kindOf, todoGlyphSvg } from "./todo-glyph";
 import { DEFAULT_THEME_ID, THEMES } from "./themes";
+import { CODE_WASH, HIGHLIGHT_WASH } from "./palette";
+import appCss from "../App.css?raw";
+
+/** A percentage custom property of App.css's :root, as a fraction. */
+function cssDial(name: string): number {
+  const m = new RegExp(`${name}:\\s*([\\d.]+)%`).exec(appCss);
+  if (!m) throw new Error(`App.css has no ${name}`);
+  return Number(m[1]) / 100;
+}
 
 export function designTokens() {
   return {
@@ -23,6 +32,9 @@ export function designTokens() {
       priority: t.priority,
     })),
     defaultThemeId: DEFAULT_THEME_ID,
+    // The ground a mark lays under itself: its own colour at this alpha
+    // (App.tsx --md-code-bg, --md-highlight-bg).
+    washes: { code: CODE_WASH, highlight: HIGHLIGHT_WASH },
     todo: {
       order: [...ORDER],
       aliases: ALIASES,
@@ -34,6 +46,14 @@ export function designTokens() {
         border: "1.5px",
         radius: "0.24em",
         glyph: "0.5em",
+      },
+      // A nested line under a to-do: its to-do's colour mixed this far with
+      // the page (App.css --todo-child-mix), and the marks on it — bold,
+      // italic, code, links, strike, highlight — their own colours mixed by
+      // a dial of their own (--todo-child-mark-mix).
+      nested: {
+        line: cssDial("--todo-child-mix"),
+        marks: cssDial("--todo-child-mark-mix"),
       },
       // Lucide glyphs, verbatim, already scaled to one ink size and stroke —
       // the exact string the Mac's editor and preview both render.

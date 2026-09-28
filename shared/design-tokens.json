@@ -652,6 +652,10 @@
     }
   ],
   "defaultThemeId": "parker-night",
+  "washes": {
+    "code": 0.14,
+    "highlight": 0.25
+  },
   "todo": {
     "order": [
       "TODO",
@@ -677,6 +681,10 @@
       "border": "1.5px",
       "radius": "0.24em",
       "glyph": "0.5em"
+    },
+    "nested": {
+      "line": 0.7,
+      "marks": 0.85
     },
     "glyphs": {
       "TODO": "",

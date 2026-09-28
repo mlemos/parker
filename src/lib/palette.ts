@@ -83,3 +83,11 @@ export function alpha(hex: string, a: number): string {
   const b = parseInt(h.slice(4, 6), 16);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
+
+/** How strongly a mark's own colour washes the ground under it: inline code
+ *  sits on its colour at this alpha, ==highlighted== text on its own. The
+ *  editor sets them as --md-code-bg / --md-highlight-bg; the iPhone reads them
+ *  from shared/design-tokens.json. */
+export const CODE_WASH = 0.14;
+export const HIGHLIGHT_WASH = 0.25;
+

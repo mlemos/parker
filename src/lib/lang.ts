@@ -7,28 +7,18 @@
 // get highlighting for dozens of languages without importing each package.
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
-import { styleTags } from "@lezer/highlight";
-import { Strikethrough } from "@lezer/markdown";
-import type { MarkdownConfig } from "@lezer/markdown";
-import { todoBlocks } from "./todo-markdown";
-import { inlineCodeTag } from "./themes";
-import { Highlight } from "./highlight";
+import { noteExtensions } from "./md-tags";
 import { formatKeymap } from "./format";
 import type { Extension } from "@uiw/react-codemirror";
-
-/** Inline code gets a tag of its own (see themes.ts inlineCodeTag). */
-// `/...` so the backticks (CodeMark, a mark with no style of its own) are inside the span.
-const mdTags: MarkdownConfig = { props: [styleTags({ "InlineCode/...": inlineCodeTag })] };
 
 export async function languageForName(name: string): Promise<Extension[]> {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
 
   if (ext === "md" || ext === "markdown" || ext === "mdx") {
-    // markdown() parses CommonMark; ~~strikethrough~~ is GFM and ==highlight==
-    // is nobody's standard, so those two are added — and only those. Tables
-    // and autolinks stay with the code that already handles them.
+    // markdown() parses CommonMark; Parker's additions are md-tags.ts's
+    // (the same the note painter, and so the iPhone, parses with).
     return [
-      markdown({ codeLanguages: languages, extensions: [Strikethrough, Highlight, todoBlocks, mdTags] }),
+      markdown({ codeLanguages: languages, extensions: noteExtensions }),
       formatKeymap,
     ];
   }

@@ -4,18 +4,8 @@
 // Every link the editor or the preview lets you click comes through here.
 import { openUrl } from "@tauri-apps/plugin-opener";
 
-const EXTERNAL = /^(https?:|mailto:)/i;
-const EMAIL = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
-
-/** The address to hand the browser for `href`, or null when it isn't one:
- *  a relative path, an anchor, or a scheme the browser has no business with. */
-export function externalUrl(href: string): string | null {
-  const s = href.trim();
-  if (EXTERNAL.test(s)) return s;
-  if (/^www\./i.test(s)) return "https://" + s;
-  if (EMAIL.test(s)) return "mailto:" + s;
-  return null;
-}
+import { externalUrl } from "./urls";
+export { externalUrl };
 
 /** Open `href` outside the app. Returns whether it was something to open. */
 export function openExternal(href: string): boolean {
