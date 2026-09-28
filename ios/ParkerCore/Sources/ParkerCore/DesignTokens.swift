@@ -70,14 +70,28 @@ public struct DesignTokens: Decodable, Sendable {
         public let box: Box
         /// SVG markup per canonical state; empty for TODO, whose box is empty on purpose.
         public let glyphs: [String: String]
+        /// A line nested under a to-do: its to-do's colour this far into the
+        /// page (`line`, 0…1), and the marks on it — bold, italic, code, links,
+        /// strike, highlight — their own colours by a dial of their own (`marks`).
+        public let nested: Nested
+
+        public struct Nested: Decodable, Sendable {
+            public let line, marks: Double
+        }
 
         public struct Box: Decodable, Sendable {
             public let size, border, radius, glyph: String
         }
     }
 
+    /// The ground a mark lays under itself: its own colour at this alpha.
+    public struct Washes: Decodable, Sendable {
+        public let code, highlight: Double
+    }
+
     public let themes: [Theme]
     public let defaultThemeId: String
+    public let washes: Washes
     public let todo: Todo
 
     public func theme(id: String) -> Theme? { themes.first { $0.id == id } }

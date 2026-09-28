@@ -145,13 +145,28 @@ function domPaint(v: EditorView): LinePaint[] {
         if (hits.length) role = hits.sort((x, y) => x[0] - y[0] || x[1] - y[1])[hits.length - 1][2];
       }
       role ??= paint.tone ? "line" : "plain";
+      // The face: font-weight / font-style / text-decoration / background of
+      // the element or one it sits in (App.css .cm-md-*, .cm-ext-url; the
+      // theme's heading weight and comment style).
+      const up = (test: (e: Element) => boolean) => {
+        for (let e: Element | null = el; e && e !== lineEl; e = e.parentElement) if (test(e)) return true;
+        return false;
+      };
+      const hasSyntax = (e: Element, r: PaintRole) => Array.from(e.classList).some((c) => syntax.get(c) === r);
+      const face: Omit<PaintRun, "from" | "to" | "role"> = {};
+      if (up((e) => e.classList.contains("cm-md-strong") || hasSyntax(e, "heading"))) face.bold = true;
+      if (up((e) => e.classList.contains("cm-md-em") || hasSyntax(e, "comment"))) face.italic = true;
+      if (up((e) => ["cm-md-link", "cm-md-url", "cm-ext-url"].some((c) => e.classList.contains(c)))) face.underline = true;
+      const washEl = el.closest(".cm-md-code, .cm-md-highlight");
+      if (washEl && lineEl.contains(washEl)) face.wash = washEl.classList.contains("cm-md-code") ? "code" : "highlight";
       const text = node.textContent ?? "";
       for (let k = 0; k < text.length; k++) {
         const i = v.posAtDOM(node, k) - line.from;
         seen[line.number - 1].add(i);
         const last = paint.runs[paint.runs.length - 1];
-        if (last && last.role === role && last.to === i) last.to = i + 1;
-        else paint.runs.push({ from: i, to: i + 1, role });
+        const run: PaintRun = { from: i, to: i + 1, role, ...face };
+        if (last && last.to === i && JSON.stringify({ ...last, from: 0, to: 0 }) === JSON.stringify({ ...run, from: 0, to: 0 })) last.to = i + 1;
+        else paint.runs.push(run);
       }
     }
     // What the view doesn't show as text is the to-do's tag, under its box.
@@ -164,7 +179,7 @@ function domPaint(v: EditorView): LinePaint[] {
 const readable = (note: string, lines: LinePaint[]) =>
   lines.map((l, i) => {
     const text = note.split("\n")[i];
-    return `${l.tone || "-"} ${l.tag ? `[${text.slice(...l.tag)}] ` : ""}${l.runs.map((r: PaintRun) => `${r.role}:${JSON.stringify(text.slice(r.from, r.to))}`).join(" ")}`;
+    return `${l.tone || "-"} ${l.tag ? `[${text.slice(...l.tag)}] ` : ""}${l.runs.map((r: PaintRun) => `${r.role}${r.bold ? "+b" : ""}${r.italic ? "+i" : ""}${r.underline ? "+u" : ""}${r.wash ? `+${r.wash}` : ""}:${JSON.stringify(text.slice(r.from, r.to))}`).join(" ")}`;
   });
 
 describe("the note painter against the Mac's editor", () => {
