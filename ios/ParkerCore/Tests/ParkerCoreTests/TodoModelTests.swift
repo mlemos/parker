@@ -49,6 +49,19 @@ struct Fixtures: Decodable {
         struct Case: Decodable { let line: String; let col: Int; let kind: String; let prefix: String?; let from: Int?; let to: Int? }
         let cases: [Case]
     }
+    let markerDelete: MarkerDelete
+    let rotateList: RotateList
+
+    struct RotateList: Decodable {
+        struct Case: Decodable { let doc: String; let from: Int; let to: Int; let after: String; let cursor: Int? }
+        let cases: [Case]
+    }
+
+    struct MarkerDelete: Decodable {
+        struct Range: Decodable { let from: Int; let to: Int }
+        struct Case: Decodable { let line: String; let col: Int; let backward: Bool; let range: Range? }
+        let cases: [Case]
+    }
 
     /// shared/fixtures/todo-model.json, found relative to this source file —
     /// SwiftPM resources cannot reach outside the target, and the fixtures are
@@ -327,6 +340,34 @@ private func applied(_ text: String, _ changes: [Change]) -> String {
             case "exit": #expect(plan == .exit(from: c.from!, to: c.to!), label)
             default: Issue.record("unknown kind \(c.kind)")
             }
+        }
+    }
+}
+
+@Suite("Backspace and Delete on a checkbox or a bullet")
+struct MarkerDeleteTests {
+    @Test("matches the shared cases (the Mac's planMarkerDelete)")
+    func cases() {
+        for c in Fixtures.shared.markerDelete.cases {
+            let got = Todo.planMarkerDelete(line: c.line, col: c.col, backward: c.backward)
+            let label = Comment(rawValue: "\(c.line.debugDescription) @\(c.col) \(c.backward ? "⌫" : "⌦")")
+            #expect(got?.from == c.range?.from && got?.to == c.range?.to, label)
+        }
+    }
+}
+
+@Suite("⌘⏎ on a line with no tag")
+struct RotateListTests {
+    @Test("turns a bullet into the checkbox, and tags any other line (the Mac's cases)")
+    func cases() {
+        for c in Fixtures.shared.rotateList.cases {
+            let changes = Todo.planRotate(TextDocument(c.doc), from: c.from, to: c.to)
+            var out = c.doc as NSString
+            for ch in changes.sorted(by: { $0.from > $1.from }) {
+                out = out.replacingCharacters(in: NSRange(location: ch.from, length: (ch.to ?? ch.from) - ch.from), with: ch.insert ?? "") as NSString
+            }
+            #expect(out as String == c.after, Comment(rawValue: c.doc.debugDescription))
+            #expect(Todo.cursorAfterRotate(changes, head: c.to) == c.cursor, Comment(rawValue: "cursor in \(c.doc.debugDescription)"))
         }
     }
 }

@@ -41,6 +41,10 @@ interface Fixtures {
   enter: {
     cases: { line: string; col: number; kind: "newline" | "continue" | "exit"; prefix?: string; from?: number; to?: number }[];
   };
+  rotateList: { cases: { doc: string; from: number; to: number; after: string; cursor: number | null }[] };
+  markerDelete: {
+    cases: { line: string; col: number; backward: boolean; range: { from: number; to: number } | null }[];
+  };
 }
 const FX = fixtures as unknown as Fixtures;
 
@@ -232,6 +236,30 @@ describe("Enter continues a task or a list, and an empty one ends it", () => {
       if (plan.kind === "continue") expect(plan.prefix, label).toBe(c.prefix);
       if (plan.kind === "exit") expect([plan.from, plan.to], label).toEqual([c.from, c.to]);
     }
+  });
+});
+
+// ⌘⏎ on a list item: the bullet becomes the checkbox (27/09); same cases on the iPhone.
+describe("⌘⏎ on a line with no tag, as shared with the iPhone", () => {
+  it("turns a bullet into the checkbox, and tags any other line", () => {
+    for (const c of FX.rotateList.cases) {
+      const doc = Text.of(c.doc.split("\n"));
+      const changes = planRotate(doc, c.from, c.to);
+      let out = c.doc;
+      for (const ch of [...changes].sort((a, b) => b.from - a.from))
+        out = out.slice(0, ch.from) + (ch.insert ?? "") + out.slice(ch.to ?? ch.from);
+      expect(out, JSON.stringify(c.doc)).toBe(c.after);
+      expect(cursorAfterRotate(changes, c.to), `cursor in ${JSON.stringify(c.doc)}`).toBe(c.cursor);
+    }
+  });
+});
+
+// The iPhone takes a task's checkbox and a list item's bullet the same way
+// (ParkerCore Todo.planMarkerDelete): the same cases on both sides.
+describe("Backspace and Delete on a checkbox or a bullet, as shared with the iPhone", () => {
+  it("matches the shared cases", () => {
+    for (const c of FX.markerDelete.cases)
+      expect(planMarkerDelete(c.line, c.col, c.backward), `${JSON.stringify(c.line)} @${c.col} ${c.backward ? "⌫" : "⌦"}`).toEqual(c.range);
   });
 });
 

@@ -19,6 +19,15 @@ enum EditorCommand: Equatable {
 final class BoxTextView: UITextView {
     var isBox: ((CGPoint) -> Bool)?
     var boxRecognizers: [UIGestureRecognizer] = []
+    /// Backspace, before the text view's own: true when it was taken care of.
+    /// The keyboard's Backspace comes here, not through the delegate's
+    /// shouldChangeTextIn (found on 27/09: the delegate never saw it).
+    var onDeleteBackward: (() -> Bool)?
+
+    override func deleteBackward() {
+        if onDeleteBackward?() == true { return }
+        super.deleteBackward()
+    }
 
     override func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
         if !boxRecognizers.contains(where: { $0 === g }), let isBox, isBox(g.location(in: self)) { return false }
@@ -69,6 +78,10 @@ struct NoteTextView: UIViewRepresentable {
         tv.addGestureRecognizer(press)
         tv.addGestureRecognizer(tap)
         tv.boxRecognizers = [press, tap]
+        tv.onDeleteBackward = { [weak coordinator = context.coordinator] in
+            guard let coordinator, let tv = coordinator.textView else { return false }
+            return coordinator.backspace(in: tv)
+        }
         tv.isBox = { [weak coordinator = context.coordinator] point in
             guard let coordinator, let tv = coordinator.textView else { return false }
             return coordinator.box(at: point, in: tv) != nil
@@ -172,6 +185,19 @@ struct NoteTextView: UIViewRepresentable {
         }
 
         // ---- Editing ----------------------------------------------------------------------
+
+        /// Backspace right after a checkbox (or the space after it) takes the
+        /// checkbox — the tag and its space — and a list item's bullet the same
+        /// way: the core's planMarkerDelete, the Mac's rule. It used to take
+        /// only the space, and the box turned back into text (27/09).
+        func backspace(in tv: UITextView) -> Bool {
+            guard tv.selectedRange.length == 0, tv.selectedRange.location > 0 else { return false }
+            let (plain, from, _) = plainSelection(tv)
+            let line = TextDocument(plain).lineAt(from)
+            guard let r = Todo.planMarkerDelete(line: line.text, col: from - line.from, backward: true) else { return false }
+            applyPlain(replace(plain, Change(from: line.from + r.from, to: line.from + r.to)), caret: line.from + r.from, in: tv)
+            return true
+        }
 
         /// Enter continues a task or a list item and ends an empty one — the
         /// core's planEnter, on the note's plain text. Anything else is typed.
@@ -281,6 +307,28 @@ struct NoteTextView: UIViewRepresentable {
         /// be seen — to tmp/typetest.log. The check for the page jumping on
         /// Enter at the end of a long note (27/09).
         func typeTestIfAsked(_ tv: UITextView) {
+            // -backspaceTest 1: Backspace right after the last line's checkbox and
+            // its space, as ⌘⏎ and a tap leave the caret; log the line before and
+            // after to tmp/backspacetest.log (27/09, the ⌫ bug).
+            if UserDefaults.standard.bool(forKey: "backspaceTest") {
+                let log = FileManager.default.temporaryDirectory.appendingPathComponent("backspacetest.log")
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1.5))
+                    tv.becomeFirstResponder()
+                    let before = TextDocument(NoteStorage.plainText(tv.attributedText))
+                    let last = before.line(before.lineCount)
+                    var out = ["before: " + last.text.debugDescription]
+                    if let tag = Todo.tag(of: last.text) {
+                        tv.selectedRange = NSRange(location: NoteStorage.storageOffset(in: tv.attributedText, file: last.from + tag.length + 1), length: 0)
+                        tv.deleteBackward()
+                        try? await Task.sleep(for: .milliseconds(300))
+                    }
+                    let after = TextDocument(NoteStorage.plainText(tv.attributedText))
+                    out.append("after ⌫: " + after.line(after.lineCount).text.debugDescription)
+                    try? out.joined(separator: "\n").write(to: log, atomically: true, encoding: .utf8)
+                }
+                return
+            }
             let steps = UserDefaults.standard.integer(forKey: "typeTest")
             guard steps > 0 else { return }
             let log = FileManager.default.temporaryDirectory.appendingPathComponent("typetest.log")

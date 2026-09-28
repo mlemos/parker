@@ -496,5 +496,260 @@
         "kind": "newline"
       }
     ]
+  },
+  "markerDelete": {
+    "_comment": "Backspace (backward) or Delete (forward) at col on a line: the range of the line to remove — a task's tag and the one space after it, or a list item's bullet and its spaces — or null for the editor's own delete. Same as the Mac's planMarkerDelete (todo-model.ts).",
+    "cases": [
+      {
+        "line": "/TODO buy milk",
+        "col": 6,
+        "backward": true,
+        "range": {
+          "from": 0,
+          "to": 6
+        }
+      },
+      {
+        "line": "/TODO buy milk",
+        "col": 5,
+        "backward": true,
+        "range": {
+          "from": 0,
+          "to": 6
+        }
+      },
+      {
+        "line": "/TODO buy milk",
+        "col": 7,
+        "backward": true,
+        "range": null
+      },
+      {
+        "line": "/TODO buy milk",
+        "col": 0,
+        "backward": true,
+        "range": null
+      },
+      {
+        "line": "  /DOING nested",
+        "col": 9,
+        "backward": true,
+        "range": {
+          "from": 2,
+          "to": 9
+        }
+      },
+      {
+        "line": "  /DOING nested",
+        "col": 8,
+        "backward": true,
+        "range": {
+          "from": 2,
+          "to": 9
+        }
+      },
+      {
+        "line": "/TODO!! urgent",
+        "col": 8,
+        "backward": true,
+        "range": {
+          "from": 0,
+          "to": 8
+        }
+      },
+      {
+        "line": "/TODO",
+        "col": 5,
+        "backward": true,
+        "range": {
+          "from": 0,
+          "to": 5
+        }
+      },
+      {
+        "line": "/TODO ",
+        "col": 6,
+        "backward": true,
+        "range": {
+          "from": 0,
+          "to": 6
+        }
+      },
+      {
+        "line": "- item",
+        "col": 2,
+        "backward": true,
+        "range": {
+          "from": 0,
+          "to": 2
+        }
+      },
+      {
+        "line": "- item",
+        "col": 1,
+        "backward": true,
+        "range": {
+          "from": 0,
+          "to": 2
+        }
+      },
+      {
+        "line": "- item",
+        "col": 3,
+        "backward": true,
+        "range": null
+      },
+      {
+        "line": "  1. one",
+        "col": 5,
+        "backward": true,
+        "range": {
+          "from": 2,
+          "to": 5
+        }
+      },
+      {
+        "line": "* star",
+        "col": 2,
+        "backward": true,
+        "range": {
+          "from": 0,
+          "to": 2
+        }
+      },
+      {
+        "line": "plain text",
+        "col": 3,
+        "backward": true,
+        "range": null
+      },
+      {
+        "line": "/TODOS not a tag",
+        "col": 7,
+        "backward": true,
+        "range": null
+      },
+      {
+        "line": "/TODO buy",
+        "col": 0,
+        "backward": false,
+        "range": {
+          "from": 0,
+          "to": 6
+        }
+      },
+      {
+        "line": "  /TODO buy",
+        "col": 2,
+        "backward": false,
+        "range": {
+          "from": 2,
+          "to": 8
+        }
+      },
+      {
+        "line": "/TODO buy",
+        "col": 1,
+        "backward": false,
+        "range": null
+      },
+      {
+        "line": "- item",
+        "col": 0,
+        "backward": false,
+        "range": {
+          "from": 0,
+          "to": 2
+        }
+      },
+      {
+        "line": "- item",
+        "col": 2,
+        "backward": false,
+        "range": null
+      }
+    ]
+  },
+  "rotateList": {
+    "_comment": "⌘⏎ on a line with no tag: a list item's bullet becomes the checkbox (\"- buy\" → \"/TODO buy\"); any other line gets \"/TODO \" before its text. [from, to] is the selection. cursor is where the caret lands for a single line (null: several lines keep the selection).",
+    "cases": [
+      {
+        "doc": "- buy milk",
+        "from": 3,
+        "to": 3,
+        "after": "/TODO buy milk",
+        "cursor": 7
+      },
+      {
+        "doc": "  - nested item",
+        "from": 5,
+        "to": 5,
+        "after": "  /TODO nested item",
+        "cursor": 9
+      },
+      {
+        "doc": "1. first",
+        "from": 2,
+        "to": 2,
+        "after": "/TODO first",
+        "cursor": 6
+      },
+      {
+        "doc": "* star",
+        "from": 0,
+        "to": 0,
+        "after": "/TODO star",
+        "cursor": 6
+      },
+      {
+        "doc": "+ plus",
+        "from": 6,
+        "to": 6,
+        "after": "/TODO plus",
+        "cursor": 10
+      },
+      {
+        "doc": "plain line",
+        "from": 0,
+        "to": 0,
+        "after": "/TODO plain line",
+        "cursor": 6
+      },
+      {
+        "doc": "  indented text",
+        "from": 4,
+        "to": 4,
+        "after": "  /TODO indented text",
+        "cursor": 10
+      },
+      {
+        "doc": "- a\n- b",
+        "from": 0,
+        "to": 7,
+        "after": "/TODO a\n/TODO b",
+        "cursor": null
+      },
+      {
+        "doc": "- a\ntext",
+        "from": 0,
+        "to": 8,
+        "after": "/TODO a\n/TODO text",
+        "cursor": null
+      },
+      {
+        "doc": "-dash, not a bullet",
+        "from": 0,
+        "to": 0,
+        "after": "/TODO -dash, not a bullet",
+        "cursor": 6
+      },
+      {
+        "doc": "- [ ] box as text",
+        "from": 2,
+        "to": 2,
+        "after": "/TODO [ ] box as text",
+        "cursor": 6
+      }
+    ]
   }
 }

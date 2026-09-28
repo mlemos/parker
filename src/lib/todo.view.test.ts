@@ -87,6 +87,17 @@ describe("to-do keys on a real view", () => {
   });
 });
 
+// ⌘⏎ on a list item made "/TODO - buy milk" (27/09): the bullet is the
+// checkbox's place.
+describe("⌘⏎ on a list item", () => {
+  it("turns the bullet into the checkbox, and keeps the cursor in the text", () => {
+    const v = open("  - buy milk", 7);
+    press(v, "Enter", { metaKey: true });
+    expect(v.state.doc.toString()).toBe("  /TODO buy milk");
+    expect(v.state.selection.main.head).toBe(11);
+  });
+});
+
 // The two cases in parker-cursor-bug.md, as the keyboard does them: ⌘⏎ on an
 // empty line leaves "/TODO |", and then…
 describe("right after ⌘⏎ makes a task", () => {
