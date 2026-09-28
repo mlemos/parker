@@ -81,6 +81,9 @@ struct NoteTextView: UIViewRepresentable {
         tv.inputAccessoryView = context.coordinator.makeBar(theme)
         context.coordinator.load(text)
         if let line = focusLine { context.coordinator.focus(line: line, in: tv) }
+        #if DEBUG
+        context.coordinator.typeTestIfAsked(tv)
+        #endif
         return tv
     }
 
@@ -234,24 +237,34 @@ struct NoteTextView: UIViewRepresentable {
             return found
         }
 
+        /// The Mac's colours, applied in place: the note is styled on a copy,
+        /// and only the paragraphs whose attributes changed are written back.
+        /// Replacing the whole storage on every key (as this did until 27/09)
+        /// made TextKit lay the note out again and the text view scroll on its
+        /// own — at the end of a long note, the line being typed went in and
+        /// out of sight on every Enter.
         private func restyle(_ tv: UITextView) {
-            let sel = tv.selectedRange
-            let offset = tv.contentOffset
-            let s = NSMutableAttributedString(attributedString: tv.attributedText)
-            NoteStorage.style(s, theme: parent.theme)
-            tv.textStorage.setAttributedString(s)
-            tv.selectedRange = sel
-            keepCaretInView(tv, from: offset)
+            let storage = tv.textStorage
+            guard storage.length > 0 else { return }
+            let styled = NSMutableAttributedString(attributedString: storage)
+            NoteStorage.style(styled, theme: parent.theme)
+            let ns = storage.string as NSString
+            storage.beginEditing()
+            var location = 0
+            while location < ns.length {
+                let paragraph = ns.paragraphRange(for: NSRange(location: location, length: 0))
+                if !styled.attributedSubstring(from: paragraph).isEqual(to: storage.attributedSubstring(from: paragraph)) {
+                    styled.enumerateAttributes(in: paragraph) { attributes, range, _ in storage.setAttributes(attributes, range: range) }
+                }
+                location = paragraph.location + paragraph.length
+            }
+            storage.endEditing()
         }
 
-        /// After the storage is rebuilt: stay where the page was — no jump —
-        /// but never with the caret out of sight. At the end of a long note,
-        /// Enter puts the new line just under the visible part (behind the
-        /// keyboard), and putting the old offset back left what you type
-        /// hidden until you scrolled (27/09). Scroll only as far as needed,
-        /// with half a line of room.
-        private func keepCaretInView(_ tv: UITextView, from offset: CGPoint) {
-            tv.setContentOffset(offset, animated: false)
+        /// After an edit made in code (typing scrolls by itself): bring the
+        /// caret into view if it isn't — once, only as far as needed, with
+        /// half a line of room — and otherwise leave the page where it is.
+        private func revealCaret(_ tv: UITextView) {
             tv.layoutIfNeeded()
             guard let range = tv.selectedTextRange else { return }
             let caret = tv.caretRect(for: range.end)
@@ -260,6 +273,41 @@ struct NoteTextView: UIViewRepresentable {
             let visible = tv.bounds.inset(by: tv.adjustedContentInset)
             if !visible.contains(room) { tv.scrollRectToVisible(room, animated: false) }
         }
+
+        #if DEBUG
+        /// -typeTest <steps>: type at the end of the note as a keyboard does
+        /// (insertText, through the delegate), alternating Enter and a word,
+        /// and log after each key where the page is and whether the caret can
+        /// be seen — to tmp/typetest.log. The check for the page jumping on
+        /// Enter at the end of a long note (27/09).
+        func typeTestIfAsked(_ tv: UITextView) {
+            let steps = UserDefaults.standard.integer(forKey: "typeTest")
+            guard steps > 0 else { return }
+            let log = FileManager.default.temporaryDirectory.appendingPathComponent("typetest.log")
+            Task { @MainActor in
+                var lines: [String] = []
+                try? await Task.sleep(for: .seconds(1.5))
+                tv.becomeFirstResponder()
+                tv.selectedRange = NSRange(location: tv.textStorage.length, length: 0)
+                tv.scrollRangeToVisible(tv.selectedRange)
+                try? await Task.sleep(for: .milliseconds(400))
+                for i in 0..<steps {
+                    tv.insertText(i % 2 == 0 ? "\n" : "word \(i)")
+                    // every frame for a quarter second: a jump shows as a spread
+                    var ys: [Int] = [Int(tv.contentOffset.y)]
+                    for _ in 0..<15 {
+                        try? await Task.sleep(for: .milliseconds(16))
+                        ys.append(Int(tv.contentOffset.y))
+                    }
+                    let spread = (ys.max() ?? 0) - (ys.min() ?? 0)
+                    let caret = tv.selectedTextRange.map { tv.caretRect(for: $0.end) } ?? .null
+                    let visible = tv.bounds.inset(by: tv.adjustedContentInset)
+                    lines.append("\(i) \(i % 2 == 0 ? "enter" : "word ") spread=\(spread) y=\(Int(tv.contentOffset.y)) caretY=\(Int(caret.midY)) visible=\(Int(visible.minY))..\(Int(visible.maxY)) seen=\(visible.contains(caret))")
+                    try? lines.joined(separator: "\n").write(to: log, atomically: true, encoding: .utf8)
+                }
+            }
+        }
+        #endif
 
         // ---- Tapping the box: complete or reopen, like the Mac's click -----------------------
 
@@ -405,13 +453,34 @@ struct NoteTextView: UIViewRepresentable {
             return (NoteStorage.plainText(s), NoteStorage.fileOffset(in: s, storage: sel.location), NoteStorage.fileOffset(in: s, storage: sel.location + sel.length))
         }
 
-        /// Rebuild the storage from new plain text and put the caret at file offset `caret`.
+        /// Put new plain text in the editor and the caret at file offset
+        /// `caret`: only the lines that changed are rebuilt (tag → box), in
+        /// place, so the rest of the note — and the page — stay as they are.
         private func applyPlain(_ text: String, caret: Int, in tv: UITextView) {
-            let s = NoteStorage.attributed(from: text, theme: parent.theme)
-            let offset = tv.contentOffset
-            tv.attributedText = s
-            tv.selectedRange = NSRange(location: NoteStorage.storageOffset(in: s, file: caret), length: 0)
-            keepCaretInView(tv, from: offset) // stay put, unless the caret would be out of sight
+            let old = NoteStorage.plainText(tv.attributedText) as NSString
+            let new = text as NSString
+            // What changed: the common prefix and suffix left out, widened to whole lines.
+            var head = 0
+            while head < old.length, head < new.length, old.character(at: head) == new.character(at: head) { head += 1 }
+            var tail = 0
+            while tail < old.length - head, tail < new.length - head,
+                  old.character(at: old.length - 1 - tail) == new.character(at: new.length - 1 - tail) { tail += 1 }
+            let before = old.range(of: "\n", options: .backwards, range: NSRange(location: 0, length: head))
+            let start = before.location == NSNotFound ? 0 : before.location + 1
+            let oldEnd: Int = {
+                let from = old.length - tail
+                let r = old.range(of: "\n", range: NSRange(location: from, length: old.length - from))
+                return r.location == NSNotFound ? old.length : r.location
+            }()
+            let newEnd = new.length - (old.length - oldEnd)
+            let lines = NoteStorage.attributed(from: new.substring(with: NSRange(location: start, length: newEnd - start)), theme: parent.theme)
+            let storage = tv.textStorage
+            let from = NoteStorage.storageOffset(in: storage, file: start)
+            let to = NoteStorage.storageOffset(in: storage, file: oldEnd)
+            storage.replaceCharacters(in: NSRange(location: from, length: to - from), with: lines)
+            tv.selectedRange = NSRange(location: NoteStorage.storageOffset(in: storage, file: caret), length: 0)
+            restyle(tv) // a to-do's lines below it may change colour
+            revealCaret(tv)
             styledWith = parent.theme.def.id
             emit(tv)
         }
