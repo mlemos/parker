@@ -28,6 +28,8 @@ cat > build/exportOptions.plist <<PLIST
   <key>signingStyle</key><string>automatic</string>
   <key>teamID</key><string>H5X7SH54MC</string>
   <key>uploadSymbols</key><true/>
+  <!-- The version and build are the project's (project.yml), never renumbered on export. -->
+  <key>manageAppVersionAndBuildNumber</key><false/>
 </dict></plist>
 PLIST
 
