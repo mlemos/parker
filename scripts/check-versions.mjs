@@ -70,6 +70,16 @@ checkAll("site/features/index.html", "the DMG filename", features,
 checkAll("site/features/index.html", "the version under the download button", features,
   new RegExp(String.raw`v(${SEMVER})\s*·`, "g"));
 
+// The /agents page has a download CTA too (27/09: it shipped with 1.4.0 links
+// the guard didn't look at — the same story as features, above).
+const agents = read("site/agents/index.html");
+checkAll("site/agents/index.html", "the release tag in the download link", agents,
+  new RegExp(String.raw`/releases/download/v(${SEMVER})/`, "g"));
+checkAll("site/agents/index.html", "the DMG filename", agents,
+  new RegExp(String.raw`Parker_(${SEMVER})_`, "g"));
+checkAll("site/agents/index.html", "the version under the download button", agents,
+  new RegExp(String.raw`v(${SEMVER})\s*·`, "g"));
+
 // The iPhone app ships the same version as the Mac (decided 27/09, at 1.5.0):
 // one Parker, one number. Its build number is separate (the date).
 check("ios/Parker/project.yml", "the iPhone's MARKETING_VERSION", read("ios/Parker/project.yml"),
