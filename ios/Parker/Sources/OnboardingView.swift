@@ -57,18 +57,30 @@ struct OnboardingView: View {
 
     var body: some View {
         let theme = Theme.current(scheme)
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                top(theme)
-                content(theme)
-                if let err = workspace.lastError {
-                    Text(err).font(.footnote).foregroundStyle(.red)
+        GeometryReader { geo in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if step == .welcome {
+                        // The welcome sits in the upper third, where the eye
+                        // looks first: one part of the free space above it,
+                        // two below, never less than a margin either way.
+                        Spacer(minLength: 20)
+                        welcome(theme)
+                        Spacer(minLength: 24)
+                        Spacer(minLength: 0)
+                    } else {
+                        top(theme)
+                        content(theme)
+                    }
+                    if let err = workspace.lastError {
+                        Text(err).font(.footnote).foregroundStyle(.red)
+                    }
                 }
+                .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 20)
+                .frame(maxWidth: .infinity, minHeight: geo.size.height, alignment: .topLeading)
             }
-            .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 20)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .scrollBounceBehavior(.basedOnSize)
         // The buttons stay at the bottom, over the text, as on the Mac.
         .safeAreaInset(edge: .bottom) { actions(theme) }
         .background(theme.editorBg.ignoresSafeArea())
@@ -103,7 +115,7 @@ struct OnboardingView: View {
     /// The site's lockup on the first screen; Back and the head on the others.
     @ViewBuilder private func top(_ theme: Theme) -> some View {
         if step == .welcome {
-            Lockup(theme: theme).padding(.top, 28).padding(.bottom, 6)
+            EmptyView() // the welcome carries the lockup itself
         } else {
             HStack {
                 Button { step = backStep } label: {
@@ -145,31 +157,39 @@ struct OnboardingView: View {
     }
 
     @ViewBuilder private func welcome(_ theme: Theme) -> some View {
-        title(t("welcome.title"), theme)
-        lead(t("welcome.lead"), theme)
-        if turnedOn {
-            Label(t("welcome.driveOn"), systemImage: "checkmark.circle.fill")
-                .font(.subheadline).foregroundStyle(theme.text).tint(theme.accent)
-                .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                .background(theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-        }
-        if driveOn {
-            lead(t("welcome.look", ["home": home]), theme)
-        } else {
-            // iCloud Drive off: one line of what, one of why, and the way there.
-            HStack(alignment: .top, spacing: 10) {
-                StatusIcon(tone: .warn, theme: theme)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(t("welcome.driveOff")).font(.subheadline.weight(.semibold)).foregroundStyle(theme.text)
-                    Text(t("welcome.driveOffDetail")).font(.subheadline).foregroundStyle(theme.secondary)
-                    Button(t("welcome.openSettings")) {
-                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                    }
-                    .font(.subheadline.weight(.medium)).tint(theme.accent).padding(.top, 2)
-                }
+        VStack(alignment: .leading, spacing: 14) {
+            Lockup(theme: theme).padding(.bottom, 22)
+            title(t("welcome.title"), theme)
+            lead(t("welcome.lead"), theme)
+            if turnedOn {
+                Label(t("welcome.driveOn"), systemImage: "checkmark.circle.fill")
+                    .font(.subheadline).foregroundStyle(theme.text).tint(theme.accent)
+                    .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
             }
-            .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-            .background(theme.border.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
+            if driveOn {
+                lead(t("welcome.look", ["home": home]), theme)
+            } else {
+                // iCloud Drive off: one line of what, one of why, and the way there.
+                HStack(alignment: .top, spacing: 10) {
+                    StatusIcon(tone: .warn, theme: theme)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(t("welcome.driveOff")).font(.subheadline.weight(.semibold)).foregroundStyle(theme.text)
+                        Text(t("welcome.driveOffDetail")).font(.subheadline).foregroundStyle(theme.secondary)
+                        Button(t("welcome.openSettings")) {
+                            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                        }
+                        .font(.subheadline.weight(.medium)).tint(theme.accent).padding(.top, 2)
+                    }
+                }
+                .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                .background(theme.border.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
+            }
+            // The question comes up while reading this, so the answer is here.
+            Button { help = true } label: {
+                Label(t("welcome.help"), systemImage: "info.circle").font(.subheadline)
+            }
+            .tint(theme.accent).padding(.top, 6)
         }
     }
 
@@ -222,7 +242,7 @@ struct OnboardingView: View {
                     primary(t("welcome.startHere"), theme) { confirmOnPhone() }
                 }
                 link(t("choose"), theme) { pickOther() }
-                footer(theme)
+                footer(theme).padding(.top, 16)
             case .cancelled:
                 primary(t("retry"), theme) { continueWithDrive() }
                 link(t("choose"), theme) { pickOther() }
@@ -250,17 +270,13 @@ struct OnboardingView: View {
     }
 
     @ViewBuilder private func footer(_ theme: Theme) -> some View {
-        VStack(spacing: 4) {
-            Button { help = true } label: {
-                Label(t("welcome.help"), systemImage: "info.circle").font(.subheadline)
-            }
-            .tint(theme.accent).frame(height: 32)
+        VStack(spacing: 3) {
             Text(.init(t("welcome.otherApp"))).font(.footnote).foregroundStyle(theme.secondary)
             // Continuing past this screen is accepting the terms — said here,
             // once, where the folder is chosen, not as a gate.
             Text(.init(t("welcome.terms"))).font(.caption2).foregroundStyle(theme.muted)
         }
-        .tint(theme.accent).multilineTextAlignment(.center).padding(.top, 4)
+        .tint(theme.accent).multilineTextAlignment(.center)
     }
 
     // ---- Actions ----------------------------------------------------------------
