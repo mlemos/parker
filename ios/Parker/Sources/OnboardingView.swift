@@ -68,6 +68,10 @@ struct OnboardingView: View {
                         welcome(theme)
                         Spacer(minLength: 24)
                         Spacer(minLength: 0)
+                        // The small print scrolls with the page: pinned with
+                        // the buttons, it takes half a small screen at large
+                        // text sizes.
+                        footer(theme).frame(maxWidth: .infinity)
                     } else {
                         top(theme)
                         content(theme)
@@ -242,7 +246,6 @@ struct OnboardingView: View {
                     primary(t("welcome.startHere"), theme) { confirmOnPhone() }
                 }
                 link(t("choose"), theme) { pickOther() }
-                footer(theme).padding(.top, 16)
             case .cancelled:
                 primary(t("retry"), theme) { continueWithDrive() }
                 link(t("choose"), theme) { pickOther() }
@@ -377,17 +380,23 @@ struct OnboardingView: View {
     // ---- Pieces -------------------------------------------------------------------
 
     private func title(_ s: String, _ theme: Theme) -> some View {
-        Text(s).font(.system(size: 28, weight: .bold)).tracking(-0.4).foregroundStyle(theme.text).padding(.top, 2)
+        // .title is 28 points at the default size, and grows with the reader's text size.
+        Text(s).font(.title.bold()).tracking(-0.4).foregroundStyle(theme.text).padding(.top, 2)
     }
     private func lead(_ s: String, _ theme: Theme) -> some View {
         Text(.init(s)).font(.body).foregroundStyle(theme.secondary).fixedSize(horizontal: false, vertical: true)
     }
     private func primary(_ s: String, _ theme: Theme, _ action: @escaping () -> Void) -> some View {
-        Button(action: action) { Text(s).font(.headline).frame(maxWidth: .infinity).frame(height: 50) }
-            .buttonStyle(.borderedProminent).tint(theme.accent)
+        // Two lines when the text is large, rather than "Continue with iCloud…".
+        Button(action: action) {
+            Text(s).font(.headline).multilineTextAlignment(.center).lineLimit(2)
+                .frame(maxWidth: .infinity, minHeight: 50).padding(.vertical, 2)
+        }
+        .buttonStyle(.borderedProminent).tint(theme.accent)
     }
     private func link(_ s: String, _ theme: Theme, _ action: @escaping () -> Void) -> some View {
-        Button(s, action: action).font(.body).tint(theme.accent).frame(maxWidth: .infinity).frame(height: 36)
+        Button(action: action) { Text(s).multilineTextAlignment(.center) }
+            .font(.body).tint(theme.accent).frame(maxWidth: .infinity, minHeight: 36)
     }
 
     struct Row<Content: View>: View {
@@ -469,7 +478,7 @@ struct FolderCardView: View {
         HStack(spacing: 12) {
             Image(systemName: "folder.fill").font(.system(size: 28)).foregroundStyle(Color(red: 0.23, green: 0.62, blue: 1))
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.headline).foregroundStyle(theme.text).lineLimit(1).minimumScaleFactor(0.8)
+                Text(title).font(.headline).foregroundStyle(theme.text).lineLimit(2)
                 HStack(spacing: 6) {
                     Tag(text: tag, theme: theme)
                     Text(detail).font(.footnote).foregroundStyle(theme.secondary)
