@@ -36,12 +36,12 @@ describe("imageAllowed", () => {
 });
 
 describe("imageModeOf", () => {
-  it("keeps the three modes and falls back to local", () => {
+  it("keeps the three modes and falls back to none, the default", () => {
     expect(imageModeOf("none")).toBe("none");
     expect(imageModeOf("all")).toBe("all");
     expect(imageModeOf("local")).toBe("local");
-    expect(imageModeOf("everything")).toBe("local");
-    expect(imageModeOf(undefined)).toBe("local");
+    expect(imageModeOf("everything")).toBe("none");
+    expect(imageModeOf(undefined)).toBe("none");
   });
 });
 

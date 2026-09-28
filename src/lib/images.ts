@@ -1,7 +1,7 @@
 // Which images the preview may load, and where a local one lives.
 //
-// Settings › Privacy & Security › Images in preview: "none", "local" (the
-// default) or "all". A LOCAL image is a file next to the note
+// Settings › Privacy & Security › Images in preview: "none" (the default,
+// decided 27/09: nothing loads that you didn't ask for), "local" or "all". A LOCAL image is a file next to the note
 // (`![](img/photo.png)`): it never leaves the Mac. A REMOTE one
 // (`![](https://…)`) is fetched from its server when the note opens, and that
 // server sees when and from which IP — the tracking pixel of marketing email.
@@ -18,7 +18,7 @@ export const IMAGE_MODES: { id: ImageMode; label: string }[] = [
   { id: "all", label: "Local and remote" },
 ];
 
-export const DEFAULT_IMAGE_MODE: ImageMode = "local";
+export const DEFAULT_IMAGE_MODE: ImageMode = "none";
 
 /** A saved or received mode, or the default for anything unknown. */
 export function imageModeOf(v: unknown): ImageMode {

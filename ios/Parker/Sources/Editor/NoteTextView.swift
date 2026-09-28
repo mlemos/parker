@@ -236,10 +236,29 @@ struct NoteTextView: UIViewRepresentable {
 
         private func restyle(_ tv: UITextView) {
             let sel = tv.selectedRange
+            let offset = tv.contentOffset
             let s = NSMutableAttributedString(attributedString: tv.attributedText)
             NoteStorage.style(s, theme: parent.theme)
             tv.textStorage.setAttributedString(s)
             tv.selectedRange = sel
+            keepCaretInView(tv, from: offset)
+        }
+
+        /// After the storage is rebuilt: stay where the page was — no jump —
+        /// but never with the caret out of sight. At the end of a long note,
+        /// Enter puts the new line just under the visible part (behind the
+        /// keyboard), and putting the old offset back left what you type
+        /// hidden until you scrolled (27/09). Scroll only as far as needed,
+        /// with half a line of room.
+        private func keepCaretInView(_ tv: UITextView, from offset: CGPoint) {
+            tv.setContentOffset(offset, animated: false)
+            tv.layoutIfNeeded()
+            guard let range = tv.selectedTextRange else { return }
+            let caret = tv.caretRect(for: range.end)
+            guard !caret.isNull, !caret.isInfinite else { return }
+            let room = caret.insetBy(dx: 0, dy: -caret.height / 2)
+            let visible = tv.bounds.inset(by: tv.adjustedContentInset)
+            if !visible.contains(room) { tv.scrollRectToVisible(room, animated: false) }
         }
 
         // ---- Tapping the box: complete or reopen, like the Mac's click -----------------------
@@ -392,7 +411,7 @@ struct NoteTextView: UIViewRepresentable {
             let offset = tv.contentOffset
             tv.attributedText = s
             tv.selectedRange = NSRange(location: NoteStorage.storageOffset(in: s, file: caret), length: 0)
-            tv.setContentOffset(offset, animated: false) // the edit is on the caret's line: stay put
+            keepCaretInView(tv, from: offset) // stay put, unless the caret would be out of sight
             styledWith = parent.theme.def.id
             emit(tv)
         }

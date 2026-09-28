@@ -101,8 +101,9 @@ struct Settings {
     preview_sync: bool,
     /// Which images the preview loads: "none", "local" (files next to the
     /// note, which never leave the Mac) or "all" (remote ones too, which the
-    /// servers hosting them see being fetched). Local unless changed.
-    #[serde(default = "local_images")]
+    /// servers hosting them see being fetched). None unless changed (27/09:
+    /// nothing is loaded that the person didn't ask for).
+    #[serde(default = "no_images")]
     preview_images: String,
     /// Check GitHub for a newer Parker ~10 s after launch and once a day
     /// (Settings › Updates). On unless turned off.
@@ -115,16 +116,16 @@ struct Settings {
 }
 
 /// serde default for `preview_images`.
-fn local_images() -> String {
-    "local".to_string()
+fn no_images() -> String {
+    "none".to_string()
 }
 
 /// A saved or requested image mode, or the default for anything unknown.
 fn image_mode(m: &str) -> &'static str {
     match m {
-        "none" => "none",
+        "local" => "local",
         "all" => "all",
-        _ => "local",
+        _ => "none",
     }
 }
 
@@ -162,7 +163,7 @@ impl Default for Settings {
             editor_ligatures: false,
             editor_width: 100,
             preview_sync: true,
-            preview_images: local_images(),
+            preview_images: no_images(),
             update_check: true,
             update_skip: None,
         }
@@ -3125,16 +3126,16 @@ mod tests {
         assert_eq!(s.update_skip, None);
     }
 
-    // Images arrived in the privacy round (25/09): a settings file without the
-    // key loads local images only, and an unknown value is read as that too.
+    // Images arrived in the privacy round (25/09); since 27/09 a settings file
+    // without the key loads none, and an unknown value is read as none too.
     #[test]
-    fn images_are_local_only_unless_chosen_otherwise() {
+    fn images_are_off_unless_chosen() {
         let s: Settings = serde_json::from_str(r#"{"zoom":1.0}"#).unwrap();
-        assert_eq!(s.preview_images, "local");
-        assert_eq!(super::image_mode("none"), "none");
+        assert_eq!(s.preview_images, "none");
+        assert_eq!(super::image_mode("local"), "local");
         assert_eq!(super::image_mode("all"), "all");
-        assert_eq!(super::image_mode("everything"), "local");
-        assert_eq!(super::image_mode(""), "local");
+        assert_eq!(super::image_mode("everything"), "none");
+        assert_eq!(super::image_mode(""), "none");
     }
 
     // The preview toggle arrived after 1.2.1; a settings file without it means
