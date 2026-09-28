@@ -6,7 +6,8 @@
 // The editor (CodeMirror) content theme is derived from the same tokens for
 // Parker's native themes, so chrome and content stay in sync.
 import { createTheme } from "@uiw/codemirror-themes";
-import { Tag, tags as t } from "@lezer/highlight";
+import { tags as t } from "@lezer/highlight";
+import { inlineCodeTag, highlightTag } from "./md-tags";
 import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
 import type { Extension } from "@uiw/react-codemirror";
 import { tw, alpha } from "./palette";
@@ -115,13 +116,9 @@ export interface SyntaxColors {
   invalid: string; // errors
 }
 
-/** Inline code, as a tag of its own under monospace — so it can carry a class
-    the fenced code text (also monospace) does not. Attached to the node in
-    lang.ts (mdTags). */
-export const inlineCodeTag = Tag.define(t.monospace);
-/** ==Highlighted== text — a node of Parker's own (lib/highlight.ts), so a tag
-    of its own. */
-export const highlightTag = Tag.define();
+// Parker's own markdown tags live with its parser (md-tags.ts), which the
+// iPhone runs too; the styles below dress them.
+export { inlineCodeTag, highlightTag };
 
 function monoStyles(p: SyntaxColors) {
   return [
@@ -219,6 +216,11 @@ function monoStyles(p: SyntaxColors) {
     { tag: [t.invalid], color: p.invalid },
   ];
 }
+
+/** The tags of each monoStyles rule, in order — the note painter (paint.ts)
+ *  follows it, and its test checks that it does. */
+export const monoStyleTags = () =>
+  monoStyles(THEMES[0].syntax).map((r) => (Array.isArray(r.tag) ? r.tag : [r.tag]));
 
 // Build a CodeMirror theme from a theme's UI tokens + a mono syntax palette.
 export function editorTheme(

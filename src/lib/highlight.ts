@@ -4,7 +4,7 @@
 // it, and the preview uses markdown-it-mark for the same syntax.
 import type { InlineContext, MarkdownConfig } from "@lezer/markdown";
 import { tags as t } from "@lezer/highlight";
-import { highlightTag } from "./themes";
+import { highlightTag } from "./md-tag-defs";
 
 const Delim = { resolve: "Highlight", mark: "HighlightMark" };
 const Punctuation = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~\xA1\u2010-\u2027]/;

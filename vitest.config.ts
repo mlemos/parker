@@ -20,6 +20,9 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx", "scripts/*.test.mjs"],
     setupFiles: ["src/test-setup.ts"],
+    // App.css as text (`?raw`): the note painter's test reads the editor's
+    // colour rules from it. Vitest hands other CSS over empty.
+    css: { include: [/App\.css/] },
     // Call history as well as implementations: a mock that remembers last
     // test's calls turns "was this never called?" into a coin flip.
     clearMocks: true,

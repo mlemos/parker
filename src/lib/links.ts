@@ -9,7 +9,9 @@
 import { syntaxTree } from "@codemirror/language";
 import { Decoration, EditorView, RangeSetBuilder, ViewPlugin } from "@uiw/react-codemirror";
 import type { DecorationSet, EditorState, ViewUpdate } from "@uiw/react-codemirror";
-import { externalUrl, openExternal } from "./open";
+import { openExternal } from "./open";
+import { externalUrl, LINK_NODES, scanUrls } from "./urls";
+export { scanUrls };
 
 export interface LinkSpan {
   from: number;
@@ -21,8 +23,6 @@ export interface LinkSpan {
 /** @lezer/common is not a dependency of ours, only of CodeMirror's. */
 type SyntaxNode = ReturnType<ReturnType<typeof syntaxTree>["resolveInner"]>;
 
-/** Markdown nodes that carry a URL child. */
-const LINK_NODES = new Set(["Link", "Image", "Autolink"]);
 
 function fromTree(state: EditorState, pos: number): LinkSpan | null {
   const tree = syntaxTree(state);
@@ -44,27 +44,6 @@ function fromTree(state: EditorState, pos: number): LinkSpan | null {
     }
   }
   return null;
-}
-
-const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"'`]+/gi;
-
-/** The URLs in a line of text, trailing punctuation left out. */
-export function scanUrls(text: string): { from: number; to: number }[] {
-  const out: { from: number; to: number }[] = [];
-  for (const m of text.matchAll(URL_RE)) {
-    let s = m[0];
-    // A sentence's full stop, or the bracket the URL was written in, isn't
-    // part of it; a bracket the URL itself opened is.
-    for (;;) {
-      const last = s[s.length - 1];
-      if (/[.,;:!?'"]/.test(last)) s = s.slice(0, -1);
-      else if (last === ")" && (s.match(/\(/g) ?? []).length < (s.match(/\)/g) ?? []).length)
-        s = s.slice(0, -1);
-      else break;
-    }
-    if (s.length) out.push({ from: m.index, to: m.index + s.length });
-  }
-  return out;
 }
 
 function fromText(state: EditorState, pos: number): LinkSpan | null {

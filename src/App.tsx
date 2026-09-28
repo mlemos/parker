@@ -21,7 +21,7 @@ import { displayName, droppedExternals, isExternal, renamedIn } from "./lib/exte
 import { isFirstLaunch } from "./lib/session";
 import { PathLabel } from "./components/PathLabel";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
-import { alpha } from "./lib/palette";
+import { alpha, CODE_WASH, HIGHLIGHT_WASH } from "./lib/palette";
 import { textWidthOf } from "./lib/text-width";
 import type { TextWidth } from "./lib/text-width";
 import {
@@ -535,12 +535,12 @@ export default function App({
       "--md-italic": theme.syntax.italic,
       "--md-bold-italic": theme.syntax.boldItalic,
       "--md-code": theme.syntax.inlineCode,
-      "--md-code-bg": alpha(theme.syntax.inlineCode, 0.14),
+      "--md-code-bg": alpha(theme.syntax.inlineCode, CODE_WASH),
       "--md-link": theme.syntax.link,
       "--md-url": theme.syntax.url,
       "--md-strike": theme.syntax.strike,
       "--md-highlight": theme.syntax.highlight,
-      "--md-highlight-bg": alpha(theme.syntax.highlight, 0.25),
+      "--md-highlight-bg": alpha(theme.syntax.highlight, HIGHLIGHT_WASH),
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     root.dataset.mode = theme.mode;
