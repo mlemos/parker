@@ -1,5 +1,5 @@
-// Parker states its version in five places, and a release is only coherent if
-// they agree. They drift silently: nothing breaks at build time when the DMG
+// Parker states its version in many places — the Mac app, the site's download
+// links, and the iPhone app — and a release is only coherent if they agree. They drift silently: nothing breaks at build time when the DMG
 // filename says one thing and the site's download link says another — you find
 // out when someone clicks it.
 //
@@ -69,6 +69,11 @@ checkAll("site/features/index.html", "the DMG filename", features,
   new RegExp(String.raw`Parker_(${SEMVER})_`, "g"));
 checkAll("site/features/index.html", "the version under the download button", features,
   new RegExp(String.raw`v(${SEMVER})\s*·`, "g"));
+
+// The iPhone app ships the same version as the Mac (decided 27/09, at 1.5.0):
+// one Parker, one number. Its build number is separate (the date).
+check("ios/Parker/project.yml", "the iPhone's MARKETING_VERSION", read("ios/Parker/project.yml"),
+  new RegExp(String.raw`MARKETING_VERSION:\s*"(${SEMVER})"`));
 
 if (problems.length) {
   console.error(`Version mismatch — package.json says ${want}:\n`);
