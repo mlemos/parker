@@ -115,7 +115,13 @@ struct NotesListView: View {
             .onChange(of: workspace.openRequest) { _, req in
                 if let req { opened = req; workspace.openRequest = nil }
             }
-            .onAppear { if let req = workspace.openRequest { opened = req; workspace.openRequest = nil } }
+            .onAppear {
+                if let req = workspace.openRequest { opened = req; workspace.openRequest = nil }
+                #if DEBUG
+                // -openNote <name>: straight into a note (the editor's typing test, NoteTextView).
+                if let name = UserDefaults.standard.string(forKey: "openNote"), opened == nil { opened = .note(name) }
+                #endif
+            }
             .refreshable { workspace.refresh() }
             .safeAreaInset(edge: .bottom) {
                 Text(atRoot
