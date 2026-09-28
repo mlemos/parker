@@ -102,52 +102,88 @@ public enum GitRemote {
     }
 }
 
-/// The screens' sentences. `suggested` is whether the folder is Documents ›
-/// Parker in iCloud Drive, the one folder both apps look for by themselves.
+/// Every word of the first run: shared/first-run-copy.json, the file the
+/// Mac's screens read too, so the two apps say the same thing. A key ending in
+/// @iphone is this app's version of the key without it; {name} is filled in.
+/// The app sets `shared` at launch from its bundled copy of the file.
+public struct FirstRunCopy: Sendable {
+    public let strings: [String: String]
+
+    public init(strings: [String: String]) { self.strings = strings }
+
+    public init(data: Data) throws {
+        struct File: Decodable { let strings: [String: String] }
+        strings = try JSONDecoder().decode(File.self, from: data).strings
+    }
+
+    /// The iPhone's version of `key`, placeholders filled; the key itself if
+    /// it is missing (the tests make sure none is).
+    public func text(_ key: String, _ vars: [String: String] = [:]) -> String {
+        var s = strings[key + "@iphone"] ?? strings[key] ?? key
+        for (k, v) in vars { s = s.replacingOccurrences(of: "{\(k)}", with: v) }
+        return s
+    }
+
+    public func has(_ key: String) -> Bool { strings[key + "@iphone"] != nil || strings[key] != nil }
+
+    nonisolated(unsafe) public static var shared = FirstRunCopy(strings: [:])
+}
+
+private func t(_ key: String, _ vars: [String: String] = [:]) -> String { FirstRunCopy.shared.text(key, vars) }
+
+/// How a line reads at a glance, as the Mac marks it: ✓, !, ? or –.
+public enum Tone: String, Equatable, Sendable, Decodable { case ok, warn, unknown, none }
+
+/// The screens' sentences, from FirstRunCopy. `suggested` is whether the
+/// folder is Documents › Parker in iCloud Drive, the one folder both apps look
+/// for by themselves. The Mac's src/lib/first-run-iphone.ts is their reference:
+/// shared/fixtures/first-run-lines.json holds what they say in every situation.
 public enum FirstRunText {
-    static func plural(_ n: Int, _ w: String) -> String { "\(n) \(w)\(n == 1 ? "" : "s")" }
+    static func count(_ n: Int, _ one: String) -> String { t(n == 1 ? "unit.\(one)" : "unit.\(one)s", ["n": String(n)]) }
 
     public static func contents(_ f: FolderSummary) -> String {
-        if !f.exists { return "Doesn't exist yet — created when you continue" }
-        if f.notes == 0 && f.other == 0 { return "Empty" }
-        return plural(f.notes, "note") + (f.other > 0 ? " · " + plural(f.other, "other file") : "")
+        if !f.exists { return t("line.contents.new") }
+        if f.notes == 0 && f.other == 0 { return t("line.contents.empty") }
+        if f.other == 0 { return t("line.contents.notes", ["notes": count(f.notes, "note")]) }
+        return t("line.contents.notesOther", ["notes": count(f.notes, "note"), "other": count(f.other, "otherFile")])
     }
 
     public static func state(_ f: FolderSummary) -> String {
-        if !f.exists { return "Doesn't exist yet — Parker creates it when you continue." }
-        if f.notes == 0 && f.other == 0 { return "Exists and is empty — Parker adds a Welcome note." }
-        if f.notes == 0 { return "Exists, with \(plural(f.other, "file")) but no notes yet." }
-        return "Exists, with \(plural(f.notes, "note"))" + (f.other > 0 ? " and \(plural(f.other, "other file")) Parker leaves alone." : ".")
+        if !f.exists { return t("line.state.new") }
+        if f.notes == 0 && f.other == 0 { return t("line.state.empty") }
+        if f.notes == 0 { return t("line.state.onlyOther", ["other": count(f.other, "file")]) }
+        if f.other == 0 { return t("line.state.notes", ["notes": count(f.notes, "note")]) }
+        return t("line.state.notesOther", ["notes": count(f.notes, "note"), "other": count(f.other, "otherFile")])
     }
 
-    public static func sync(_ f: FolderSummary, driveOn: Bool) -> String {
+    public static func stateTone(_ f: FolderSummary) -> Tone {
+        !f.exists || (f.notes == 0 && f.other == 0) ? .none : f.notes > 0 ? .ok : .unknown
+    }
+
+    public static func sync(_ f: FolderSummary, driveOn: Bool) -> (tone: Tone, text: String) {
         switch f.sync {
-        case .icloud: return driveOn ? "Syncs with iCloud Drive." : "iCloud Drive is off on this iPhone."
-        case .onThisPhone: return driveOn ? "Stays on this iPhone — it's in On My iPhone." : "Stays on this iPhone — iCloud Drive is off."
-        case .unknown: return "Not in iCloud Drive. If it syncs some other way, see Other ways to sync."
-        default: return "Not in iCloud Drive — this folder is in \(f.sync.label). See Other ways to sync."
+        case .icloud: return driveOn ? (.ok, t("line.sync.icloud")) : (.warn, t("line.sync.icloudDriveOff"))
+        case .onThisPhone: return (.warn, t(driveOn ? "line.sync.here" : "line.sync.hereDriveOff"))
+        case .unknown: return (.unknown, t("line.sync.unknown"))
+        default: return (.ok, t("line.sync.service", ["service": f.sync.label]))
         }
     }
 
-    public static func git(_ f: FolderSummary) -> (text: String, note: String) {
+    public static func git(_ f: FolderSummary) -> (tone: Tone, text: String, note: String) {
         if f.git {
-            return (f.gitRemote.map { "A git repository (remote: \($0))." } ?? "A git repository, with no remote.",
-                    "Parker for iPhone just edits the notes; your Mac commits and pushes them.")
+            return (.ok, f.gitRemote.map { t("line.git.remote", ["remote": $0]) } ?? t("line.git.noRemote"), t("line.git.note"))
         }
-        return ("Not a git repository.", "Optional — a Mac can make it one (Parker › Settings › Backup & Git).")
+        return (.none, t(f.exists ? "line.git.none" : "line.git.new"), t("line.git.noneNote"))
     }
 
     /// What to do on the Mac to open this same folder.
     public static func mac(_ f: FolderSummary, suggested: Bool, display: String) -> String {
-        if suggested {
-            return "Install Parker for Mac. If the Mac keeps Documents in iCloud, its welcome screen finds this folder by itself; if not, it shows you how to turn that on."
-        }
+        if suggested { return t("line.other.suggested") }
         switch f.sync {
-        case .icloud: return "On the Mac, choose this folder in Parker's welcome screen: \(display)."
-        case .dropbox, .googleDrive, .oneDrive, .box:
-            return "On the Mac, install \(f.sync.label) and choose this folder in Parker's welcome screen: \(display)."
-        case .onThisPhone: return "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to keep your notes there."
-        case .unknown: return "If this folder stays on this iPhone, your Mac can't open it."
+        case .icloud: return t("line.other.icloud", ["folder": display])
+        case .dropbox, .googleDrive, .oneDrive, .box: return t("line.other.service", ["service": f.sync.label, "folder": display])
+        case .onThisPhone: return t("line.other.here")
+        case .unknown: return t("line.other.unknown")
         }
     }
 }

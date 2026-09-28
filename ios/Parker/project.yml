@@ -27,6 +27,9 @@ targets:
       # so a note is coloured by the Mac's own rules (ParkerCore NotePainter).
       - path: ../../shared/parker-paint.js
         buildPhase: resources
+      # Every word of the first run, shared with the Mac (ParkerCore FirstRunCopy).
+      - path: ../../shared/first-run-copy.json
+        buildPhase: resources
       - path: Resources/Fonts
         buildPhase: resources
       - path: Resources/Assets.xcassets

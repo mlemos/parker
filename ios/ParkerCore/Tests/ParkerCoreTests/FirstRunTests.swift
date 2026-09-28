@@ -50,18 +50,60 @@ struct FirstRunTests {
         #expect(!FolderSummary.of(dir.appendingPathComponent("nope")).exists)
     }
 
-    @Test("the sentences")
-    func sentences() {
-        let found = FolderSummary(exists: true, notes: 42, sync: .icloud)
-        #expect(FirstRunText.contents(found) == "42 notes")
-        #expect(FirstRunText.contents(FolderSummary(exists: false, sync: .icloud)) == "Doesn't exist yet — created when you continue")
-        #expect(FirstRunText.state(FolderSummary(exists: true, notes: 1, other: 2, sync: .icloud)) == "Exists, with 1 note and 2 other files Parker leaves alone.")
-        #expect(FirstRunText.sync(found, driveOn: true) == "Syncs with iCloud Drive.")
-        #expect(FirstRunText.sync(FolderSummary(exists: true, sync: .onThisPhone), driveOn: false) == "Stays on this iPhone — iCloud Drive is off.")
-        #expect(FirstRunText.sync(FolderSummary(exists: true, sync: .dropbox), driveOn: true).contains("in Dropbox"))
-        #expect(FirstRunText.mac(found, suggested: true, display: "").contains("finds this folder by itself"))
-        #expect(FirstRunText.mac(FolderSummary(exists: true, sync: .googleDrive), suggested: false, display: "Google Drive › Notes")
-                == "On the Mac, install Google Drive and choose this folder in Parker's welcome screen: Google Drive › Notes.")
-        #expect(FirstRunText.git(FolderSummary(exists: true, git: true, gitRemote: "github.com/owner/repo", sync: .icloud)).text.contains("github.com/owner/repo"))
+    // The sentences, against what the Mac's reference says for every
+    // situation (shared/fixtures/first-run-lines.json), in the words of
+    // shared/first-run-copy.json.
+    @Test("says what the Mac's reference says, in every situation", arguments: LinesFixture.shared.cases.indices)
+    func sentences(i: Int) {
+        FirstRunCopy.shared = LinesFixture.copy
+        let c = LinesFixture.shared.cases[i]
+        let f = c.folder.summary
+        let label = "\(c.folder) driveOn=\(c.driveOn) suggested=\(c.suggested)"
+        #expect(FirstRunText.contents(f) == c.contents, Comment(rawValue: label))
+        #expect(FirstRunText.state(f) == c.state, Comment(rawValue: label))
+        let sync = FirstRunText.sync(f, driveOn: c.driveOn)
+        #expect(sync.tone == c.sync.tone && sync.text == c.sync.text, Comment(rawValue: label))
+        let git = FirstRunText.git(f)
+        #expect(git.tone == c.git.tone && git.text == c.git.text && git.note == c.git.note, Comment(rawValue: label))
+        #expect(FirstRunText.mac(f, suggested: c.suggested, display: c.display) == c.mac, Comment(rawValue: label))
     }
+
+    @Test("every key the screens ask for is in the copy")
+    func keys() throws {
+        let copy = LinesFixture.copy
+        for file in ["Parker/Sources/OnboardingView.swift", "ParkerCore/Sources/ParkerCore/FirstRun.swift"] {
+            let src = try String(contentsOf: LinesFixture.ios.appendingPathComponent(file), encoding: .utf8)
+            let keys = try NSRegularExpression(pattern: #"\bt\("([\w.]+)""#)
+                .matches(in: src, range: NSRange(src.startIndex..., in: src))
+                .map { String(src[Range($0.range(at: 1), in: src)!]) }
+            #expect(!keys.isEmpty, Comment(rawValue: file))
+            for k in keys { #expect(copy.has(k), Comment(rawValue: "\(file): \(k)")) }
+        }
+    }
+}
+
+struct LinesFixture: Decodable {
+    struct Folder: Decodable, CustomStringConvertible {
+        let exists: Bool, notes: Int, other: Int, git: Bool, gitRemote: String?, sync: String
+        var summary: FolderSummary {
+            let kind: SyncKind = ["icloud": .icloud, "dropbox": .dropbox, "googleDrive": .googleDrive, "oneDrive": .oneDrive,
+                                  "box": .box, "onThisPhone": .onThisPhone][sync] ?? .unknown
+            return FolderSummary(exists: exists, notes: notes, other: other, git: git, gitRemote: gitRemote, sync: kind)
+        }
+        var description: String { "\(sync) exists=\(exists) notes=\(notes) other=\(other) git=\(git) remote=\(gitRemote ?? "-")" }
+    }
+    struct Line: Decodable { let tone: Tone; let text: String }
+    struct Git: Decodable { let tone: Tone; let text: String; let note: String }
+    struct Case: Decodable {
+        let folder: Folder, driveOn: Bool, suggested: Bool, display: String
+        let contents: String, state: String, sync: Line, git: Git, mac: String
+    }
+    let cases: [Case]
+
+    static let ios = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    static let sharedDir = ios.deletingLastPathComponent().appendingPathComponent("shared")
+    static let shared: LinesFixture = try! JSONDecoder().decode(
+        LinesFixture.self, from: Data(contentsOf: sharedDir.appendingPathComponent("fixtures/first-run-lines.json")))
+    static let copy: FirstRunCopy = try! FirstRunCopy(data: Data(contentsOf: sharedDir.appendingPathComponent("first-run-copy.json")))
 }
