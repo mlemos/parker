@@ -43,6 +43,10 @@ targets:
       properties:
         CFBundleDisplayName: Parker
         CFBundleName: Parker
+        # The version and build from the settings below — XcodeGen writes 1.0
+        # and 1 otherwise, and every build before 1.5.0 shipped as 1.0 (28/09).
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         # The app's own Documents folder shows up in Files ("On My iPhone ›
@@ -95,7 +99,7 @@ targets:
         DEVELOPMENT_TEAM: H5X7SH54MC
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "1.5.0"
-        CURRENT_PROJECT_VERSION: "20260927.2"
+        CURRENT_PROJECT_VERSION: "20260928.1"
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
         TARGETED_DEVICE_FAMILY: "1"

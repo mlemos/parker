@@ -85,6 +85,14 @@ checkAll("site/agents/index.html", "the version under the download button", agen
 check("ios/Parker/project.yml", "the iPhone's MARKETING_VERSION", read("ios/Parker/project.yml"),
   new RegExp(String.raw`MARKETING_VERSION:\s*"(${SEMVER})"`));
 
+// …and the app must read it: an Info.plist with a literal version ships that
+// literal (every iPhone build until 1.5.0 went out as 1.0, found 28/09).
+const plist = read("ios/Parker/Sources/Info.plist");
+if (!/<key>CFBundleShortVersionString<\/key>\s*<string>\$\(MARKETING_VERSION\)<\/string>/.test(plist))
+  problems.push("ios/Parker/Sources/Info.plist: CFBundleShortVersionString must be $(MARKETING_VERSION)");
+if (!/<key>CFBundleVersion<\/key>\s*<string>\$\(CURRENT_PROJECT_VERSION\)<\/string>/.test(plist))
+  problems.push("ios/Parker/Sources/Info.plist: CFBundleVersion must be $(CURRENT_PROJECT_VERSION)");
+
 if (problems.length) {
   console.error(`Version mismatch — package.json says ${want}:\n`);
   for (const p of problems) console.error(`  ✗ ${p}`);
