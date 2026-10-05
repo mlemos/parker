@@ -1338,6 +1338,9 @@ export default function App({
         e.preventDefault();
         const g = findGroup(stateRef.current.layout, fid);
         if (g?.active) closeTab(fid, g.active);
+        // Nothing left to close: ⌘W closes the window, as the red button
+        // does — the main window hides and Parker stays running.
+        else getCurrentWindow().close().catch(() => {});
       } else if (k === "s") {
         e.preventDefault();
         const g = findGroup(stateRef.current.layout, fid);
