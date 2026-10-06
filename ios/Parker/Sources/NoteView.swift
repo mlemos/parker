@@ -13,8 +13,15 @@ struct NoteView: View {
     /// A line to land on when the note opens (1-based), from the Tasks tab.
     var focusLine: Int? = nil
 
-    init(name: String, focusLine: Int? = nil) { self.ref = .note(name); self.focusLine = focusLine }
-    init(ref: NoteRef, focusLine: Int? = nil) { self.ref = ref; self.focusLine = focusLine }
+    init(name: String, focusLine: Int? = nil) { self.init(ref: .note(name), focusLine: focusLine) }
+    init(ref: NoteRef, focusLine: Int? = nil) {
+        self.ref = ref
+        self.focusLine = focusLine
+        _current = State(initialValue: ref)
+    }
+    /// What the editor holds now: `ref`, until a draft's first save makes it
+    /// a note with a name.
+    @State private var current: NoteRef
     @State private var text = ""
     @State private var loaded = false
     @State private var onDisk = ""
@@ -28,7 +35,7 @@ struct NoteView: View {
             // A file from outside the folder says so, the way the Mac does:
             // a pink band no other surface uses, the file's folder, and a
             // way to it in Files.
-            if case .external(let file) = ref {
+            if case .external(let file) = current {
                 ExternalBand(file: file)
             }
             if loaded {
@@ -36,7 +43,7 @@ struct NoteView: View {
                     saveTask?.cancel()
                     saveTask = Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(500))
-                        if !Task.isCancelled { workspace.write(ref, new); onDisk = new }
+                        if !Task.isCancelled { save(new) }
                     }
                 }, onBoxLongPress: { index, box in
                     pressed = PressedBox(index: index, state: box.state, bangs: box.bangs)
@@ -51,7 +58,7 @@ struct NoteView: View {
                 // Only a note still in the cloud takes long enough to be seen here.
                 VStack(spacing: 10) {
                     ProgressView()
-                    Text(workspace.isLocal(ref) ? "Opening…" : "Downloading from iCloud…")
+                    Text(workspace.isLocal(current) ? "Opening…" : "Downloading from iCloud…")
                         .font(.footnote).foregroundStyle(theme.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -59,29 +66,45 @@ struct NoteView: View {
         }
         .background(theme.editorBg)
         .ignoresSafeArea(.container, edges: .bottom)
-        .navigationTitle(ref.title)
+        .navigationTitle(current.title)
         .navigationBarTitleDisplayMode(.inline)
         // Opaque, or the bar takes the band's pink through its translucency.
         .toolbarBackground(theme.editorBg, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .task { if !loaded { text = await workspace.load(ref); onDisk = text; loaded = true } }
+        .task { if !loaded { text = await workspace.load(current); onDisk = text; loaded = true } }
         .onChange(of: workspace.notes) { _, _ in
             // the folder changed underneath: take the disk's version when we have nothing unsaved
-            if case .note = ref { takeDisk() }
+            if case .note = current { takeDisk() }
         }
         // An outside file has no watcher; coming back to the app is when it
         // is looked at again.
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active, case .external = ref { takeDisk() }
+            if phase == .active, case .external = current { takeDisk() }
         }
         // Only a changed note is written: rewriting an untouched one would
         // bump its date and make every synced device fetch it again.
-        .onDisappear { saveTask?.cancel(); if loaded, text != onDisk { workspace.write(ref, text); onDisk = text } }
+        .onDisappear { saveTask?.cancel(); if loaded, text != onDisk { save(text) } }
+    }
+
+    /// Write the note — or, for a draft with something in it, make its file
+    /// and become that note. A draft still empty (or only blank) writes
+    /// nothing: walking away from a new note leaves no file behind.
+    private func save(_ new: String) {
+        if case .draft(let folder, _) = current {
+            guard !new.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+            if let name = workspace.materialize(in: folder, text: new) {
+                current = .note(name)
+                onDisk = new
+            }
+            return
+        }
+        workspace.write(current, new)
+        onDisk = new
     }
 
     private func takeDisk() {
         guard loaded, saveTask == nil || saveTask?.isCancelled == true else { return }
-        let disk = workspace.read(ref)
+        let disk = workspace.read(current)
         if disk != text { text = disk; onDisk = disk }
     }
 }

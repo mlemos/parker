@@ -94,8 +94,9 @@ struct NotesListView: View {
             .navigationDestination(for: FolderRef.self) { ref in NotesListView(scope: ref.path) }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    // A new note lands where you are.
-                    Button { if let n = workspace.create(in: scope) { opened = .note(n) } } label: { Image(systemName: "plus") }
+                    // A new note lands where you are — as a draft: its file is
+                    // made when it is typed into, and not at all if it isn't.
+                    Button { opened = .draft(folder: scope, id: UUID()) } label: { Image(systemName: "plus") }
                 }
                 if atRoot {
                     ToolbarItem(placement: .topBarLeading) {

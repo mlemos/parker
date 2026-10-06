@@ -24,16 +24,21 @@ struct ExternalFile: Identifiable, Hashable {
     }
 }
 
-/// What the editor shows: a note in the folder, by name, or a file from
-/// outside it.
+/// What the editor shows: a note in the folder, by name, a file from outside
+/// it, or a new note that has no file yet.
 enum NoteRef: Hashable {
     case note(String)
     case external(ExternalFile)
+    /// A new note: a draft until it has something in it, when its file is
+    /// made in `folder` ("cos/desks/" or "") and it becomes a `.note`. Left
+    /// empty, it never touches the disk — the Mac's rule (src/lib/draft.ts).
+    case draft(folder: String, id: UUID)
 
     var title: String {
         switch self {
         case .note(let name): return NotesFolder.displayName(name).replacingOccurrences(of: ".md", with: "")
         case .external(let f): return f.displayName.replacingOccurrences(of: ".md", with: "")
+        case .draft: return "Untitled"
         }
     }
 }
