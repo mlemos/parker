@@ -424,14 +424,34 @@ body,
 .confirm.update-sheet {
   width: min(460px, 88vw);
 }
-.update-notes {
-  margin-top: 12px;
+.update-notes-label {
+  margin-top: 14px;
+  /* The setup card's labels (.fr-k): one voice for "a heading over a box". */
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* .md-body.update-notes, not .update-notes: .md-body comes later in this file
+   and, as tall as a preview page (26–60px padding, 15px type), won — the
+   notes sat in a box mostly made of space (seen updating 1.5.0 → 1.5.1). */
+.md-body.update-notes {
+  max-width: none;
+  margin: 6px 0 0;
   max-height: 40vh;
   overflow-y: auto;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-size: 12.5px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.md-body.update-notes > :first-child {
+  margin-top: 0;
+}
+.md-body.update-notes > :last-child {
+  margin-bottom: 0;
 }
 .update-blocked,
 .update-error {

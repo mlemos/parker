@@ -87,8 +87,17 @@ export function UpdateSheet({
         </div>
         <div className="confirm-body">You have {update.current}. Your notes are saved first, and your tabs and windows come back after the restart.</div>
         {update.notes && (
-          // Rendered with images off: release notes fetch nothing.
-          <div className="md-body update-notes" dangerouslySetInnerHTML={{ __html: notes }} />
+          <>
+            {/* Named, so the box reads as what it is: the release notes. */}
+            <div className="update-notes-label" id="upd-notes">What's new</div>
+            {/* Rendered with images off: release notes fetch nothing. */}
+            <div
+              className="md-body update-notes"
+              role="region"
+              aria-labelledby="upd-notes"
+              dangerouslySetInnerHTML={{ __html: notes }}
+            />
+          </>
         )}
         {blocked && (
           <div className="update-blocked" role="note">

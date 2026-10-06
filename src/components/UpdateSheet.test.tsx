@@ -30,6 +30,8 @@ describe("UpdateSheet", () => {
     const p = sheet();
     expect(screen.getByText("Parker 1.5.1 is available")).toBeDefined();
     expect(screen.getByText("Faster search")).toBeDefined();
+    // Named, so it reads as the release notes.
+    expect(screen.getByRole("region", { name: "What's new" }).textContent).toContain("Faster search");
     // Release notes fetch nothing: images are off in them.
     expect(document.querySelector(".update-notes img")).toBeNull();
     fireEvent.click(screen.getByText("Update & Restart"));
