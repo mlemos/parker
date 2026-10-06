@@ -206,7 +206,7 @@ export default function App({
 
   const saveTimers = useRef<Map<string, number>>(new Map());
   // What Parker itself last wrote into each note, and a count of those writes.
-  // Recorded the instant the write returns — before React has re-rendered the
+  // Recorded as the write goes out — before React has re-rendered the
   // new baseline, and whatever path did the writing — so the watcher can tell
   // Parker's own echo from somebody else's edit.
   const lastWrite = useRef<Map<string, { text: string; seq: number }>>(new Map());
@@ -287,9 +287,12 @@ export default function App({
     if (!ws.canAutosave(buf)) return;
     try {
       const written = buf.content;
-      await writeText(name, written);
+      // Recorded before the write, not after it returns: the watcher can hear
+      // of the new file before the write's answer is back, and a change
+      // nobody had recorded yet read as somebody else's edit.
       const seq = (lastWrite.current.get(name)?.seq ?? 0) + 1;
       lastWrite.current.set(name, { text: written, seq });
+      await writeText(name, written);
       setBuffers((prev) => ws.setError(ws.markSaved(prev, name, written), name, undefined));
     } catch (e) {
       // Until now this only reached the console: a note that could not be
@@ -1547,6 +1550,12 @@ export default function App({
       if (ws.isOwnWrite(lastWrite.current.get(name), disk, seqAtRead)) return;
       const verdict = ws.classifyDiskChange(now, disk);
       if (verdict === "nothing") return;
+      // The file says what the editor says: one version, saved. Not logged —
+      // nothing happened that anyone needs to look back on.
+      if (verdict === "agree") {
+        setBuffers((prev) => ws.agreeWithDisk(prev, name, disk));
+        return;
+      }
       // The diary: what was seen, for when the change is doubted afterwards.
       {
         const own = lastWrite.current.get(name);

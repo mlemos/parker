@@ -81,6 +81,15 @@ export function editBuffer(buffers: Buffer[], name: string, content: string): Bu
  *  It also decides `dirty` by comparing, rather than clearing it: a save is
  *  awaited, and a keystroke that lands during that await produced content the
  *  write did not carry. Clearing unconditionally called that saved. */
+/** The file now holds what the editor holds: saved, and any open conflict is
+ *  over — there is nothing left to choose between. Typing since then stays
+ *  unsaved. */
+export function agreeWithDisk(buffers: Buffer[], name: string, disk: string): Buffer[] {
+  return buffers.map((b) =>
+    b.name === name ? { ...b, disk, dirty: b.content !== disk, conflict: undefined } : b
+  );
+}
+
 export function markSaved(buffers: Buffer[], name: string, written: string): Buffer[] {
   return buffers.map((b) =>
     b.name === name ? { ...b, disk: written, dirty: b.content !== written } : b
@@ -153,10 +162,10 @@ export function resolveConflict(
  *
  *  Only once the file really moved does the user's work matter: unsaved edits
  *  mean two versions exist and Parker must not pick one. */
-export type DiskChange = "nothing" | "reload" | "conflict";
+export type DiskChange = "nothing" | "agree" | "reload" | "conflict";
 
 /** What Parker last put in a file, and how many times it has written it. App
- *  records this the moment a write returns, outside React state. */
+ *  records this as the write goes out, outside React state. */
 export interface OwnWrite {
   text: string;
   seq: number;
@@ -186,6 +195,12 @@ export function isOwnWrite(
 
 export function classifyDiskChange(buf: Buffer, disk: string): DiskChange {
   if (disk === buf.disk) return "nothing";
+  // The file moved, but to exactly what the editor holds: there are not two
+  // versions, there is one. Whoever wrote it — Parker's own save with its
+  // echo not yet recorded, another window, a sync bringing back the same
+  // text — the note is simply saved. A conflict here asked the user to choose
+  // between two identical texts (05/10, the backlog, purple on a keystroke).
+  if (disk === buf.content) return "agree";
   if (buf.dirty || buf.conflict) return "conflict";
   return "reload";
 }
