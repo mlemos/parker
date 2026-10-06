@@ -19,6 +19,7 @@ import {
 import { languageForName } from "../lib/lang";
 import { tabStatus } from "../lib/workspace";
 import { displayName, isExternal } from "../lib/external";
+import { isDraft } from "../lib/draft";
 import { PathLabel } from "./PathLabel";
 import type { ThemeDef } from "../lib/themes";
 import type { Buffer, Group } from "../lib/layout";
@@ -282,6 +283,7 @@ export function EditorGroup({
               unseen: "Reloaded from disk — changed lines are marked",
               dirty: "Unsaved changes",
               saved: "Saved",
+              draft: "New note — the file is made when you type",
             }[status];
             return renamingName === name && focused && !preview ? (
               <div key={id} className="tab active editing">
@@ -355,8 +357,10 @@ export function EditorGroup({
                 }}
                 title={
                   preview
-                    ? `Preview of ${name}`
-                    : isExternal(name)
+                    ? `Preview of ${displayName(name)}`
+                    : isDraft(name)
+                      ? "A new note — it becomes a file when you type in it"
+                      : isExternal(name)
                       ? `${name}  —  outside your notes folder`
                       : links[name]
                         ? `${name}  —  a link to ${links[name]}`
@@ -467,7 +471,8 @@ export function EditorGroup({
             </button>
           )}
           {/* The note in front moves to a window of its own. */}
-          {activeBuf && (
+          {/* Not for a draft: a window needs a file to show. */}
+          {activeBuf && !activeBuf.draft && (
             <button
               className="group-btn"
               onClick={cb.onPopOut}

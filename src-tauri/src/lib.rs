@@ -816,21 +816,63 @@ fn note_ext(ext: Option<String>) -> String {
     }
 }
 
-/// Create a new empty note "Untitled-N.<ext>" (ext defaults to "md") — in
-/// `folder` when one is given ("cos/desks", made on the way if need be) —
-/// and return its name. N is the first integer that doesn't collide.
+/// Give a new note its file: "Untitled-N.<ext>" (ext defaults to "md"), in
+/// `folder` when one is given ("cos/desks", made on the way if need be),
+/// holding `content`. Returns its name.
+///
+/// A new note is a draft in the editor until it has something in it; this is
+/// the moment it becomes a file, so an empty Untitled is never left on disk.
 #[tauri::command]
-fn create_note(ext: Option<String>, folder: Option<String>) -> Result<String, String> {
-    let ext = note_ext(ext);
+fn create_note_with(content: String, ext: Option<String>, folder: Option<String>) -> Result<String, String> {
     let prefix = folder_prefix(folder.as_deref())?;
-    let dir = notes_dir();
+    create_exclusive(&notes_dir(), &prefix, &note_ext(ext), &content)
+}
+
+/// The first free "Untitled-N.<ext>" under `dir`/`prefix`, created with
+/// `content` in it. Never writes over a file that is there — not even one
+/// that appeared a moment ago, from another window or another Mac through
+/// iCloud: the name is claimed by a hard link, which fails if it exists.
+/// The link points at a temp file already written in full, so the note
+/// appears with its text, never empty and then filled.
+fn create_exclusive(dir: &std::path::Path, prefix: &str, ext: &str, content: &str) -> Result<String, String> {
+    let first = dir.join(format!("{prefix}Untitled-1.{ext}"));
+    make_parent_within(dir, &first)?;
+    let parent = first.parent().unwrap_or(dir).to_path_buf();
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let tmp = parent.join(format!(".parker-new-{}-{nanos}.parker-tmp", std::process::id()));
+    fs::write(&tmp, content).map_err(|e| e.to_string())?;
+    let result = claim_name(&tmp, dir, prefix, ext, content);
+    let _ = fs::remove_file(&tmp);
+    result
+}
+
+fn claim_name(tmp: &std::path::Path, dir: &std::path::Path, prefix: &str, ext: &str, content: &str) -> Result<String, String> {
+    use std::io::{ErrorKind, Write};
+    let mut links = true;
     for n in 1..100_000 {
         let name = format!("{prefix}Untitled-{n}.{ext}");
         let path = dir.join(&name);
-        if !path.exists() {
-            make_parent_within(&dir, &path)?;
-            atomic_write(&path, "")?;
-            return Ok(name);
+        if links {
+            match fs::hard_link(tmp, &path) {
+                Ok(()) => return Ok(name),
+                Err(e) if e.kind() == ErrorKind::AlreadyExists => continue,
+                // A volume without hard links (exFAT, some network shares):
+                // claim the name with an exclusive create instead.
+                Err(_) => links = false,
+            }
+        }
+        match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+            Ok(mut f) => {
+                return f.write_all(content.as_bytes()).map(|_| name).map_err(|e| {
+                    let _ = fs::remove_file(&path);
+                    e.to_string()
+                })
+            }
+            Err(e) if e.kind() == ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e.to_string()),
         }
     }
     Err("could not allocate a new note name".to_string())
@@ -2648,7 +2690,7 @@ pub fn run() {
             read_note,
             write_note,
             delete_note,
-            create_note,
+            create_note_with,
             rename_note,
             load_session,
             save_session,
@@ -2701,6 +2743,7 @@ pub fn run() {
             windows::set_window_on_top,
             windows::focus_note,
             windows::dock_note,
+            windows::new_note_in_main,
             windows::close_note_window,
             windows::pointer_outside_window,
         ])
@@ -3088,6 +3131,67 @@ mod tests {
         assert!(!f.exists());
         // Unguarded, it writes: the caller asked for no comparison.
         assert_eq!(guarded_write(&f, "x", None).unwrap(), WriteOutcome::Written);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    // ---- A new note's file ---------------------------------------------------
+
+    fn names_in(dir: &std::path::Path) -> Vec<String> {
+        let mut v: Vec<String> = fs::read_dir(dir).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        v.sort();
+        v
+    }
+
+    #[test]
+    fn a_new_note_is_born_with_its_text_and_no_temp_beside_it() {
+        let dir = scratch("create-text");
+        let name = create_exclusive(&dir, "", "md", "hello").unwrap();
+        assert_eq!(name, "Untitled-1.md");
+        assert_eq!(fs::read_to_string(dir.join(&name)).unwrap(), "hello");
+        assert_eq!(names_in(&dir), vec!["Untitled-1.md"]);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_new_note_never_writes_over_one_that_is_there() {
+        let dir = scratch("create-taken");
+        fs::write(dir.join("Untitled-1.md"), "mine").unwrap();
+        fs::write(dir.join("Untitled-2.md"), "").unwrap();
+        let name = create_exclusive(&dir, "", "md", "new").unwrap();
+        assert_eq!(name, "Untitled-3.md");
+        assert_eq!(fs::read_to_string(dir.join("Untitled-1.md")).unwrap(), "mine");
+        assert_eq!(fs::read_to_string(dir.join("Untitled-2.md")).unwrap(), "");
+        assert_eq!(fs::read_to_string(dir.join("Untitled-3.md")).unwrap(), "new");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_new_note_lands_in_its_folder_made_on_the_way() {
+        let dir = scratch("create-folder");
+        let name = create_exclusive(&dir, "cos/desks/", "txt", "x").unwrap();
+        assert_eq!(name, "cos/desks/Untitled-1.txt");
+        assert_eq!(fs::read_to_string(dir.join(&name)).unwrap(), "x");
+        assert_eq!(names_in(&dir.join("cos/desks")), vec!["Untitled-1.txt"]);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn new_notes_made_at_once_get_names_of_their_own() {
+        let dir = scratch("create-race");
+        let handles: Vec<_> = (0..8)
+            .map(|i| {
+                let d = dir.clone();
+                std::thread::spawn(move || create_exclusive(&d, "", "md", &format!("note {i}")).unwrap())
+            })
+            .collect();
+        let mut names: Vec<String> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+        names.sort();
+        names.dedup();
+        assert_eq!(names.len(), 8);
+        let mut texts: Vec<String> = names.iter().map(|n| fs::read_to_string(dir.join(n)).unwrap()).collect();
+        texts.sort();
+        assert_eq!(texts, (0..8).map(|i| format!("note {i}")).collect::<Vec<_>>());
+        assert_eq!(names_in(&dir).len(), 8, "no temp file left behind");
         let _ = fs::remove_dir_all(&dir);
     }
 

@@ -900,6 +900,18 @@ pub fn dock_note(app: tauri::AppHandle, window: tauri::Window, name: String, pre
     }
 }
 
+/// ⌘N in a note window: the new note opens in the main window, brought
+/// forward. A new note is a draft until it is typed into, and drafts live in
+/// the main window only — a note window shows a file, by name, and is
+/// restored, focused and docked by that name.
+#[tauri::command]
+pub fn new_note_in_main(app: tauri::AppHandle) {
+    if let Some(main) = app.get_webview_window("main") {
+        raise(&main);
+        tell(&app, "main", "parker://new-note", serde_json::json!(null));
+    }
+}
+
 /// Is the pointer outside the calling window right now? Asked at the end of a
 /// tab drag that nothing took: the answer decides whether the tab was let go
 /// of on the desktop (a window of its own) or merely somewhere in the window

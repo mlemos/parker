@@ -243,9 +243,12 @@ body,
 
 /* Status left of the name, the close button right of it: one side says what the
    note is, the other acts on it.
-   One dot carries every state a tab can be in, by colour — green for your own
-   unsaved typing, amber for text that arrived from outside and you haven't read,
-   red when both are true and only you can decide which survives. */
+   One dot carries every state a tab can be in, in the to-do colours — cyan
+   for your own unsaved typing, amber for text that arrived from outside and you
+   haven't read, purple when both are true and only you can decide which
+   survives, red when something failed or the file is gone, dimmed green when
+   all is saved, and a green ring for a new note with no file yet. The order
+   they win in is workspace.tabStatus's. */
 .tab-dot {
   width: 7px;
   height: 7px;
@@ -270,6 +273,23 @@ body,
 }
 .tab-dot.error {
   background: var(--todo-fail);
+}
+/* A draft: a new note with no file yet. A ring, not a dot — there is
+   nothing on disk for it to be the state of. */
+.tab-dot.draft {
+  /* Drawn from the centre out, so the hole is centred by construction. An
+     inset shadow (or a border) is laid from the edges in, and at 7px — an
+     odd size, on a 2x screen, at any zoom — its two sides rounded to
+     different device pixels and the hole sat off-centre. */
+  /* The ring is a share of the dot (43% of its radius — 1.5px at 7px), not
+     a fixed width, so it keeps its proportions at any zoom; only the
+     half-pixel that smooths the inner edge stays fixed. */
+  --ring: color-mix(in srgb, var(--todo-done) 60%, transparent);
+  background: radial-gradient(
+    circle closest-side,
+    transparent calc(57% - 0.5px),
+    var(--ring) 57%
+  );
 }
 .tab-close {
   margin-left: 4px;

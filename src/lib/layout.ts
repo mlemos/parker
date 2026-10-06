@@ -36,6 +36,10 @@ export interface Buffer {
    *  The note has no text yet, so it can't be edited or saved: a write would
    *  replace the copy in iCloud with nothing. */
   cloud?: "downloading" | "stuck";
+  /** A new note with no file yet — see lib/draft.ts. `folder` is where its
+   *  file will be made ("cos/desks/" or ""), `ext` its extension. Cleared
+   *  when the first save with content creates the file. */
+  draft?: { folder: string; ext: string };
 }
 
 export interface Group {
