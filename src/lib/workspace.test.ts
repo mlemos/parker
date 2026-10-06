@@ -798,6 +798,22 @@ describe("classifyDiskChange", () => {
     const typing = b({ content: "typed a lot", disk: "on disk", dirty: true });
     expect(ws.classifyDiskChange(typing, "on disk")).toBe("nothing");
   });
+
+  // 05/10: the backlog went purple on a keystroke. The file had moved by two
+  // blank lines — the very two the user had just typed. Two identical texts
+  // are one version, not a conflict.
+  it("agrees when the file moved to exactly what the editor holds", () => {
+    const typed = b({ content: "a\n\n\nb", disk: "a\nb", dirty: true });
+    expect(ws.classifyDiskChange(typed, "a\n\n\nb")).toBe("agree");
+  });
+
+  it("agreeing ends an open conflict and leaves the note saved", () => {
+    const open = b({ content: "v2", disk: "v1", dirty: true, conflict: { disk: "v3" } });
+    expect(ws.classifyDiskChange(open, "v2")).toBe("agree");
+    const [after] = ws.agreeWithDisk([open], "a.md", "v2");
+    expect(after).toMatchObject({ disk: "v2", dirty: false });
+    expect(after.conflict).toBeUndefined();
+  });
 });
 
 // The disk baseline lives in React state, so it lags the write that moved it.
