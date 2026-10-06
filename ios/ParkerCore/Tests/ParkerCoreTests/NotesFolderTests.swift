@@ -146,6 +146,34 @@ private func touch(_ folder: NotesFolder, _ name: String, _ text: String = "", m
         #expect(try f.read("Untitled-1.md") == "")
     }
 
+    @Test("a new note is born with its text, and no temp file beside it")
+    func createWithContent() throws {
+        let f = try makeTempFolder()
+        #expect(try f.create(content: "hello") == "Untitled-1.md")
+        #expect(try f.read("Untitled-1.md") == "hello")
+        #expect(try FileManager.default.contentsOfDirectory(atPath: f.url.path) == ["Untitled-1.md"])
+    }
+
+    @Test("a new note never writes over one that is there")
+    func createNeverOverwrites() throws {
+        let f = try makeTempFolder()
+        try f.write("Untitled-1.md", "mine")
+        try f.write("Untitled-2.md", "")
+        #expect(try f.create(content: "new") == "Untitled-3.md")
+        #expect(try f.read("Untitled-1.md") == "mine")
+        #expect(try f.read("Untitled-2.md") == "")
+        #expect(try f.read("Untitled-3.md") == "new")
+    }
+
+    @Test("a new note lands in its folder, made on the way, also through NSFileCoordinator")
+    func createInFolderCoordinated() throws {
+        let f = NotesFolder(url: try makeTempFolder().url, coordinated: true)
+        #expect(try f.create(in: "cos/desks", content: "x") == "cos/desks/Untitled-1.md")
+        #expect(try f.read("cos/desks/Untitled-1.md") == "x")
+        let names = try FileManager.default.contentsOfDirectory(atPath: f.url.appendingPathComponent("cos/desks").path)
+        #expect(names == ["Untitled-1.md"])
+    }
+
     @Test("renames, but never over an existing note")
     func rename() throws {
         let f = try makeTempFolder()

@@ -217,19 +217,56 @@ public struct NotesFolder: Sendable {
         }
     }
 
-    /// create_note: a new empty "Untitled-N.<ext>" — in `folder` ("cos/desks",
-    /// made on the way if need be) when one is given — N being the first
-    /// integer that doesn't collide. Returns the name.
-    public func create(ext: String? = nil, in folder: String? = nil) throws -> String {
+    /// create_note_with: a new note's file, "Untitled-N.<ext>" — in `folder`
+    /// ("cos/desks", made on the way if need be) when one is given — holding
+    /// `content`. Returns the name.
+    ///
+    /// A new note is a draft in the editor until it has something in it; this
+    /// is the moment it becomes a file, so an empty Untitled is never left on
+    /// disk. Never writes over a file that is there, not even one that appeared
+    /// a moment ago from the Mac through iCloud: the name is claimed by a hard
+    /// link, which fails if it exists, to a temp file already written in full —
+    /// so the note appears with its text, never empty and then filled. Where a
+    /// volume has no hard links, an exclusive create claims it instead.
+    public func create(ext: String? = nil, in folder: String? = nil, content: String = "") throws -> String {
         let ext = Self.noteExt(ext)
         let prefix = try Self.folderPrefix(folder)
+        let dir = try path("\(prefix)Untitled-1.\(ext)").deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        var made: String?
+        try coordinateWriting(dir) { dir in
+            made = try Self.claimName(in: dir, prefix: prefix, ext: ext, content: content)
+        }
+        guard let made else { throw NotesFolderError.noFreeName }
+        return made
+    }
+
+    static func claimName(in dir: URL, prefix: String, ext: String, content: String) throws -> String {
+        let tmp = dir.appendingPathComponent(".parker-new-\(UUID().uuidString)\(tempSuffix)", isDirectory: false)
+        let bytes = Data(content.utf8)
+        try bytes.write(to: tmp, options: [])
+        defer { unlink(tmp.path) }
+        var links = true
         for n in 1..<100_000 {
-            let name = "\(prefix)Untitled-\(n).\(ext)"
-            let target = try path(name)
-            if !FileManager.default.fileExists(atPath: target.path) {
-                try write(name, "")
-                return name
+            let file = "Untitled-\(n).\(ext)"
+            let target = dir.appendingPathComponent(file, isDirectory: false)
+            if links {
+                if Darwin.link(tmp.path, target.path) == 0 { return prefix + file }
+                if errno == EEXIST { continue }
+                links = false
             }
+            let fd = open(target.path, O_CREAT | O_EXCL | O_WRONLY, 0o644)
+            if fd < 0 {
+                if errno == EEXIST { continue }
+                throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
+            }
+            let wrote = bytes.withUnsafeBytes { Darwin.write(fd, $0.baseAddress, bytes.count) }
+            close(fd)
+            guard wrote == bytes.count else {
+                unlink(target.path)
+                throw NSError(domain: NSPOSIXErrorDomain, code: Int(EIO))
+            }
+            return prefix + file
         }
         throw NotesFolderError.noFreeName
     }

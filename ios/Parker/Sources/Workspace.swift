@@ -244,10 +244,18 @@ final class Workspace {
         do { try folder.write(name, text) } catch { lastError = error.localizedDescription }
     }
 
-    /// A new note — inside `scope` ("cos/desks/") when one is given.
-    func create(in scope: String = "") -> String? {
+    /// A draft's file, made with its first text — inside `scope`
+    /// ("cos/desks/") when one is given. Returns the note's name.
+    func materialize(in scope: String, text: String) -> String? {
         guard let folder else { return nil }
-        do { let name = try folder.create(in: scope.isEmpty ? nil : scope); refresh(); return name } catch { lastError = error.localizedDescription; return nil }
+        do {
+            let name = try folder.create(in: scope.isEmpty ? nil : scope, content: text)
+            refresh()
+            return name
+        } catch {
+            lastError = error.localizedDescription
+            return nil
+        }
     }
 
     func search(_ query: String) -> [NoteHit] {
@@ -375,6 +383,7 @@ final class Workspace {
         switch ref {
         case .note(let name): return await load(name)
         case .external(let f): return await Task.detached(priority: .userInitiated) { [self] in await self.read(external: f) }.value
+        case .draft: return ""
         }
     }
 
@@ -382,6 +391,7 @@ final class Workspace {
         switch ref {
         case .note(let name): return read(name)
         case .external(let f): return read(external: f)
+        case .draft: return ""
         }
     }
 
@@ -389,6 +399,8 @@ final class Workspace {
         switch ref {
         case .note(let name): write(name, text)
         case .external(let f): write(external: f, text)
+        // A draft is written by becoming a note (NoteView.save), never here.
+        case .draft: break
         }
     }
 
