@@ -23,6 +23,7 @@ import type { TextWidth } from "../lib/text-width";
 import { todoHighlighter, todoKeymap } from "../lib/todo";
 import { setActiveView } from "../lib/latency";
 import { postCursor, postViewport } from "../lib/preview-sync";
+import { wasRenamed } from "../lib/renames";
 import type { ThemeDef } from "../lib/themes";
 
 /**
@@ -244,6 +245,15 @@ export function Editor({
   useEffect(() => {
     const v = view.current;
     if (!v || !tab || loaded.current === tab) return;
+
+    // The same note under a new name — a draft that just became a file, or a
+    // rename. Nothing to load: the text, the cursor, the scroll and ⌘Z all
+    // carry on, as they would for the user, who changed nothing.
+    if (loaded.current && wasRenamed(loaded.current, tab)) {
+      loaded.current = tab;
+      v.dispatch({ effects: reconfigure() });
+      return;
+    }
 
     if (loaded.current) {
       states.current.set(loaded.current, v.state);

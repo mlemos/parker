@@ -119,8 +119,12 @@ export const api = {
   writeNote: (name: string, content: string, expected: string[]) =>
     invoke<WriteOutcome>("write_note", { name, content, expected }),
   /** A new empty note — inside `folder` ("cos/desks") when given. */
-  createNote: (ext?: string, folder?: string) =>
-    invoke<string>("create_note", { ext, folder: folder || null }),
+  /** A draft's first save: its file, "Untitled-N.<ext>" in `folder`, made
+   *  with `content` in it — never over a file that is there. Returns its name. */
+  createNoteWith: (content: string, ext?: string, folder?: string) =>
+    invoke<string>("create_note_with", { content, ext, folder: folder || null }),
+  /** ⌘N in a note window: the main window comes forward with a new note. */
+  newNoteInMain: () => invoke<void>("new_note_in_main"),
   /** Every folder in the notes folder, any depth, "cos/desks" style — the
    *  empty ones too. */
   listFolders: () => invoke<string[]>("list_folders"),

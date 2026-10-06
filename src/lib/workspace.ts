@@ -268,8 +268,9 @@ export function setError(
  *   unseen    text arrived from outside and hasn't been read
  *   dirty     your own typing, not yet written
  *   saved     on disk, unchanged
+ *   draft     a new note with nothing in it, so no file yet
  */
-export type TabStatus = "error" | "conflict" | "unseen" | "dirty" | "saved";
+export type TabStatus = "error" | "conflict" | "unseen" | "dirty" | "saved" | "draft";
 
 export function tabStatus(buffer: Buffer | undefined): TabStatus {
   if (!buffer) return "saved";
@@ -277,6 +278,7 @@ export function tabStatus(buffer: Buffer | undefined): TabStatus {
   if (buffer.conflict) return "conflict";
   if (buffer.changed?.length) return "unseen";
   if (buffer.dirty) return "dirty";
+  if (buffer.draft) return "draft";
   return "saved";
 }
 
@@ -623,4 +625,22 @@ export function renameNote(ws: Workspace, from: string, to: string): Workspace {
     layout: rename(ws.layout),
     buffers: ws.buffers.map((b) => (b.name === from ? { ...b, name: to } : b)),
   };
+}
+
+/** A draft's first save made its file: the draft takes the file's name in
+ *  every pane, and `written` is now what the file holds. Text typed while the
+ *  file was being made stays, unsaved. The buffers half is separate so App
+ *  can apply it to the latest state rather than a snapshot. */
+export function materialize(ws: Workspace, draftId: string, name: string, written: string): Workspace {
+  if (!ws.buffers.some((b) => b.name === draftId)) return ws;
+  const renamed = renameNote(ws, draftId, name);
+  return { ...renamed, buffers: materializeBuffers(ws.buffers, draftId, name, written) };
+}
+
+export function materializeBuffers(buffers: Buffer[], draftId: string, name: string, written: string): Buffer[] {
+  return buffers.map((b) =>
+    b.name === draftId
+      ? { ...b, name, disk: written, dirty: b.content !== written, draft: undefined, error: undefined }
+      : b
+  );
 }

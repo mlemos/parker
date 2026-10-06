@@ -121,3 +121,37 @@ describe("text replaced from outside", () => {
     expect(v.state.selection.main.head).toBe(3);
   });
 });
+
+describe("a note that changes name keeps its place", () => {
+  const props = {
+    focused: true,
+    theme: themeById(),
+    gutterOn: false,
+    wrapOn: true,
+    width: 100 as const,
+    langExt: [],
+    changed: undefined,
+    onChange: () => {},
+  };
+
+  it("a draft that becomes a file keeps the cursor where it was", async () => {
+    const { getActiveView } = await import("../lib/latency.ts");
+    const { recordRename } = await import("../lib/renames.ts");
+    const { rerender } = render(<Editor {...props} tab="draft:91.md" tabs={["draft:91.md"]} content="hello" />);
+    const v = getActiveView()!;
+    act(() => v.dispatch({ selection: { anchor: 3 } }));
+    recordRename("draft:91.md", "Untitled-1.md");
+    rerender(<Editor {...props} tab="Untitled-1.md" tabs={["Untitled-1.md"]} content="hello" />);
+    expect(v.state.doc.toString()).toBe("hello");
+    expect(v.state.selection.main.head).toBe(3);
+  });
+
+  it("another note with the same text is still another note", async () => {
+    const { getActiveView } = await import("../lib/latency.ts");
+    const { rerender } = render(<Editor {...props} tab="a.md" tabs={["a.md"]} content="same" />);
+    const v = getActiveView()!;
+    act(() => v.dispatch({ selection: { anchor: 3 } }));
+    rerender(<Editor {...props} tab="b.md" tabs={["b.md"]} content="same" />);
+    expect(v.state.selection.main.head).toBe(0);
+  });
+});

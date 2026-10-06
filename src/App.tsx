@@ -18,8 +18,10 @@ import { changedLines } from "./lib/linediff";
 import { changeRecord, whitespaceOnly } from "./lib/external-change";
 import { prettyPath } from "./lib/path";
 import { displayName, droppedExternals, isExternal, renamedIn } from "./lib/external";
-import { isFirstLaunch } from "./lib/session";
+import { isFirstLaunch, sessionOf } from "./lib/session";
 import { guardedSave } from "./lib/guarded-save";
+import { draftBuffer, isDraft, newDraftId } from "./lib/draft";
+import { currentName, recordRename } from "./lib/renames";
 import { PathLabel } from "./components/PathLabel";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import { alpha, CODE_WASH, HIGHLIGHT_WASH } from "./lib/palette";
@@ -277,14 +279,74 @@ export default function App({
   const focusedActive = (s: typeof stateRef.current): string | null =>
     ws.activeName(s);
 
-  const flushSave = useCallback(async (name: string, retried = false) => {
+  // Drafts whose file is being made, and the name it got (null on failure).
+  const creating = useRef<Map<string, Promise<string | null>>>(new Map());
+
+  // A draft's first save: make its file with what it holds, then give the
+  // draft the file's name everywhere. The write is recorded before the rename
+  // lands, so the watcher's news of the new file reads as Parker's own.
+  const materializeDraft = (buf: Buffer): Promise<string | null> => {
+    const id = buf.name;
+    const written = buf.content;
+    const made = (async () => {
+      try {
+        const real = await api.createNoteWith(written, buf.draft?.ext, buf.draft?.folder);
+        lastWrite.current.set(real, { text: written, seq: 1 });
+        recordRename(id, real);
+        // Applied to the latest state, not a snapshot: keystrokes typed while
+        // the file was being made are in it, and stay — unsaved.
+        setBuffers((prev) => ws.materializeBuffers(prev, id, real, written));
+        setLayout((l) => ws.renameNote({ buffers: [], layout: l, focusedId: "" }, id, real).layout);
+        // And now, for whatever reads the ref before React renders — a quit
+        // saving the session, above all.
+        const s = stateRef.current;
+        const next = ws.materialize(s, id, real, written);
+        stateRef.current = { ...s, buffers: next.buffers, layout: next.layout };
+        return real;
+      } catch (e) {
+        console.error("create failed", id, e);
+        setBuffers((prev) =>
+          ws.setError(prev, id, `Could not save: ${e instanceof Error ? e.message : e}`)
+        );
+        return null;
+      } finally {
+        creating.current.delete(id);
+      }
+    })();
+    creating.current.set(id, made);
+    return made;
+  };
+
+  const flushSave = useCallback(async (asked: string, retried = false): Promise<void> => {
+    // A draft may have become a file since this name was handed out.
+    const name = currentName(asked);
     const timers = saveTimers.current;
-    const pending = timers.get(name);
-    if (pending) {
-      clearTimeout(pending);
-      timers.delete(name);
+    for (const n of new Set([asked, name])) {
+      const pending = timers.get(n);
+      if (pending) {
+        clearTimeout(pending);
+        timers.delete(n);
+      }
+    }
+    // Its file is being made: wait for it, then save whatever came after.
+    const making = creating.current.get(name);
+    if (making) {
+      const real = await making;
+      if (real && stateRef.current.buffers.find((b) => b.name === real)?.dirty) await flushSave(real);
+      return;
     }
     const buf = stateRef.current.buffers.find((b) => b.name === name);
+    // A draft gets its file with its first content — and none while it is
+    // empty, which is the whole point: nothing typed, nothing on disk.
+    if (buf?.draft) {
+      if (buf.content.trim() === "") {
+        if (buf.dirty) setBuffers((prev) => ws.markSaved(prev, name, buf.content));
+        return;
+      }
+      const real = await materializeDraft(buf);
+      if (real && stateRef.current.buffers.find((b) => b.name === real)?.dirty) await flushSave(real);
+      return;
+    }
     // A note with an open conflict is not autosaved: writing would answer the
     // question on the user's behalf, in favour of whoever was typing — which is
     // the silence this whole feature exists to break. Nor is a note whose file
@@ -353,17 +415,17 @@ export default function App({
   // leaves a note with an open conflict alone, which a blanket write answered
   // on the user's behalf.
   const flushAll = useCallback(async () => {
-    const s = stateRef.current;
-    await Promise.all(s.buffers.filter((b) => b.dirty).map((b) => flushSave(b.name)));
+    await Promise.all(
+      stateRef.current.buffers.filter((b) => b.dirty).map((b) => flushSave(b.name))
+    );
     if (!sessionRestored.current) return; // never overwrite a session we couldn't read
+    // Read after the saves: a draft they gave a file is in the session by
+    // its new name. One still empty is not in it at all.
+    const s = stateRef.current;
     await api
       .saveSession({
-        open: s.buffers.map((b) => b.name),
-        active: focusedActive(s),
-        theme: s.themeId,
+        ...sessionOf(s, focusedActive(s)),
         theme_bg: themeById(s.themeId).ui.editorBg,
-        layout: s.layout,
-        focused: s.focusedId,
       })
       .catch(() => {});
   }, [flushSave]);
@@ -374,12 +436,8 @@ export default function App({
       const s = stateRef.current;
       api
         .saveSession({
-          open: s.buffers.map((b) => b.name),
-          active: focusedActive(s),
-          theme: s.themeId,
+          ...sessionOf(s, focusedActive(s)),
           theme_bg: themeById(s.themeId).ui.editorBg,
-          layout: s.layout,
-          focused: s.focusedId,
         })
         .catch((e) => console.error("session save failed", e));
     }, SESSION_MS);
@@ -447,8 +505,8 @@ export default function App({
           const text = await readText(name).catch(() => "");
           restored.push({ name, content: text, disk: text, dirty: false });
         } else if (restored.length === 0 && isFirstLaunch(session)) {
-          const name = await api.createNote("md");
-          restored.push({ name, content: "", disk: "", dirty: false });
+          // A draft: left empty, it never becomes a file.
+          restored.push(draftBuffer(newDraftId()));
         }
         const active =
           session.active && restored.some((b) => b.name === session.active)
@@ -514,7 +572,7 @@ export default function App({
   }, [openKey, focusedId, layout, themeId, scheduleSessionSave]);
 
   useEffect(() => {
-    const names = buffers.map((b) => b.name).filter((n) => !isExternal(n));
+    const names = buffers.map((b) => b.name).filter((n) => !isExternal(n) && !isDraft(n));
     if (!names.length) return setLinks({});
     api.noteLinks(names).then(setLinks).catch(() => setLinks({}));
     // openKey is the list of names; the buffers' contents don't matter here.
@@ -759,7 +817,9 @@ export default function App({
 
   // Drop buffers no longer referenced by any group (after a close).
   const onChange = useCallback(
-    (name: string, value: string) => {
+    (asked: string, value: string) => {
+      // The editor may still know a draft by the id it had a moment ago.
+      const name = currentName(asked);
       setBuffers((prev) => ws.editBuffer(prev, name, value));
       scheduleSave(name);
     },
@@ -889,19 +949,16 @@ export default function App({
   // folder it is showing.
   const newTab = useCallback(
     async (groupId?: string, folder?: string) => {
-      const gid = groupId ?? stateRef.current.focusedId;
-      try {
-        const name = await api.createNote("md", folder);
-        if (single) {
-          await replaceNote(name);
-          return;
-        }
-        apply((w) => ws.openNote(w, gid, { name, content: "", disk: "", dirty: false }));
-      } catch (e) {
-        console.error("new tab failed", e);
+      // A new note is a draft: no file until it is typed into (lib/draft.ts).
+      // Drafts live in the main window, so a note window hands ⌘N over.
+      if (single) {
+        await api.newNoteInMain().catch((e) => console.error("new note failed", e));
+        return;
       }
+      const gid = groupId ?? stateRef.current.focusedId;
+      apply((w) => ws.openNote(w, gid, draftBuffer(newDraftId(), folder ?? "")));
     },
-    [apply, single, replaceNote]
+    [apply, single]
   );
 
   const closeTab = useCallback(
@@ -910,9 +967,11 @@ export default function App({
         await closeWindow();
         return;
       }
-      const name = noteOf(id);
-      await flushSave(name);
-      const after = apply((w) => ws.closeTab(w, groupId, id));
+      await flushSave(noteOf(id));
+      // That save may have given a draft its file, and the tab its name.
+      const name = currentName(noteOf(id));
+      const live = isPreviewTab(id) ? previewTab(name) : name;
+      const after = apply((w) => ws.closeTab(w, groupId, live));
       // The echo record outlives the buffer otherwise, holding a copy of a note
       // nothing has open any more.
       if (!after.buffers.some((b) => b.name === name)) lastWrite.current.delete(name);
@@ -934,8 +993,11 @@ export default function App({
       const g = findGroup(s.layout, groupId ?? s.focusedId) ?? firstGroup(s.layout);
       const id = tabId ?? g.active;
       if (!id) return;
-      const name = noteOf(id);
-      await flushSave(name);
+      await flushSave(noteOf(id));
+      // A draft with text in it has a file now; an empty one has nothing a
+      // window could show.
+      const name = currentName(noteOf(id));
+      if (isDraft(name)) return;
       try {
         await api.openNoteWindow(name, isPreviewTab(id), atCursor);
       } catch (e) {
@@ -1159,12 +1221,17 @@ export default function App({
       if (s.buffers.some((b) => b.name === e.payload)) openNote(e.payload);
     });
     const p3 = thisWindow.listen("parker://pop-out", () => popOut());
+    // ⌘N in a note window: the new note is made here (see newTab).
+    const p4 = thisWindow.listen("parker://new-note", () => {
+      if (!single) newTab();
+    });
     return () => {
       p1.then((un) => un());
       p2.then((un) => un());
       p3.then((un) => un());
+      p4.then((un) => un());
     };
-  }, [single, openNote, popOut, apply]);
+  }, [single, openNote, popOut, apply, newTab]);
 
   const openPicker = useCallback(() => setPickerOpen(true), []);
 
@@ -1230,14 +1297,15 @@ export default function App({
     const n = id ? noteOf(id) : null;
     // A file from outside the folder keeps its name: Parker edits it where it
     // is and does nothing else to it.
-    if (n && !isExternal(n)) setRenamingName(n);
+    // Nor does a draft have one yet: it gets its name when it gets a file.
+    if (n && !isExternal(n) && !isDraft(n)) setRenamingName(n);
   }, []);
 
   const commitRename = useCallback(
     async (oldName: string, raw: string) => {
       setRenamingName(null);
       const typed = raw.trim();
-      if (!typed || isExternal(oldName)) return;
+      if (!typed || isExternal(oldName) || isDraft(oldName)) return;
       // A bare filename stays in the note's folder; a slash moves it.
       const newName = renamedIn(oldName, typed);
       if (newName === oldName) return;
@@ -1827,6 +1895,10 @@ export default function App({
           <span className="status-file" title={links[activeName]}>
             {activeName} → {prettyPath(links[activeName], homeDir)}
           </span>
+        ) : activeBuf?.draft ? (
+          <span className="status-file" title="A new note becomes a file when you type in it">
+            {activeBuf.draft.folder}Untitled · not saved yet
+          </span>
         ) : (
           <span className="status-file">{activeName ?? ""}</span>
         )}
@@ -1869,7 +1941,7 @@ export default function App({
 
       {pickerOpen && (
         <NotePicker
-          openNames={buffers.map((b) => b.name)}
+          openNames={buffers.map((b) => b.name).filter((n) => !isDraft(n))}
           onOpen={(name) => {
             setPickerOpen(false);
             openNote(name);

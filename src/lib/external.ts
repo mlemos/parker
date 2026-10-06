@@ -8,13 +8,17 @@
 // distinction. Everything in workspace.ts that moves names between panes
 // works on either without knowing.
 
+import { isDraft } from "./draft";
+
 /** Is this name a path to a file outside the notes folder? */
 export function isExternal(name: string | null | undefined): boolean {
   return !!name && name.startsWith("/");
 }
 
-/** What a tab shows: the filename, whatever folder it is in. */
+/** What a tab shows: the filename, whatever folder it is in. A draft has no
+ *  file yet, and no filename: it is "Untitled". */
 export function displayName(name: string): string {
+  if (isDraft(name)) return "Untitled";
   const i = name.lastIndexOf("/");
   return i === -1 ? name : name.slice(i + 1);
 }
