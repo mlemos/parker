@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 
 use tauri::Emitter;
 
-use crate::{atomic_write, note_name_of, show_window};
+use crate::{guarded_write, note_name_of, show_window, WriteOutcome};
 
 #[derive(Default)]
 pub struct Externals {
@@ -166,7 +166,15 @@ fn build_watcher(
     use notify::EventKind;
     let handle = app.clone();
     match notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
-        let Ok(event) = res else { return };
+        // As for the notes folder: lost events mean every open file is
+        // checked against the disk.
+        let event = match res {
+            Ok(event) if !event.need_rescan() => event,
+            _ => {
+                let _ = handle.emit("parker://notes-rescan", ());
+                return;
+            }
+        };
         if !matches!(
             event.kind,
             EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_)
@@ -252,13 +260,19 @@ pub async fn read_file(app: tauri::AppHandle, path: String) -> Result<String, St
 }
 
 #[tauri::command]
-pub async fn write_file(app: tauri::AppHandle, path: String, content: String) -> Result<(), String> {
+pub async fn write_file(
+    app: tauri::AppHandle,
+    path: String,
+    content: String,
+    expected: Option<Vec<String>>,
+) -> Result<WriteOutcome, String> {
     let p = state(&app)
         .0
         .lock()
         .map_err(|_| "external files: poisoned lock".to_string())?
         .check(&path)?;
-    atomic_write(&p, &content)
+    // The same guard as a note's: never over an edit Parker did not hear of.
+    guarded_write(&p, &content, expected.as_deref())
 }
 
 /// The webview closed the last tab showing this file.

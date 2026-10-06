@@ -19,6 +19,7 @@ import { changeRecord, whitespaceOnly } from "./lib/external-change";
 import { prettyPath } from "./lib/path";
 import { displayName, droppedExternals, isExternal, renamedIn } from "./lib/external";
 import { isFirstLaunch } from "./lib/session";
+import { guardedSave } from "./lib/guarded-save";
 import { PathLabel } from "./components/PathLabel";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import { alpha, CODE_WASH, HIGHLIGHT_WASH } from "./lib/palette";
@@ -104,8 +105,12 @@ const firstRunBackend: FirstRunBackend = {
   finish: api.finishFirstRun,
 };
 
-const writeText = (name: string, content: string) =>
-  isExternal(name) ? api.writeFile(name, content) : api.writeNote(name, content);
+/** A guarded save: written only if the file still holds one of `expected`
+ *  — see guarded_write in Rust. */
+const writeText = (name: string, content: string, expected: string[]) =>
+  isExternal(name)
+    ? api.writeFile(name, content, expected)
+    : api.writeNote(name, content, expected);
 
 /** A note window: the editor locked to one note. Everything the main window
  *  does with tabs, panes and the session is switched off; the window's own
@@ -272,7 +277,7 @@ export default function App({
   const focusedActive = (s: typeof stateRef.current): string | null =>
     ws.activeName(s);
 
-  const flushSave = useCallback(async (name: string) => {
+  const flushSave = useCallback(async (name: string, retried = false) => {
     const timers = saveTimers.current;
     const pending = timers.get(name);
     if (pending) {
@@ -285,22 +290,49 @@ export default function App({
     // the silence this whole feature exists to break. Nor is a note whose file
     // is gone: the write would bring back what the user just threw away.
     if (!ws.canAutosave(buf)) return;
-    try {
-      const written = buf.content;
-      // Recorded before the write, not after it returns: the watcher can hear
-      // of the new file before the write's answer is back, and a change
-      // nobody had recorded yet read as somebody else's edit.
-      const seq = (lastWrite.current.get(name)?.seq ?? 0) + 1;
-      lastWrite.current.set(name, { text: written, seq });
-      await writeText(name, written);
-      setBuffers((prev) => ws.setError(ws.markSaved(prev, name, written), name, undefined));
-    } catch (e) {
-      // Until now this only reached the console: a note that could not be
-      // written looked exactly like one that had been.
-      console.error("save failed", name, e);
-      setBuffers((prev) =>
-        ws.setError(prev, name, `Could not save: ${e instanceof Error ? e.message : e}`)
-      );
+    const before = lastWrite.current.get(name);
+    const result = await guardedSave(buf, before, {
+      write: (content, expected) => writeText(name, content, expected),
+      read: () => readText(name),
+      record: (own) => (own ? lastWrite.current.set(name, own) : lastWrite.current.delete(name)),
+      wait: (ms) => new Promise((r) => setTimeout(r, ms)),
+    });
+    switch (result.kind) {
+      case "saved":
+        setBuffers((prev) => ws.setError(ws.markSaved(prev, name, result.written), name, undefined));
+        return;
+      case "conflict":
+        // The file moved and the watcher never said so. The save is where it
+        // is caught: two versions, and the user chooses — as if the watcher
+        // had spoken.
+        api
+          .logChange(
+            changeRecord({
+              name,
+              verdict: "conflict-on-save",
+              baseline: buf.disk.length,
+              disk: result.disk.length,
+              buffer: buf.content.length,
+              lines: changedLines(buf.disk, result.disk),
+              whitespaceOnly: whitespaceOnly(buf.disk, result.disk),
+              ownSeq: before?.seq ?? 0,
+              ownMatches: before?.text === result.disk,
+            })
+          )
+          .catch(() => {});
+        setBuffers((prev) => ws.markConflict(prev, name, result.disk));
+        return;
+      case "gone":
+        setBuffers((prev) => ws.setGone(prev, name, true));
+        return;
+      case "retry":
+        if (!retried) await flushSave(name, true);
+        return;
+      case "error":
+        // Until now this only reached the console: a note that could not be
+        // written looked exactly like one that had been.
+        console.error("save failed", name, result.message);
+        setBuffers((prev) => ws.setError(prev, name, `Could not save: ${result.message}`));
     }
   }, []);
 
@@ -1590,8 +1622,7 @@ export default function App({
         ws.reloadBuffer(prev, name, disk, changedLines(now.content, disk))
       );
     };
-    const p = listen<string>("parker://note-changed", (e) => {
-      const name = e.payload;
+    const soon = (name: string) => {
       if (!stateRef.current.buffers.some((b) => b.name === name)) return;
       const existing = timers.get(name);
       if (existing) clearTimeout(existing);
@@ -1602,9 +1633,31 @@ export default function App({
           reload(name);
         }, 150)
       );
-    });
+    };
+    // Every open note, checked against its file. A note that did not change
+    // costs a read and nothing else (classifyDiskChange: "nothing").
+    const checkAll = () => {
+      for (const b of stateRef.current.buffers) if (!b.cloud) soon(b.name);
+    };
+    const p = listen<string>("parker://note-changed", (e) => soon(e.payload));
+    // The watcher lost events: what it did not say may still have happened.
+    const r = listen("parker://notes-rescan", () => checkAll());
+    // And whenever the window comes back to the user — after sleep, after
+    // another app, after the iPhone — the open notes are checked anyway. The
+    // watcher is how changes arrive promptly; it is not trusted to be how
+    // they arrive at all. At most every 2 s, so focus flicker costs nothing.
+    let lastCheck = 0;
+    const onFocus = () => {
+      const now = Date.now();
+      if (now - lastCheck < 2000) return;
+      lastCheck = now;
+      checkAll();
+    };
+    window.addEventListener("focus", onFocus);
     return () => {
       p.then((un) => un());
+      r.then((un) => un());
+      window.removeEventListener("focus", onFocus);
       for (const id of timers.values()) clearTimeout(id);
     };
   }, []);
