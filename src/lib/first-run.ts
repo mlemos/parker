@@ -94,8 +94,14 @@ const SERVICES = ["google-drive", "dropbox", "onedrive", "box"];
 export function iphoneLine(f: FolderInfo, icloud: ICloudState, suggested: boolean): string {
   const s = f.sync.service;
   if (suggested) return copy(s === "icloud" && icloud.drive ? "line.other.suggested" : "line.other.suggestedOff");
-  if (s === "icloud") return copy("line.other.icloud", { folder: filesAppPath(f) });
+  // iCloud Drive off on this Mac: the folder isn't syncing, so pointing the
+  // iPhone at it would show notes that never change.
+  if (s === "icloud") return copy(icloud.drive ? "line.other.icloud" : "line.other.icloudDriveOff", { folder: filesAppPath(f) });
   if (SERVICES.includes(s)) return copy("line.other.service", { service: f.sync.label, folder: f.display });
+  // A service Parker has no name for (pCloud, Sync.com…): it syncs, so "stays
+  // on this Mac" would be false; whether the iPhone can reach it depends on
+  // the service having an iPhone app.
+  if (s === "cloud") return copy("line.other.anyService", { service: f.sync.label, folder: f.display });
   if (s === "local") return copy("line.other.here");
   return copy("line.other.unknown");
 }
@@ -104,7 +110,7 @@ export function iphoneLine(f: FolderInfo, icloud: ICloudState, suggested: boolea
  *  iPhone — only when the iPhone can reach it at all (in iCloud Drive, or in
  *  a service with an iPhone app); otherwise nothing. */
 export function settingsIphoneLine(f: FolderInfo, icloud: ICloudState): string | null {
-  const reachable = (f.sync.service === "icloud" && icloud.drive) || SERVICES.includes(f.sync.service);
+  const reachable = (f.sync.service === "icloud" && icloud.drive) || SERVICES.includes(f.sync.service) || f.sync.service === "cloud";
   if (!reachable) return null;
   const suggested = /\/Documents\/Parker( \(Dev\))?$/.test(f.path) && f.sync.service === "icloud";
   return iphoneLine(f, icloud, suggested);

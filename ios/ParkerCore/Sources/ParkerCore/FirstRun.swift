@@ -9,10 +9,18 @@ import Foundation
 /// Which service keeps a folder in sync, from where iOS says it lives.
 public enum SyncKind: Equatable {
     case icloud, dropbox, googleDrive, oneDrive, box, onThisPhone, unknown
+    /// Another app's cloud — Dropbox, Google Drive, Box… — that iOS won't
+    /// name. Today's File Provider apps all keep their folders under
+    /// Library/CloudStorage/<a UUID>, and neither the folder above nor
+    /// NSFileProviderManager tells another app whose it is (checked 05/10 on a
+    /// real Dropbox: the root is named only by its UUID, and asking the
+    /// manager is refused). It syncs; which service, only the user knows.
+    case cloudService
 
     /// A picked folder's service, from its path: iCloud Drive lives under
-    /// "Mobile Documents"; the File Provider apps keep theirs under their own
-    /// bundle ids; the app's own Documents is On My iPhone.
+    /// "Mobile Documents"; other clouds under Library/CloudStorage (or, in
+    /// older apps, their own bundle ids); the app's own Documents is On My
+    /// iPhone.
     public static func of(path: String) -> SyncKind {
         let p = path.lowercased()
         if p.contains("/mobile documents/") { return .icloud }
@@ -20,6 +28,7 @@ public enum SyncKind: Equatable {
         if p.contains("com.google.drive") || p.contains("/google drive/") { return .googleDrive }
         if p.contains("onedrive") { return .oneDrive }
         if p.contains("net.box") || p.contains("/box/") { return .box }
+        if p.contains("/library/cloudstorage/") { return .cloudService }
         if p.contains("fileprovider.localstorage") || p.contains("/data/application/") { return .onThisPhone }
         return .unknown
     }
@@ -32,8 +41,22 @@ public enum SyncKind: Equatable {
         case .oneDrive: return "OneDrive"
         case .box: return "Box"
         case .onThisPhone: return "On My iPhone"
-        case .unknown: return ""
+        case .cloudService, .unknown: return ""
         }
+    }
+}
+
+/// A picked folder as the screens name it. In iCloud Drive the whole way
+/// down — "iCloud Drive › Documents › Notes", as the Mac names it too — so
+/// "choose this folder" says which one; elsewhere iOS gives nothing to name
+/// the place by, and the folder's own name is all there is.
+public enum FolderDisplay {
+    public static func of(path: String, name: String) -> String {
+        let marker = "/Mobile Documents/com~apple~CloudDocs"
+        guard let r = path.range(of: marker) else { return name }
+        var parts = path[r.upperBound...].split(separator: "/").map(String.init)
+        if !parts.isEmpty { parts[parts.count - 1] = name }
+        return (["iCloud Drive"] + parts).joined(separator: " › ")
     }
 }
 
@@ -165,6 +188,7 @@ public enum FirstRunText {
         case .icloud: return driveOn ? (.ok, t("line.sync.icloud")) : (.warn, t("line.sync.icloudDriveOff"))
         case .onThisPhone: return (.warn, t(driveOn ? "line.sync.here" : "line.sync.hereDriveOff"))
         case .unknown: return (.unknown, t("line.sync.unknown"))
+        case .cloudService: return (.ok, t("line.sync.anyService"))
         default: return (.ok, t("line.sync.service", ["service": f.sync.label]))
         }
     }
@@ -182,6 +206,7 @@ public enum FirstRunText {
         switch f.sync {
         case .icloud: return t("line.other.icloud", ["folder": display])
         case .dropbox, .googleDrive, .oneDrive, .box: return t("line.other.service", ["service": f.sync.label, "folder": display])
+        case .cloudService: return t("line.other.anyService", ["folder": display])
         case .onThisPhone: return t("line.other.here")
         case .unknown: return t("line.other.unknown")
         }

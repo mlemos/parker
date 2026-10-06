@@ -208,6 +208,56 @@
     "other": 0,
     "git": false,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "Not created yet",
+   "state": "New. I'll create it when you continue.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "None yet",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": false,
+    "notes": 0,
+    "other": 0,
+    "git": false,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "Not created yet",
+   "state": "New. I'll create it when you continue.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "None yet",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": false,
+    "notes": 0,
+    "other": 0,
+    "git": false,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -508,6 +558,56 @@
     "other": 0,
     "git": false,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "Empty",
+   "state": "Empty. I'll add a Welcome note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 0,
+    "git": false,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "Empty",
+   "state": "Empty. I'll add a Welcome note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 0,
+    "git": false,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -808,6 +908,56 @@
     "other": 0,
     "git": true,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "Empty",
+   "state": "Empty. I'll add a Welcome note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 0,
+    "git": true,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "Empty",
+   "state": "Empty. I'll add a Welcome note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 0,
+    "git": true,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -1108,6 +1258,56 @@
     "other": 0,
     "git": true,
     "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "Empty",
+   "state": "Empty. I'll add a Welcome note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 0,
+    "git": true,
+    "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "Empty",
+   "state": "Empty. I'll add a Welcome note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 0,
+    "git": true,
+    "gitRemote": "you/notes",
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -1408,6 +1608,56 @@
     "other": 3,
     "git": false,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "0 notes · 3 other files",
+   "state": "3 files, no notes yet. I leave those files alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 3,
+    "git": false,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "0 notes · 3 other files",
+   "state": "3 files, no notes yet. I leave those files alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 3,
+    "git": false,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -1708,6 +1958,56 @@
     "other": 3,
     "git": true,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "0 notes · 3 other files",
+   "state": "3 files, no notes yet. I leave those files alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 3,
+    "git": true,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "0 notes · 3 other files",
+   "state": "3 files, no notes yet. I leave those files alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 3,
+    "git": true,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -2008,6 +2308,56 @@
     "other": 3,
     "git": true,
     "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "0 notes · 3 other files",
+   "state": "3 files, no notes yet. I leave those files alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 3,
+    "git": true,
+    "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "0 notes · 3 other files",
+   "state": "3 files, no notes yet. I leave those files alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 0,
+    "other": 3,
+    "git": true,
+    "gitRemote": "you/notes",
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -2308,6 +2658,56 @@
     "other": 0,
     "git": false,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "1 note",
+   "state": "1 note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 1,
+    "other": 0,
+    "git": false,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "1 note",
+   "state": "1 note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 1,
+    "other": 0,
+    "git": false,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -2608,6 +3008,56 @@
     "other": 0,
     "git": true,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "1 note",
+   "state": "1 note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 1,
+    "other": 0,
+    "git": true,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "1 note",
+   "state": "1 note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 1,
+    "other": 0,
+    "git": true,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -2908,6 +3358,56 @@
     "other": 0,
     "git": true,
     "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "1 note",
+   "state": "1 note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 1,
+    "other": 0,
+    "git": true,
+    "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "1 note",
+   "state": "1 note.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 1,
+    "other": 0,
+    "git": true,
+    "gitRemote": "you/notes",
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -3208,6 +3708,56 @@
     "other": 0,
     "git": false,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "42 notes",
+   "state": "42 notes.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 42,
+    "other": 0,
+    "git": false,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "42 notes",
+   "state": "42 notes.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 42,
+    "other": 0,
+    "git": false,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -3508,6 +4058,56 @@
     "other": 0,
     "git": true,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "42 notes",
+   "state": "42 notes.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 42,
+    "other": 0,
+    "git": true,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "42 notes",
+   "state": "42 notes.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 42,
+    "other": 0,
+    "git": true,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -3808,6 +4408,56 @@
     "other": 0,
     "git": true,
     "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "42 notes",
+   "state": "42 notes.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 42,
+    "other": 0,
+    "git": true,
+    "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "42 notes",
+   "state": "42 notes.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 42,
+    "other": 0,
+    "git": true,
+    "gitRemote": "you/notes",
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -4108,6 +4758,56 @@
     "other": 1,
     "git": false,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 1 other file",
+   "state": "56 notes, plus 1 other file I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 1,
+    "git": false,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 1 other file",
+   "state": "56 notes, plus 1 other file I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 1,
+    "git": false,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -4408,6 +5108,56 @@
     "other": 1,
     "git": true,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 1 other file",
+   "state": "56 notes, plus 1 other file I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 1,
+    "git": true,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 1 other file",
+   "state": "56 notes, plus 1 other file I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 1,
+    "git": true,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -4708,6 +5458,56 @@
     "other": 1,
     "git": true,
     "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 1 other file",
+   "state": "56 notes, plus 1 other file I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 1,
+    "git": true,
+    "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 1 other file",
+   "state": "56 notes, plus 1 other file I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 1,
+    "git": true,
+    "gitRemote": "you/notes",
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -5008,6 +5808,56 @@
     "other": 4,
     "git": false,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 4 other files",
+   "state": "56 notes, plus 4 other files I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 4,
+    "git": false,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 4 other files",
+   "state": "56 notes, plus 4 other files I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "none",
+    "text": "Not a git repository",
+    "note": "Optional. Parker for Mac can make it one."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 4,
+    "git": false,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -5308,6 +6158,56 @@
     "other": 4,
     "git": true,
     "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 4 other files",
+   "state": "56 notes, plus 4 other files I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 4,
+    "git": true,
+    "gitRemote": null,
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 4 other files",
+   "state": "56 notes, plus 4 other files I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository, no remote",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 4,
+    "git": true,
+    "gitRemote": null,
     "sync": "onThisPhone"
    },
    "driveOn": true,
@@ -5600,6 +6500,56 @@
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
    "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 4,
+    "git": true,
+    "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": true,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 4 other files",
+   "state": "56 notes, plus 4 other files I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+  },
+  {
+   "folder": {
+    "exists": true,
+    "notes": 56,
+    "other": 4,
+    "git": true,
+    "gitRemote": "you/notes",
+    "sync": "cloudService"
+   },
+   "driveOn": false,
+   "suggested": false,
+   "display": "Google Drive › My Drive › Notes",
+   "contents": "56 notes · 4 other files",
+   "state": "56 notes, plus 4 other files I leave alone.",
+   "sync": {
+    "tone": "ok",
+    "text": "Syncs with a cloud service, not iCloud Drive."
+   },
+   "git": {
+    "tone": "ok",
+    "text": "Git repository · you/notes",
+    "note": "Your Mac commits and pushes. I just edit the notes."
+   },
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
   },
   {
    "folder": {

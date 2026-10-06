@@ -61,9 +61,12 @@ pub fn is_note_file(name: &str) -> bool {
 /// `dropbox_roots` are the folders the old Dropbox app says it syncs.
 pub fn sync_of(path: &Path, home: &Path, ubiquitous: bool, dropbox_roots: &[PathBuf]) -> SyncInfo {
     let s = |service: &str, label: &str| SyncInfo { service: service.into(), label: label.into() };
-    if path.starts_with(home.join("Library/Mobile Documents")) || ubiquitous {
+    if path.starts_with(home.join("Library/Mobile Documents")) {
         return s("icloud", "iCloud Drive");
     }
+    // Where the folder lives comes before `ubiquitous`: macOS says yes to it
+    // for every File Provider folder — Google Drive, today's Dropbox, OneDrive
+    // — not only iCloud's, and asked first it called them all iCloud Drive.
     if let Ok(rest) = path.strip_prefix(home.join("Library/CloudStorage")) {
         let provider = rest.components().next().map(|c| c.as_os_str().to_string_lossy().into_owned()).unwrap_or_default();
         return match provider.split('-').next().unwrap_or("") {
@@ -77,6 +80,11 @@ pub fn sync_of(path: &Path, home: &Path, ubiquitous: bool, dropbox_roots: &[Path
     if dropbox_roots.iter().any(|r| path.starts_with(r)) {
         return s("dropbox", "Dropbox");
     }
+    // Left over: ~/Documents or ~/Desktop with Desktop & Documents in iCloud,
+    // the one place only macOS's answer can tell.
+    if ubiquitous {
+        return s("icloud", "iCloud Drive");
+    }
     // Documents that isn't in iCloud: a fact, Desktop & Documents is off.
     if path.starts_with(home.join("Documents")) || path.starts_with(home.join("Desktop")) {
         return s("local", "this Mac");
@@ -88,7 +96,7 @@ pub fn sync_of(path: &Path, home: &Path, ubiquitous: bool, dropbox_roots: &[Path
 /// "iCloud Drive › Notes", "Google Drive › My Drive › Notes". Outside those,
 /// the home-relative path ("~/Projects/notes"). `name` gives each folder's
 /// display name (localized: "Documentos" on a Mac in Portuguese).
-pub fn display_of(path: &Path, home: &Path, name: &dyn Fn(&Path) -> String) -> String {
+pub fn display_of(path: &Path, home: &Path, dropbox_roots: &[PathBuf], name: &dyn Fn(&Path) -> String) -> String {
     let join = |base: &Path, rest: &Path, head: Vec<String>| {
         let mut parts = head;
         let mut cur = base.to_path_buf();
@@ -116,6 +124,14 @@ pub fn display_of(path: &Path, home: &Path, name: &dyn Fn(&Path) -> String) -> S
             };
             let base = storage.join(first);
             return join(&base, comps.as_path(), vec![label]);
+        }
+    }
+    // The classic Dropbox app's folder (~/Dropbox): the iPhone's Files app calls
+    // it Dropbox, and the screens tell the user to look for it there — a Mac
+    // path like "~/Dropbox/Notes" doesn't exist on the phone.
+    if let Some(root) = dropbox_roots.iter().find(|r| path.starts_with(r)) {
+        if let Ok(rest) = path.strip_prefix(root) {
+            return join(root, rest, vec!["Dropbox".into()]);
         }
     }
     for top in ["Documents", "Desktop"] {
@@ -197,6 +213,7 @@ fn dropbox_roots(home: &Path) -> Vec<PathBuf> {
 
 /// Everything the screens say about one folder.
 pub fn inspect(path: &Path, home: &Path, git_remote: &dyn Fn(&Path) -> Option<String>) -> FolderInfo {
+    let roots = dropbox_roots(home);
     let meta = std::fs::metadata(path);
     let denied = matches!(&meta, Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied);
     let exists = meta.map(|m| m.is_dir()).unwrap_or(false);
@@ -219,14 +236,14 @@ pub fn inspect(path: &Path, home: &Path, git_remote: &dyn Fn(&Path) -> Option<St
     let git = exists && path.join(".git").exists();
     FolderInfo {
         path: path.to_string_lossy().into_owned(),
-        display: display_of(path, home, &finder_name),
+        display: display_of(path, home, &roots, &finder_name),
         exists,
         readable,
         notes,
         other,
         git,
         git_remote: if git { git_remote(path) } else { None },
-        sync: sync_of(path, home, is_ubiquitous(path) || (!exists && path.parent().map(is_ubiquitous).unwrap_or(false)), &dropbox_roots(home)),
+        sync: sync_of(path, home, is_ubiquitous(path) || (!exists && path.parent().map(is_ubiquitous).unwrap_or(false)), &roots),
     }
 }
 
@@ -254,6 +271,15 @@ mod tests {
         assert_eq!(svc("/home/me/Library/CloudStorage/OneDrive-Personal/Notes", false), "onedrive");
         assert_eq!(svc("/home/me/Library/CloudStorage/Box-Box/Notes", false), "box");
         assert_eq!(svc("/home/me/Library/CloudStorage/pCloud/Notes", false), "cloud");
+        // macOS answers "ubiquitous" for File Provider folders too — Google
+        // Drive and today's Dropbox live in CloudStorage and say yes (checked
+        // 05/10 on a real Google Drive). Where the folder lives decides.
+        assert_eq!(svc("/home/me/Library/CloudStorage/GoogleDrive-me@example.com/My Drive/Notes", true), "google-drive");
+        assert_eq!(svc("/home/me/Library/CloudStorage/Dropbox/Notes", true), "dropbox");
+        assert_eq!(svc("/home/me/Library/CloudStorage/OneDrive-Personal/Notes", true), "onedrive");
+        assert_eq!(svc("/home/me/Library/CloudStorage/Box-Box/Notes", true), "box");
+        assert_eq!(svc("/home/me/Library/CloudStorage/pCloud/Notes", true), "cloud");
+        assert_eq!(svc("/home/me/Dropbox/Notes", true), "dropbox");
         assert_eq!(svc("/home/me/Dropbox/Notes", false), "dropbox"); // the classic app
         assert_eq!(svc("/home/me/Projects/notes", false), "unknown"); // never "only this Mac" as a fact
     }
@@ -261,11 +287,13 @@ mod tests {
     #[test]
     fn a_path_is_named_the_way_the_finder_names_it() {
         let h = p(HOME);
-        let show = |path: &str| display_of(&p(path), &h, &plain);
+        let show = |path: &str| display_of(&p(path), &h, &[p("/home/me/Dropbox")], &plain);
         assert_eq!(show("/home/me/Documents/Parker"), "Documents › Parker");
         assert_eq!(show("/home/me/Library/Mobile Documents/com~apple~CloudDocs/Documents/Parker"), "iCloud Drive › Documents › Parker");
         assert_eq!(show("/home/me/Library/Mobile Documents/com~apple~CloudDocs/Notes"), "iCloud Drive › Notes");
         assert_eq!(show("/home/me/Library/CloudStorage/GoogleDrive-me@example.com/My Drive/Notes"), "Google Drive › My Drive › Notes");
+        // The classic Dropbox app: named as the phone's Files app names it.
+        assert_eq!(show("/home/me/Dropbox/Notes"), "Dropbox › Notes");
         assert_eq!(show("/home/me/Projects/notes"), "~/Projects/notes");
         assert_eq!(show("/Volumes/Work/Notes"), "/Volumes/Work/Notes");
     }
@@ -275,7 +303,7 @@ mod tests {
         // A Mac in Portuguese: the Finder says "Documentos"; the path doesn't.
         let h = p(HOME);
         let pt = |path: &Path| if plain(path) == "Documents" { "Documentos".into() } else { plain(path) };
-        assert_eq!(display_of(&p("/home/me/Documents/Parker"), &h, &pt), "Documentos › Parker");
+        assert_eq!(display_of(&p("/home/me/Documents/Parker"), &h, &[], &pt), "Documentos › Parker");
     }
 
     #[test]
