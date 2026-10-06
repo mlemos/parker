@@ -200,6 +200,17 @@ public enum FirstRunText {
         return (.none, t(f.exists ? "line.git.none" : "line.git.new"), t("line.git.noneNote"))
     }
 
+    /// For a folder in a cloud iOS won't name: the warning under Sync. Only
+    /// the user knows which service it is, and they will need it on the Mac.
+    public static func syncNote(_ f: FolderSummary) -> String? {
+        f.sync == .cloudService ? t("line.sync.anyServiceNote") : nil
+    }
+
+    /// …and under On your Mac: Parker can't point the way there.
+    public static func macNote(_ f: FolderSummary, display: String) -> String? {
+        f.sync == .cloudService ? t("line.other.anyServiceNote", ["folder": display]) : nil
+    }
+
     /// What to do on the Mac to open this same folder.
     public static func mac(_ f: FolderSummary, suggested: Bool, display: String) -> String {
         if suggested { return t("line.other.suggested") }

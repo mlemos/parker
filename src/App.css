@@ -2973,6 +2973,12 @@ body.resizing {
   color: var(--secondary);
   max-width: 62ch;
 }
+/* The first run's amber note, under Settings' iPhone line. */
+.setwin-caveat {
+  margin: -4px 0 10px;
+  max-width: 62ch;
+  font-size: 12px;
+}
 .setwin-iphone b {
   color: var(--text);
   font-weight: 600;
@@ -3356,6 +3362,12 @@ body.resizing {
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--secondary);
+}
+/* What the other device can't do (iphoneCaveat): the amber box with the
+   warn mark, and the text at full strength — the iPhone's Callout is the
+   same box. */
+.fr-caveat {
+  color: var(--text);
 }
 .fr-rec p {
   margin: 0;

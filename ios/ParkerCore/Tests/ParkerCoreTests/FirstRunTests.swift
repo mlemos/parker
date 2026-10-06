@@ -77,6 +77,8 @@ struct FirstRunTests {
         let git = FirstRunText.git(f)
         #expect(git.tone == c.git.tone && git.text == c.git.text && git.note == c.git.note, Comment(rawValue: label))
         #expect(FirstRunText.mac(f, suggested: c.suggested, display: c.display) == c.mac, Comment(rawValue: label))
+        #expect(FirstRunText.syncNote(f) == c.syncNote, Comment(rawValue: label))
+        #expect(FirstRunText.macNote(f, display: c.display) == c.macNote, Comment(rawValue: label))
     }
 
     @Test("every key the screens ask for is in the copy")
@@ -107,7 +109,7 @@ struct LinesFixture: Decodable {
     struct Git: Decodable { let tone: Tone; let text: String; let note: String }
     struct Case: Decodable {
         let folder: Folder, driveOn: Bool, suggested: Bool, display: String
-        let contents: String, state: String, sync: Line, git: Git, mac: String
+        let contents: String, state: String, sync: Line, syncNote: String?, git: Git, mac: String, macNote: String?
     }
     let cases: [Case]
 

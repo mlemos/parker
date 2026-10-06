@@ -87,6 +87,7 @@
     "line.sync.hereDriveOff@iphone": "Stays on this iPhone. iCloud Drive is off.",
     "line.sync.service": "Syncs with {service}, not iCloud Drive.",
     "line.sync.anyService@iphone": "Syncs with a cloud service, not iCloud Drive.",
+    "line.sync.anyServiceNote@iphone": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
     "line.sync.unknown": "Not in iCloud Drive. If it syncs another way, see Other ways to sync.",
     "line.git.remote": "Git repository · {remote}",
     "line.git.noRemote": "Git repository, no remote",
@@ -102,6 +103,7 @@
     "line.other.icloud@mac": "In Parker for iPhone, tap Choose another folder and pick {folder}.",
     "line.other.icloudDriveOff@mac": "Turn on iCloud Drive on this Mac first, or your iPhone won't see your notes. Then, in Parker for iPhone, tap Choose another folder and pick {folder}.",
     "line.other.service@mac": "Install the {service} app, then in Parker for iPhone tap Choose another folder and pick {folder}.",
+    "line.other.serviceNote@mac": "Parker on the iPhone can't tell which service a folder is in, so remember it's {service}. Some services, like Box, don't let other apps open their folders there; iCloud Drive always works.",
     "line.other.anyService@mac": "If {service} has an iPhone app, install it, then in Parker for iPhone tap Choose another folder and pick {folder}.",
     "line.other.here@mac": "Your iPhone can't reach it while Documents stays on this Mac.",
     "line.other.unknown@mac": "If this folder stays on this Mac, your iPhone can't open it.",
@@ -110,6 +112,7 @@
     "line.other.service@iphone": "Install {service} on the Mac, then choose this folder in Parker: {folder}.",
     "line.other.here@iphone": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
     "line.other.unknown@iphone": "If this folder stays on this iPhone, your Mac can't open it.",
-    "line.other.anyService@iphone": "Install the same service on the Mac, then choose this folder in Parker: {folder}."
+    "line.other.anyService@iphone": "Install the same service on the Mac, then choose this folder in Parker: {folder}.",
+    "line.other.anyServiceNote@iphone": "Parker on the Mac won't find it by itself: look for “{folder}” in that same service."
   }
 }

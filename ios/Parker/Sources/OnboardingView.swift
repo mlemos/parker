@@ -210,13 +210,17 @@ struct OnboardingView: View {
                 }
                 Marked(tone: FirstRunText.stateTone(s), text: FirstRunText.state(s), theme: theme)
             }
-            Row(key: t("setup.sync"), theme: theme) { Marked(tone: sync.tone, text: sync.text, theme: theme) }
+            Row(key: t("setup.sync"), theme: theme) {
+                Marked(tone: sync.tone, text: sync.text, theme: theme)
+                if let note = FirstRunText.syncNote(s) { Callout(text: note, theme: theme) }
+            }
             Row(key: t("setup.git"), theme: theme) {
                 Marked(tone: git.tone, text: git.text, theme: theme)
                 Text(git.note).font(.footnote).foregroundStyle(theme.secondary)
             }
             Row(key: t("setup.otherDevice"), theme: theme, last: true) {
                 Text(FirstRunText.mac(s, suggested: c.suggested, display: c.display)).font(.subheadline).foregroundStyle(theme.text)
+                if let note = FirstRunText.macNote(s, display: c.display) { Callout(text: note, theme: theme) }
             }
         }
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(theme.border))
@@ -440,6 +444,26 @@ struct StatusIcon: View {
         case .unknown: Image(systemName: "questionmark.circle.fill").font(.system(size: 15)).foregroundStyle(theme.muted)
         case .none: Image(systemName: "minus.circle").font(.system(size: 15)).foregroundStyle(theme.muted)
         }
+    }
+}
+
+/// Something the user has to act on, in the to-do "attention" amber: a tinted
+/// box with its mark, so it isn't read past like the quiet lines around it.
+/// The Mac's .fr-rec.fr-caveat is the same box: same tint, same mark.
+struct Callout: View {
+    let text: String
+    let theme: Theme
+    var body: some View {
+        let amber = Color(css: theme.def.todo.attn)
+        HStack(alignment: .firstTextBaseline, spacing: 7) {
+            Image(systemName: "exclamationmark.circle.fill").font(.system(size: 13)).foregroundStyle(amber)
+                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
+            Text(text).font(.footnote).foregroundStyle(theme.text).fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(amber.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.top, 4)
     }
 }
 

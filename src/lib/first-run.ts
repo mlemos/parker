@@ -106,6 +106,15 @@ export function iphoneLine(f: FolderInfo, icloud: ICloudState, suggested: boolea
   return copy("line.other.unknown");
 }
 
+/** The amber note under the iPhone line, for a folder in a service other than
+ *  iCloud: the iPhone can't name the service (iOS hides it), and some
+ *  services won't let another app open their folders at all (05/10, a real
+ *  iPhone: Dropbox does, Box doesn't). Nothing for iCloud or a local folder. */
+export function iphoneCaveat(f: FolderInfo): string | null {
+  const s = f.sync.service;
+  return SERVICES.includes(s) || s === "cloud" ? copy("line.other.serviceNote", { service: f.sync.label }) : null;
+}
+
 /** Settings' line under the notes folder: how to open the same folder on the
  *  iPhone — only when the iPhone can reach it at all (in iCloud Drive, or in
  *  a service with an iPhone app); otherwise nothing. */
