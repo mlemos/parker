@@ -57,7 +57,8 @@ final class Workspace {
     static func displayName(of url: URL) -> String {
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-        return (try? url.resourceValues(forKeys: [.localizedNameKey]).localizedName) ?? url.lastPathComponent
+        let name = (try? url.resourceValues(forKeys: [.localizedNameKey]).localizedName) ?? url.lastPathComponent
+        return FolderDisplay.of(path: url.path, name: name)
     }
 
     /// Debug builds only: does this folder look like it is meant for development?

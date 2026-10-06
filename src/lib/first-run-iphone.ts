@@ -14,7 +14,7 @@ export interface PhoneFolder {
   other: number;
   git: boolean;
   gitRemote: string | null;
-  /** icloud | dropbox | googleDrive | oneDrive | box | onThisPhone | unknown */
+  /** icloud | dropbox | googleDrive | oneDrive | box | cloudService | onThisPhone | unknown */
   sync: string;
 }
 
@@ -40,6 +40,8 @@ export function phoneSync(f: PhoneFolder, driveOn: boolean): { tone: Tone; text:
   if (f.sync === "icloud") return driveOn ? { tone: "ok", text: t("line.sync.icloud") } : { tone: "warn", text: t("line.sync.icloudDriveOff") };
   if (f.sync === "onThisPhone") return { tone: "warn", text: t(driveOn ? "line.sync.here" : "line.sync.hereDriveOff") };
   if (f.sync === "unknown") return { tone: "unknown", text: t("line.sync.unknown") };
+  // Another app's cloud that iOS won't name (ParkerCore SyncKind.cloudService).
+  if (f.sync === "cloudService") return { tone: "ok", text: t("line.sync.anyService") };
   return { tone: "ok", text: t("line.sync.service", { service: LABELS[f.sync] }) };
 }
 
@@ -53,6 +55,7 @@ export function phoneMacLine(f: PhoneFolder, suggested: boolean, display: string
   if (suggested) return t("line.other.suggested");
   if (f.sync === "icloud") return t("line.other.icloud", { folder: display });
   if (f.sync in LABELS) return t("line.other.service", { service: LABELS[f.sync], folder: display });
+  if (f.sync === "cloudService") return t("line.other.anyService", { folder: display });
   if (f.sync === "onThisPhone") return t("line.other.here");
   return t("line.other.unknown");
 }
@@ -64,7 +67,7 @@ export function phoneFixture() {
   for (const [exists, notes, other] of [[false, 0, 0], [true, 0, 0], [true, 0, 3], [true, 1, 0], [true, 42, 0], [true, 56, 1], [true, 56, 4]] as const)
     for (const git of exists ? [false, true] : [false])
       for (const gitRemote of git ? [null, "you/notes"] : [null])
-        for (const sync of ["icloud", "googleDrive", "dropbox", "onThisPhone", "unknown"])
+        for (const sync of ["icloud", "googleDrive", "dropbox", "cloudService", "onThisPhone", "unknown"])
           folders.push({ exists, notes, other, git, gitRemote, sync });
   const cases = [];
   for (const f of folders)

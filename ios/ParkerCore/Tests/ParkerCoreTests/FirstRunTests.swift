@@ -15,6 +15,17 @@ struct FirstRunTests {
         #expect(SyncKind.of(path: "/private/var/mobile/Containers/Shared/AppGroup/X/File Provider Storage/OneDrive/Notes") == .oneDrive)
         #expect(SyncKind.of(path: "/private/var/mobile/Containers/Data/Application/ABC/Documents/Parker") == .onThisPhone)
         #expect(SyncKind.of(path: "/somewhere/else") == .unknown)
+        // The real thing, 05/10: a Dropbox folder picked on an iPhone. No
+        // name in the path; under Library/CloudStorage, so a cloud service.
+        #expect(SyncKind.of(path: "/private/var/mobile/Library/CloudStorage/46C389DD-A94F-40E0-B184-64D35DC64AEB/Parker (Dropbox)") == .cloudService)
+    }
+
+    @Test("names a folder in iCloud Drive the whole way down, and any other by its name")
+    func folderDisplay() {
+        let icloud = "/private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs/Documents/Parker (Dev)"
+        #expect(FolderDisplay.of(path: icloud, name: "Parker (Dev)") == "iCloud Drive › Documents › Parker (Dev)")
+        #expect(FolderDisplay.of(path: "/private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs", name: "iCloud Drive") == "iCloud Drive")
+        #expect(FolderDisplay.of(path: "/private/var/mobile/Library/CloudStorage/46C389DD/Parker (Dropbox)", name: "Parker (Dropbox)") == "Parker (Dropbox)")
     }
 
     @Test("the git remote is read from .git/config and shortened")
@@ -87,7 +98,7 @@ struct LinesFixture: Decodable {
         let exists: Bool, notes: Int, other: Int, git: Bool, gitRemote: String?, sync: String
         var summary: FolderSummary {
             let kind: SyncKind = ["icloud": .icloud, "dropbox": .dropbox, "googleDrive": .googleDrive, "oneDrive": .oneDrive,
-                                  "box": .box, "onThisPhone": .onThisPhone][sync] ?? .unknown
+                                  "box": .box, "cloudService": .cloudService, "onThisPhone": .onThisPhone][sync] ?? .unknown
             return FolderSummary(exists: exists, notes: notes, other: other, git: git, gitRemote: gitRemote, sync: kind)
         }
         var description: String { "\(sync) exists=\(exists) notes=\(notes) other=\(other) git=\(git) remote=\(gitRemote ?? "-")" }

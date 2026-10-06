@@ -119,6 +119,23 @@ describe("what to do on the iPhone", () => {
     expect(iphoneLine(g, ON, false)).toBe("Install the Google Drive app, then in Parker for iPhone tap Choose another folder and pick Google Drive › My Drive › Notes.");
     expect(iphoneLine(folder({ path: "/home/me/Notes", sync: { service: "unknown", label: "" } }), ON, false)).toMatch(/can't open it/);
   });
+
+  // 05/10 screen check: a folder in iCloud while iCloud Drive is off on this
+  // Mac isn't syncing — sending the iPhone to it would show stale notes.
+  it("says to turn iCloud Drive on first when it is off on this Mac", () => {
+    const n = folder({ display: "iCloud Drive › Notes" });
+    expect(iphoneLine(n, { drive: false, documents: false }, false)).toBe(
+      "Turn on iCloud Drive on this Mac first, or your iPhone won't see your notes. Then, in Parker for iPhone, tap Choose another folder and pick iCloud Drive › Notes."
+    );
+  });
+
+  // A service Parker has no name for still syncs: not "stays on this Mac".
+  it("gives a service it doesn't know by name a way in, in Settings too", () => {
+    const p = folder({ path: "/home/me/Library/CloudStorage/pCloud/Notes", display: "pCloud › Notes", sync: { service: "cloud", label: "pCloud" } });
+    const line = "If pCloud has an iPhone app, install it, then in Parker for iPhone tap Choose another folder and pick pCloud › Notes.";
+    expect(iphoneLine(p, ON, false)).toBe(line);
+    expect(settingsIphoneLine(p, ON)).toBe(line);
+  });
 });
 
 describe("git", () => {
