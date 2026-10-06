@@ -12,7 +12,7 @@ import { accelFromEvent, prettyShortcut } from "./lib/shortcut";
 import { TEXT_WIDTHS, textWidthOf } from "./lib/text-width";
 import { IMAGE_MODES, imageModeOf } from "./lib/images";
 import type { ImageMode } from "./lib/images";
-import { settingsIphoneLine } from "./lib/first-run";
+import { iphoneCaveat, settingsIphoneLine } from "./lib/first-run";
 import { checkResult } from "./lib/updates";
 import type { UpdateInfo } from "./lib/updates";
 import type { FolderInfo, ICloudState } from "./lib/first-run";
@@ -145,6 +145,7 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [iphone, setIphone] = useState<string | null>(null);
+  const [caveat, setCaveat] = useState<string | null>(null);
   const [checked, setChecked] = useState<string | null>(null);
 
   const refreshAgents = useCallback(() => {
@@ -171,7 +172,11 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
     if (!notesDir) return;
     let live = true;
     Promise.all([backend.inspectFolder(notesDir), backend.icloudState()])
-      .then(([f, ic]) => live && setIphone(settingsIphoneLine(f, ic)))
+      .then(([f, ic]) => {
+        if (!live) return;
+        setIphone(settingsIphoneLine(f, ic));
+        setCaveat(iphoneCaveat(f));
+      })
       .catch(() => live && setIphone(null));
     return () => {
       live = false;
@@ -276,6 +281,11 @@ export function SettingsWindow({ backend, initialTheme }: { backend: SettingsBac
               {iphone && (
                 <p className="setwin-iphone" aria-label="On the iPhone">
                   <b>On the iPhone.</b> {iphone}
+                </p>
+              )}
+              {iphone && caveat && (
+                <p className="fr-rec fr-caveat setwin-caveat" role="note">
+                  <span className="fr-mark fr-warn">{caveat}</span>
                 </p>
               )}
               {pendingDir && (

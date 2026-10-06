@@ -19,12 +19,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -44,12 +46,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -69,12 +73,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -94,12 +100,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -119,12 +127,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -144,12 +154,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -169,12 +181,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -194,12 +208,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -219,12 +235,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -244,12 +262,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -269,12 +289,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -294,12 +316,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -319,12 +343,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -344,12 +370,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "None yet",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -369,12 +397,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -394,12 +424,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -419,12 +451,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -444,12 +478,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -469,12 +505,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -494,12 +532,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -519,12 +559,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -544,12 +586,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -569,12 +613,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -594,12 +640,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -619,12 +667,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -644,12 +694,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -669,12 +721,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -694,12 +748,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -719,12 +775,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -744,12 +802,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -769,12 +829,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -794,12 +856,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -819,12 +883,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -844,12 +910,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -869,12 +937,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -894,12 +964,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -919,12 +991,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -944,12 +1018,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -969,12 +1045,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -994,12 +1072,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1019,12 +1099,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1044,12 +1126,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1069,12 +1153,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1094,12 +1180,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1119,12 +1207,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1144,12 +1234,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1169,12 +1261,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1194,12 +1288,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1219,12 +1315,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1244,12 +1342,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1269,12 +1369,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -1294,12 +1396,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -1319,12 +1423,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1344,12 +1450,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1369,12 +1477,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1394,12 +1504,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1419,12 +1531,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1444,12 +1558,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1469,12 +1585,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1494,12 +1612,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1519,12 +1639,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1544,12 +1666,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1569,12 +1693,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1594,12 +1720,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1619,12 +1747,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -1644,12 +1774,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -1669,12 +1801,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1694,12 +1828,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1719,12 +1855,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1744,12 +1882,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1769,12 +1909,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1794,12 +1936,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1819,12 +1963,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1844,12 +1990,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1869,12 +2017,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1894,12 +2044,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1919,12 +2071,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1944,12 +2098,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -1969,12 +2125,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -1994,12 +2152,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -2019,12 +2179,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2044,12 +2206,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2069,12 +2233,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2094,12 +2260,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2119,12 +2287,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2144,12 +2314,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2169,12 +2341,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2194,12 +2368,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2219,12 +2395,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2244,12 +2422,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2269,12 +2449,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2294,12 +2476,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2319,12 +2503,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -2344,12 +2530,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -2369,12 +2557,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2394,12 +2584,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2419,12 +2611,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2444,12 +2638,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2469,12 +2665,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2494,12 +2692,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2519,12 +2719,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2544,12 +2746,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2569,12 +2773,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2594,12 +2800,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2619,12 +2827,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2644,12 +2854,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2669,12 +2881,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -2694,12 +2908,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -2719,12 +2935,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2744,12 +2962,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2769,12 +2989,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2794,12 +3016,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2819,12 +3043,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2844,12 +3070,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2869,12 +3097,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2894,12 +3124,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2919,12 +3151,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2944,12 +3178,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2969,12 +3205,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -2994,12 +3232,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3019,12 +3259,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -3044,12 +3286,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -3069,12 +3313,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3094,12 +3340,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3119,12 +3367,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3144,12 +3394,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3169,12 +3421,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3194,12 +3448,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3219,12 +3475,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3244,12 +3502,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3269,12 +3529,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3294,12 +3556,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3319,12 +3583,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3344,12 +3610,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3369,12 +3637,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -3394,12 +3664,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -3419,12 +3691,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3444,12 +3718,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3469,12 +3745,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3494,12 +3772,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3519,12 +3799,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3544,12 +3826,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3569,12 +3853,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3594,12 +3880,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3619,12 +3907,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3644,12 +3934,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3669,12 +3961,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3694,12 +3988,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3719,12 +4015,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -3744,12 +4042,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -3769,12 +4069,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3794,12 +4096,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3819,12 +4123,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3844,12 +4150,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3869,12 +4177,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3894,12 +4204,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3919,12 +4231,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3944,12 +4258,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3969,12 +4285,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -3994,12 +4312,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4019,12 +4339,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4044,12 +4366,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4069,12 +4393,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -4094,12 +4420,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -4119,12 +4447,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4144,12 +4474,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4169,12 +4501,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4194,12 +4528,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4219,12 +4555,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4244,12 +4582,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4269,12 +4609,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4294,12 +4636,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4319,12 +4663,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4344,12 +4690,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4369,12 +4717,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4394,12 +4744,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4419,12 +4771,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -4444,12 +4798,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -4469,12 +4825,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4494,12 +4852,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4519,12 +4879,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4544,12 +4906,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4569,12 +4933,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4594,12 +4960,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4619,12 +4987,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4644,12 +5014,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4669,12 +5041,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4694,12 +5068,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4719,12 +5095,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4744,12 +5122,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4769,12 +5149,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -4794,12 +5176,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -4819,12 +5203,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4844,12 +5230,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4869,12 +5257,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4894,12 +5284,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4919,12 +5311,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4944,12 +5338,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4969,12 +5365,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -4994,12 +5392,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5019,12 +5419,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5044,12 +5446,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5069,12 +5473,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5094,12 +5500,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5119,12 +5527,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -5144,12 +5554,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -5169,12 +5581,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5194,12 +5608,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5219,12 +5635,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5244,12 +5662,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5269,12 +5689,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5294,12 +5716,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5319,12 +5743,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5344,12 +5770,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5369,12 +5797,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5394,12 +5824,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5419,12 +5851,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5444,12 +5878,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5469,12 +5905,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -5494,12 +5932,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -5519,12 +5959,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5544,12 +5986,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5569,12 +6013,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5594,12 +6040,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5619,12 +6067,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5644,12 +6094,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5669,12 +6121,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5694,12 +6148,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5719,12 +6175,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5744,12 +6202,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5769,12 +6229,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5794,12 +6256,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5819,12 +6283,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -5844,12 +6310,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -5869,12 +6337,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5894,12 +6364,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5919,12 +6391,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5944,12 +6418,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "none",
     "text": "Not a git repository",
     "note": "Optional. Parker for Mac can make it one."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5969,12 +6445,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -5994,12 +6472,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6019,12 +6499,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6044,12 +6526,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6069,12 +6553,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6094,12 +6580,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6119,12 +6607,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6144,12 +6634,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6169,12 +6661,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -6194,12 +6688,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -6219,12 +6715,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6244,12 +6742,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6269,12 +6769,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6294,12 +6796,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository, no remote",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6319,12 +6823,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6344,12 +6850,14 @@
     "tone": "ok",
     "text": "Syncs with iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6369,12 +6877,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't."
+   "mac": "Install Parker for Mac. It finds this folder by itself if the Mac keeps Documents in iCloud, and shows how to turn that on if it doesn't.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6394,12 +6904,14 @@
     "tone": "warn",
     "text": "iCloud Drive is off on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker."
+   "mac": "In Parker for Mac, choose this folder: iCloud Drive › Documents › Parker.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6419,12 +6931,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6444,12 +6958,14 @@
     "tone": "ok",
     "text": "Syncs with Google Drive, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Google Drive on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6469,12 +6985,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6494,12 +7012,14 @@
     "tone": "ok",
     "text": "Syncs with Dropbox, not iCloud Drive."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install Dropbox on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6519,12 +7039,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -6544,12 +7066,14 @@
     "tone": "ok",
     "text": "Syncs with a cloud service, not iCloud Drive."
    },
+   "syncNote": "Your iPhone doesn't tell Parker which service this is. Remember which one you picked: you'll need it on the Mac.",
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes."
+   "mac": "Install the same service on the Mac, then choose this folder in Parker: Google Drive › My Drive › Notes.",
+   "macNote": "Parker on the Mac won't find it by itself: look for “Google Drive › My Drive › Notes” in that same service."
   },
   {
    "folder": {
@@ -6569,12 +7093,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6594,12 +7120,14 @@
     "tone": "warn",
     "text": "Stays on this iPhone. iCloud Drive is off."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it."
+   "mac": "Your Mac can't reach a folder that stays on this iPhone. Turn on iCloud Drive to share it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6619,12 +7147,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   },
   {
    "folder": {
@@ -6644,12 +7174,14 @@
     "tone": "unknown",
     "text": "Not in iCloud Drive. If it syncs another way, see Other ways to sync."
    },
+   "syncNote": null,
    "git": {
     "tone": "ok",
     "text": "Git repository · you/notes",
     "note": "Your Mac commits and pushes. I just edit the notes."
    },
-   "mac": "If this folder stays on this iPhone, your Mac can't open it."
+   "mac": "If this folder stays on this iPhone, your Mac can't open it.",
+   "macNote": null
   }
  ]
 }

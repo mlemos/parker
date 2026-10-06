@@ -50,6 +50,17 @@ export function phoneGit(f: PhoneFolder): { tone: Tone; text: string; note: stri
   return { tone: "none", text: t(f.exists ? "line.git.none" : "line.git.new"), note: t("line.git.noneNote") };
 }
 
+/** For a folder in a cloud iOS won't name: the warning under Sync. The user
+ *  is the only one who knows which service it is, and must, for the Mac. */
+export function phoneSyncNote(f: PhoneFolder): string | null {
+  return f.sync === "cloudService" ? t("line.sync.anyServiceNote") : null;
+}
+
+/** …and under On your Mac: Parker can't point the way there. */
+export function phoneMacNote(f: PhoneFolder, display: string): string | null {
+  return f.sync === "cloudService" ? t("line.other.anyServiceNote", { folder: display }) : null;
+}
+
 /** What to do on the Mac to open this same folder. */
 export function phoneMacLine(f: PhoneFolder, suggested: boolean, display: string): string {
   if (suggested) return t("line.other.suggested");
@@ -82,8 +93,10 @@ export function phoneFixture() {
           contents: phoneContents(f),
           state: phoneState(f),
           sync: phoneSync(f, driveOn),
+          syncNote: phoneSyncNote(f),
           git: phoneGit(f),
           mac: phoneMacLine(f, suggested, display),
+          macNote: phoneMacNote(f, display),
         });
       }
   return {

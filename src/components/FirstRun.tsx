@@ -18,6 +18,7 @@ import {
   contentsLine,
   copy,
   gitLine,
+  iphoneCaveat,
   iphoneLine,
   recommendDocuments,
   stateLine,
@@ -308,7 +309,14 @@ export function FirstRun({ backend, onDone }: { backend: FirstRunBackend; onDone
               </div>
               <div className="fr-row">
                 <div className="fr-k">{t("setup.otherDevice")}</div>
-                <div>{iphoneLine(choice, icloud, isSuggested)}</div>
+                <div>
+                  {iphoneLine(choice, icloud, isSuggested)}
+                  {iphoneCaveat(choice) && (
+                    <div className="fr-rec fr-caveat" role="note">
+                      <Mark tone="warn">{iphoneCaveat(choice)}</Mark>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <details className="fr-other">

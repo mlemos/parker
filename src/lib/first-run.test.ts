@@ -7,6 +7,7 @@ import {
   copy,
   filesAppPath,
   gitLine,
+  iphoneCaveat,
   iphoneLine,
   recommendDocuments,
   settingsIphoneLine,
@@ -127,6 +128,19 @@ describe("what to do on the iPhone", () => {
     expect(iphoneLine(n, { drive: false, documents: false }, false)).toBe(
       "Turn on iCloud Drive on this Mac first, or your iPhone won't see your notes. Then, in Parker for iPhone, tap Choose another folder and pick iCloud Drive › Notes."
     );
+  });
+
+  // 05/10, a real iPhone: it can't name the service (iOS hides it), and Box
+  // won't let another app open its folders. Said where it matters.
+  it("warns, for any service but iCloud, what the iPhone can't do", () => {
+    const g = folder({ display: "Google Drive › My Drive › Notes", sync: { service: "google-drive", label: "Google Drive" } });
+    expect(iphoneCaveat(g)).toBe(
+      "Parker on the iPhone can't tell which service a folder is in, so remember it's Google Drive. Some services, like Box, don't let other apps open their folders there; iCloud Drive always works."
+    );
+    expect(iphoneCaveat(folder({ sync: { service: "cloud", label: "pCloud" } }))).toMatch(/remember it's pCloud\./);
+    expect(iphoneCaveat(folder())).toBeNull(); // iCloud
+    expect(iphoneCaveat(folder({ sync: LOCAL }))).toBeNull();
+    expect(iphoneCaveat(folder({ sync: { service: "unknown", label: "" } }))).toBeNull();
   });
 
   // A service Parker has no name for still syncs: not "stays on this Mac".
