@@ -20,6 +20,14 @@ export interface NoteHit {
   link?: string; // see NoteMeta
 }
 
+/** What a save found: written; or the file changed underneath, by somebody
+ *  Parker did not hear (nothing written — `disk` is what it holds); or the
+ *  file is not there (nothing written). */
+export type WriteOutcome =
+  | { kind: "written" }
+  | { kind: "changed"; disk: string }
+  | { kind: "missing" };
+
 export interface Session {
   open: string[];
   active: string | null;
@@ -106,8 +114,10 @@ export const api = {
   listNotes: () => invoke<NoteMeta[]>("list_notes"),
   searchNotes: (query: string) => invoke<NoteHit[]>("search_notes", { query }),
   readNote: (name: string) => invoke<string>("read_note", { name }),
-  writeNote: (name: string, content: string) =>
-    invoke<void>("write_note", { name, content }),
+  /** A guarded save — see WriteOutcome. `expected`: every text Parker knows
+   *  the file by; the write happens only if the file still holds one. */
+  writeNote: (name: string, content: string, expected: string[]) =>
+    invoke<WriteOutcome>("write_note", { name, content, expected }),
   /** A new empty note — inside `folder` ("cos/desks") when given. */
   createNote: (ext?: string, folder?: string) =>
     invoke<string>("create_note", { ext, folder: folder || null }),
@@ -182,8 +192,8 @@ export const api = {
   // Files outside the notes folder, addressed by absolute path. Rust serves
   // only paths it admitted itself (Finder open, Open… panel, saved session).
   readFile: (path: string) => invoke<string>("read_file", { path }),
-  writeFile: (path: string, content: string) =>
-    invoke<void>("write_file", { path, content }),
+  writeFile: (path: string, content: string, expected: string[]) =>
+    invoke<WriteOutcome>("write_file", { path, content, expected }),
   closeFile: (path: string) => invoke<void>("close_file", { path }),
   /** What the OS asked Parker to open since the last call: bare names are
    *  notes in the folder, everything else an absolute path. */

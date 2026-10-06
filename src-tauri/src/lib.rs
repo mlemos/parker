@@ -724,10 +724,53 @@ fn fetch_in_background(app: tauri::AppHandle, name: String, path: PathBuf) {
 }
 
 #[tauri::command]
-async fn write_note(name: String, content: String) -> Result<(), String> {
+async fn write_note(name: String, content: String, expected: Option<Vec<String>>) -> Result<WriteOutcome, String> {
     let path = safe_note_path(&name)?;
     make_parent_within(&notes_dir(), &path)?;
-    atomic_write(&path, &content)
+    guarded_write(&path, &content, expected.as_deref())
+}
+
+/// What a save found. `Changed`: the file no longer holds any text Parker
+/// knew it by — somebody else wrote it — so nothing was written and the disk
+/// text comes back for the conflict bar. `Missing`: the file is not there.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+pub enum WriteOutcome {
+    Written,
+    Changed { disk: String },
+    Missing,
+}
+
+/// A save that will not write over somebody else's edit.
+///
+/// `expected` is every text Parker knows the file by: what it last read or
+/// reloaded, and what it last wrote itself. The file is written only if it
+/// still holds one of them (or already holds `content` — then there is
+/// nothing to write). Anything else means the file moved without Parker
+/// hearing of it — a watcher event lost, a rescan dropped, a sync landing
+/// while the Mac slept — and writing would have erased that change in
+/// silence. This is what makes conflict detection not depend on the watcher:
+/// the watcher makes it prompt, this makes it certain.
+///
+/// `None` writes unconditionally (nothing to compare against).
+pub(crate) fn guarded_write(path: &PathBuf, content: &str, expected: Option<&[String]>) -> Result<WriteOutcome, String> {
+    // One save at a time across every window: read, compare and replace must
+    // not interleave with Parker's own other save of the same file.
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _held = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(expected) = expected {
+        if is_dataless(path) {
+            return Err(format!("{NOT_LOCAL}: This note is in iCloud and isn't on this Mac yet"));
+        }
+        match fs::read_to_string(path) {
+            Ok(current) if current == content => return Ok(WriteOutcome::Written),
+            Ok(current) if expected.iter().any(|e| *e == current) => {}
+            Ok(current) => return Ok(WriteOutcome::Changed { disk: current }),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(WriteOutcome::Missing),
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    atomic_write(path, content).map(|_| WriteOutcome::Written)
 }
 
 /// Make the folders between the notes folder and a note ("trips/" for
@@ -2409,7 +2452,17 @@ fn build_notes_watcher(app: &tauri::AppHandle) -> Option<notify::RecommendedWatc
     let handle = app.clone();
     let mut watcher = match notify::recommended_watcher(
         move |res: notify::Result<notify::Event>| {
-            let Ok(event) = res else { return };
+            // The OS dropped events (FSEvents' "must scan subdirs", a full
+            // queue) or the watcher erred: some change may have gone unheard.
+            // Every window checks its open notes against the disk instead of
+            // trusting that nothing happened.
+            let event = match res {
+                Ok(event) if !event.need_rescan() => event,
+                _ => {
+                    let _ = handle.emit("parker://notes-rescan", ());
+                    return;
+                }
+            };
             if !matches!(
                 event.kind,
                 EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_)
@@ -2975,6 +3028,67 @@ mod tests {
         assert!(fs::read_link(dir.join("notes/sub/b.md")).unwrap().is_absolute());
         assert!(!dir.join("notes/b.md").exists());
         assert!(dir.join("real.md").exists(), "the real file keeps its name");
+    }
+
+    // ---- A save that won't write over somebody else ---------------------------
+
+    fn exp(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn a_save_writes_when_the_file_is_as_parker_last_saw_it() {
+        let dir = scratch("guard-ok");
+        let f = dir.join("n.md");
+        fs::write(&f, "old").unwrap();
+        assert_eq!(guarded_write(&f, "new", Some(&exp(&["old"]))).unwrap(), WriteOutcome::Written);
+        assert_eq!(fs::read_to_string(&f).unwrap(), "new");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_save_never_writes_over_a_change_parker_did_not_hear_of() {
+        let dir = scratch("guard-changed");
+        let f = dir.join("n.md");
+        fs::write(&f, "theirs").unwrap();
+        assert_eq!(
+            guarded_write(&f, "mine", Some(&exp(&["old", "my last save"]))).unwrap(),
+            WriteOutcome::Changed { disk: "theirs".into() }
+        );
+        assert_eq!(fs::read_to_string(&f).unwrap(), "theirs", "their edit survives");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_save_accepts_parkers_own_last_write_as_the_baseline() {
+        // The baseline in the editor can lag Parker's own write by a render;
+        // that write is not somebody else's.
+        let dir = scratch("guard-own");
+        let f = dir.join("n.md");
+        fs::write(&f, "my last save").unwrap();
+        assert_eq!(guarded_write(&f, "more", Some(&exp(&["old", "my last save"]))).unwrap(), WriteOutcome::Written);
+        assert_eq!(fs::read_to_string(&f).unwrap(), "more");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_save_of_what_the_file_already_holds_is_saved() {
+        let dir = scratch("guard-same");
+        let f = dir.join("n.md");
+        fs::write(&f, "same").unwrap();
+        assert_eq!(guarded_write(&f, "same", Some(&exp(&["old"]))).unwrap(), WriteOutcome::Written);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_save_does_not_bring_back_a_file_that_is_gone() {
+        let dir = scratch("guard-missing");
+        let f = dir.join("n.md");
+        assert_eq!(guarded_write(&f, "x", Some(&exp(&["old"]))).unwrap(), WriteOutcome::Missing);
+        assert!(!f.exists());
+        // Unguarded, it writes: the caller asked for no comparison.
+        assert_eq!(guarded_write(&f, "x", None).unwrap(), WriteOutcome::Written);
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

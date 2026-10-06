@@ -96,7 +96,9 @@ export const changedLines = [changedLinesField, changedGutterField];
 
 export interface ChangeRecord {
   name: string;
-  verdict: "reload" | "conflict";
+  /** "conflict-on-save": the watcher said nothing, and a save found the
+   *  file changed — caught by the guarded write instead. */
+  verdict: "reload" | "conflict" | "conflict-on-save";
   /** Length of the buffer's baseline (what Parker last saw in the file). */
   baseline: number;
   /** Length of what is in the file now. */
