@@ -235,6 +235,14 @@ describe("NotePicker", () => {
       await waitFor(() => expect(screen.queryByText("alpha.md")).toBeNull());
     });
 
+    // 1.5.2: the note no longer just vanishes — the footer says where it went.
+    it("says the note went to the Trash", async () => {
+      const { user } = setup();
+      await listed(3);
+      await user.keyboard("{Meta>}{Backspace}{/Meta}{Enter}");
+      await waitFor(() => expect(screen.getByRole("status").textContent).toBe("✓ Moved to Trash"));
+    });
+
     // Escape here means "not that", not "close the picker" — the question is
     // what's in front of you, and dismissing it should leave you searching.
     it("takes back the question on Escape without closing the picker", async () => {

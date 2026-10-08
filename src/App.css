@@ -2678,6 +2678,48 @@ body.resizing {
 .picker-hint-count {
   flex: none;
 }
+.picker-hint-count.flashed,
+.status-git.flashed {
+  color: var(--todo-done);
+}
+
+/* Text for screen readers only: the status bar's confirmations, said aloud. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The status bar's paths answer clicks (StatusPath): they say so on hover,
+   and what a click did replaces them for a moment, in the to-do "done" green. */
+.status-path {
+  cursor: pointer;
+  border-radius: 4px;
+  /* A flex item that may shrink, so a long outside path (PathLabel) still
+     gives way in the middle inside it. */
+  display: inline-flex;
+  min-width: 0;
+  /* A mouse shortcut, not a field: no focus ring (WebKit drew one on the
+     folder path as the window opened). */
+  outline: none;
+}
+.status-path:hover {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+}
+.status-path.flashed,
+.status-path.flashed:hover {
+  color: var(--todo-done);
+  text-decoration: none;
+}
 
 /* ---- Folders in the picker ---------------------------------------------- */
 

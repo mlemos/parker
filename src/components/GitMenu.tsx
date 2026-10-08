@@ -3,6 +3,7 @@ import { GitBranch, Loader2, CloudUpload } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { api } from "../lib/api";
 import type { GitStatus, GitFileChange, GitLogEntry } from "../lib/api";
+import { useFlash } from "./StatusPath";
 
 const POLL_MS = 15000;
 // How often the timed-sync clock is examined. The interval the user picks is
@@ -57,6 +58,11 @@ function IconCloud() {
   );
 }
 
+/** "14:32": when a timed sync last landed, in the Mac's own clock format. */
+function syncedAt(d: Date): string {
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export function GitMenu({
   onBeforeCommit,
 }: {
@@ -70,6 +76,9 @@ export function GitMenu({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okFlash, setOkFlash] = useState<string | null>(null);
+  // The timed sync runs with the menu closed, so its success is said on the
+  // chip itself, for a moment (1.5.2) — it used to happen in silence.
+  const [chipFlash, showChip] = useFlash();
   const rootRef = useRef<HTMLDivElement>(null);
   // Minutes between timed syncs (0 = off), and when the last one ran.
   const [syncInterval, setSyncInterval] = useState(0);
@@ -239,8 +248,10 @@ export function GitMenu({
       const r = dirty
         ? await api.gitCommit(suggestMessage(s.files) || "Parker auto-sync", true)
         : await api.gitPush();
-      if (r.ok) setOkFlash(`${r.message}${r.hash ? ` · ${r.hash}` : ""}`.trim());
-      else setError(r.error ?? "Auto-sync failed.");
+      if (r.ok) {
+        setOkFlash(`${r.message}${r.hash ? ` · ${r.hash}` : ""}`.trim());
+        showChip(`✓ Synced ${syncedAt(new Date())}`);
+      } else setError(r.error ?? "Auto-sync failed.");
       await refresh();
       await refreshLog();
     } catch (e) {
@@ -322,7 +333,7 @@ export function GitMenu({
   return (
     <div className="gm-root" ref={rootRef}>
       <button
-        className={"status-git" + (clean ? "" : " dirty") + (open ? " open" : "")}
+        className={"status-git" + (clean ? "" : " dirty") + (open ? " open" : "") + (chipFlash ? " flashed" : "")}
         onClick={toggleOpen}
         title={
           hasRemote
@@ -332,9 +343,14 @@ export function GitMenu({
       >
         <IconGit spin={busy} />
         <span className="git-label">
-          {status.branch ?? "git"}
-          {badge && <span className="gm-badge">{badge}</span>}
+          {chipFlash ?? (
+            <>
+              {status.branch ?? "git"}
+              {badge && <span className="gm-badge">{badge}</span>}
+            </>
+          )}
         </span>
+        <span className="sr-only" aria-live="polite">{chipFlash ?? ""}</span>
         {hasRemote ? (
           <IconCloud />
         ) : (
