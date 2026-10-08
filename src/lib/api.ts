@@ -203,6 +203,13 @@ export const api = {
    *  notes in the folder, everything else an absolute path. */
   takeOpenedFiles: () => invoke<string[]>("take_opened_files"),
   revealFile: (path: string) => invoke<void>("reveal_file", { path }),
+  /** Put text on the clipboard (Rust's NSPasteboard: works after the click,
+   *  which navigator.clipboard in WebKit doesn't). */
+  copyText: (text: string) => invoke<void>("copy_text", { text }),
+  /** The Mac's double-click time, in ms. */
+  doubleClickMs: () => invoke<number>("double_click_ms"),
+  /** Show a note in the Finder, selected; with no name, open the notes folder. */
+  revealNote: (name?: string) => invoke<void>("reveal_note", { name: name ?? null }),
   openHelp: () => invoke<void>("open_help"),
   quit: () => invoke<void>("quit"),
   // Note windows — a note in a window of its own (src-tauri/src/windows.rs).

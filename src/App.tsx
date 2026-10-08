@@ -23,6 +23,8 @@ import { guardedSave } from "./lib/guarded-save";
 import { draftBuffer, isDraft, newDraftId } from "./lib/draft";
 import { currentName, recordRename } from "./lib/renames";
 import { PathLabel } from "./components/PathLabel";
+import { StatusPath } from "./components/StatusPath";
+import { fullPath } from "./lib/status-click";
 import { DEFAULT_THEME_ID, nextThemeId, themeById } from "./lib/themes";
 import { alpha, CODE_WASH, HIGHLIGHT_WASH } from "./lib/palette";
 import { textWidthOf } from "./lib/text-width";
@@ -1888,19 +1890,39 @@ export default function App({
       </div>
 
       <div className="statusbar">
+        {/* The note's path and the folder's answer clicks (StatusPath): click
+            copies, ⌥-click the path in your notes, double-click the Finder. */}
         {activeName && isExternal(activeName) ? (
-          <PathLabel className="status-file" path={activeName} home={homeDir} />
+          <StatusPath className="status-file" full={activeName} reveal={() => api.revealFile(activeName)}>
+            <PathLabel path={activeName} home={homeDir} />
+          </StatusPath>
         ) : activeName && links[activeName] ? (
           // A symlinked note says where its text really lives.
-          <span className="status-file" title={links[activeName]}>
-            {activeName} → {prettyPath(links[activeName], homeDir)}
-          </span>
+          <StatusPath
+            className="status-file"
+            full={fullPath(notesDir, activeName)}
+            relative={activeName}
+            reveal={() => api.revealNote(activeName)}
+          >
+            <span title={links[activeName]}>
+              {activeName} → {prettyPath(links[activeName], homeDir)}
+            </span>
+          </StatusPath>
         ) : activeBuf?.draft ? (
-          <span className="status-file" title="A new note becomes a file when you type in it">
+          <StatusPath className="status-file" full={null} unsaved="Not saved yet" reveal={async () => {}}>
             {activeBuf.draft.folder}Untitled · not saved yet
-          </span>
+          </StatusPath>
+        ) : activeName ? (
+          <StatusPath
+            className="status-file"
+            full={fullPath(notesDir, activeName)}
+            relative={activeName}
+            reveal={() => api.revealNote(activeName)}
+          >
+            {activeName}
+          </StatusPath>
         ) : (
-          <span className="status-file">{activeName ?? ""}</span>
+          <span className="status-file" />
         )}
         {reloaded.length > 0 && (
           <span
@@ -1925,9 +1947,9 @@ export default function App({
         {single ? (
           onTop && <span className="status-dir">On top</span>
         ) : (
-          <span className="status-dir" title={notesDir}>
+          <StatusPath className="status-dir" full={notesDir || null} reveal={() => api.revealNote()}>
             {prettyPath(notesDir, homeDir)}
-          </span>
+          </StatusPath>
         )}
         <button
           className="status-help"

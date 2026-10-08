@@ -12,6 +12,7 @@ import {
   scopeTyped,
 } from "../lib/picker";
 import type { FolderRow } from "../lib/picker";
+import { useFlash } from "./StatusPath";
 
 function relTime(secs: number): string {
   if (!secs) return "";
@@ -156,6 +157,10 @@ export function NotePicker({
     else onOpen(row.n.name);
   };
 
+  // A note moved to the Trash used to just vanish from the list; the footer
+  // says so now, for a moment, where the count was (1.5.2).
+  const [trashed, showTrashed] = useFlash();
+
   const doDelete = async (name: string) => {
     setConfirming(null);
     try {
@@ -168,6 +173,7 @@ export function NotePicker({
     setAll((r) => r.filter((x) => x.name !== name));
     setSel((s) => Math.max(0, Math.min(s, rows.length - 2)));
     onDeleted(name);
+    showTrashed("✓ Moved to Trash");
     inputRef.current?.focus();
   };
 
@@ -420,10 +426,16 @@ export function NotePicker({
             ↑↓ navigate · ↵ open · → into folder · ⌫ up · ⌘N new note{scope ? " here" : ""} · ⌘⌫
             delete · esc close
           </span>
-          {all.length > 0 && (
-            <span className="picker-hint-count">
-              {count} {count === 1 ? "note" : "notes"}
+          {trashed ? (
+            <span className="picker-hint-count flashed" role="status">
+              {trashed}
             </span>
+          ) : (
+            all.length > 0 && (
+              <span className="picker-hint-count">
+                {count} {count === 1 ? "note" : "notes"}
+              </span>
+            )
           )}
         </div>
       </div>

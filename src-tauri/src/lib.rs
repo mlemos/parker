@@ -24,6 +24,7 @@ mod windows;
 mod filedrop;
 mod monitor;
 mod folder;
+mod statusbar;
 mod updates;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -438,7 +439,7 @@ fn validate_note_name(name: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn safe_note_path(name: &str) -> Result<PathBuf, String> {
+pub(crate) fn safe_note_path(name: &str) -> Result<PathBuf, String> {
     validate_note_name(name)?;
     Ok(notes_dir().join(name))
 }
@@ -2744,6 +2745,9 @@ pub fn run() {
             windows::focus_note,
             windows::dock_note,
             windows::new_note_in_main,
+            statusbar::copy_text,
+            statusbar::double_click_ms,
+            statusbar::reveal_note,
             windows::close_note_window,
             windows::pointer_outside_window,
         ])
