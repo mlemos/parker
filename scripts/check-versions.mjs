@@ -1,5 +1,6 @@
 // Parker states its version in many places — the Mac app, the site's download
-// links, and the iPhone app — and a release is only coherent if they agree. They drift silently: nothing breaks at build time when the DMG
+// links, and the iPhone app (same series, its own patch) — and a release is
+// only coherent if they agree. They drift silently: nothing breaks at build time when the DMG
 // filename says one thing and the site's download link says another — you find
 // out when someone clicks it.
 //
@@ -80,10 +81,20 @@ checkAll("site/agents/index.html", "the DMG filename", agents,
 checkAll("site/agents/index.html", "the version under the download button", agents,
   new RegExp(String.raw`v(${SEMVER})\s*·`, "g"));
 
-// The iPhone app ships the same version as the Mac (decided 27/09, at 1.5.0):
-// one Parker, one number. Its build number is separate (the date).
-check("ios/Parker/project.yml", "the iPhone's MARKETING_VERSION", read("ios/Parker/project.yml"),
-  new RegExp(String.raw`MARKETING_VERSION:\s*"(${SEMVER})"`));
+// The iPhone app is in the same series as the Mac — the same major.minor
+// (1.5.x on both) — and moves its patch only when it changes (decided 08/10,
+// at Mac 1.5.2: a new number on an unchanged app says nothing). Its build
+// number is separate (the date).
+{
+  const file = "ios/Parker/project.yml";
+  const m = read(file).match(new RegExp(String.raw`MARKETING_VERSION:\s*"(${SEMVER})"`));
+  const series = (v) => v.split(".").slice(0, 2).join(".");
+  if (!m) problems.push(`${file}: could not find the iPhone's MARKETING_VERSION — has the file changed shape?`);
+  else if (series(m[1]) !== series(want))
+    problems.push(`${file}: the iPhone's MARKETING_VERSION is ${m[1]}, expected ${series(want)}.x`);
+  else if (m[1].localeCompare(want, undefined, { numeric: true }) > 0)
+    problems.push(`${file}: the iPhone's MARKETING_VERSION ${m[1]} is ahead of the Mac's ${want}`);
+}
 
 // …and the app must read it: an Info.plist with a literal version ships that
 // literal (every iPhone build until 1.5.0 went out as 1.0, found 28/09).
@@ -102,4 +113,4 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log(`Versions agree — everything says ${want}.`);
+console.log(`Versions agree — the Mac and the site say ${want}; the iPhone is in the same ${want.split(".").slice(0, 2).join(".")}.x series.`);
