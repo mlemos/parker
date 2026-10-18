@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Privacy — Parker</title>
-  <meta name="description" content="What Parker does with your data: nothing leaves your notes folder. No account, no server, no telemetry — on the Mac, on the iPhone, and on this site." />
+  <meta name="description" content="What Parker does with your data: nothing leaves your notes folder. No account, no server, no telemetry — on the Mac and on the iPhone." />
 
   <!-- No-flash theme: set before first paint -->
   <script>
@@ -17,6 +17,31 @@
         document.documentElement.setAttribute("data-theme", theme);
       } catch (e) {}
     })();
+  </script>
+
+  <!-- Google Analytics: production host only (previews and localhost send nothing).
+       Consent Mode v2: analytics denied by default in the EEA, UK and CH; ads denied everywhere. -->
+  <script>
+    if (location.hostname === "getparker.dev") {
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag("consent", "default", {
+        ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied",
+        analytics_storage: "denied",
+        region: ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IS","IE","IT","LV","LI","LT","LU","MT","NL","NO","PL","PT","RO","SK","SI","ES","SE","GB","CH"]
+      });
+      gtag("consent", "default", {
+        ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied",
+        analytics_storage: "granted"
+      });
+      var s = document.createElement("script");
+      s.async = true;
+      s.src = "https://www.googletagmanager.com/gtag/js?id=G-R56ZGB35JD";
+      document.head.appendChild(s);
+      gtag("js", new Date());
+      gtag("config", "G-R56ZGB35JD");
+      gtag("config", "G-ECGDY3NPPR");
+    }
   </script>
 
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
@@ -97,7 +122,7 @@
       <p>If you install Parker for iPhone through TestFlight or the App Store, Apple may collect crash reports and, on TestFlight, the feedback and screenshots you choose to send. That data goes to Apple and is shared with us in App Store Connect under <a href="https://www.apple.com/legal/privacy/" rel="noopener">Apple's privacy policy</a>. We use it to fix bugs. The Mac app is distributed as a direct download and has no such channel.</p>
 
       <h2>This website</h2>
-      <p>getparker.dev is a static site hosted on Vercel, which keeps ordinary server logs (IP address, user agent, pages requested) for operating the service. The pages load the Geist typeface from Google Fonts, so your browser also requests those files from Google. There are no analytics, no cookies and no tracking pixels. Your theme choice is kept in your browser's local storage and never sent anywhere.</p>
+      <p>getparker.dev is a static site hosted on Vercel, which keeps ordinary server logs (IP address, user agent, pages requested) for operating the service. The pages load the Geist typeface from Google Fonts, so your browser also requests those files from Google. The site uses Google Analytics to count visits: which pages are read, where visitors come from, and roughly which country — it never sees your notes, and the Parker apps contain no analytics at all. Google Analytics sets first-party cookies to tell returning visitors apart; in the European Economic Area, the UK and Switzerland it runs without cookies by default and sends only anonymous pings. Advertising features are off, and the data is not used for ads. Your theme choice is kept in your browser's local storage and never sent anywhere.</p>
 
       <h2>Children</h2>
       <p>Parker collects no personal information from anyone, of any age.</p>
@@ -111,7 +136,7 @@
       <h2>Contact</h2>
       <p>Questions about privacy: <a href="mailto:manoel.lemos@mac.com">manoel.lemos@mac.com</a>.</p>
 
-      <p class="prose-date">Last updated September 26, 2026.</p>
+      <p class="prose-date">Last updated October 17, 2026: this website now uses Google Analytics.</p>
     </section>
   </main>
 
