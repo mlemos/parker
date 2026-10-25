@@ -44,6 +44,18 @@
     }
   </script>
 
+  <!-- Vercel Web Analytics: cookieless, served first-party by Vercel at /_vercel/insights
+       (that path exists only on Vercel deployments, so localhost skips it). -->
+  <script>
+    if (location.protocol === "https:") {
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+      var va = document.createElement("script");
+      va.defer = true;
+      va.src = "/_vercel/insights/script.js";
+      document.head.appendChild(va);
+    }
+  </script>
+
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 

@@ -44,6 +44,18 @@
     }
   </script>
 
+  <!-- Vercel Web Analytics: cookieless, served first-party by Vercel at /_vercel/insights
+       (that path exists only on Vercel deployments, so localhost skips it). -->
+  <script>
+    if (location.protocol === "https:") {
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+      var va = document.createElement("script");
+      va.defer = true;
+      va.src = "/_vercel/insights/script.js";
+      document.head.appendChild(va);
+    }
+  </script>
+
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 
@@ -122,7 +134,7 @@
       <p>If you install Parker for iPhone through TestFlight or the App Store, Apple may collect crash reports and, on TestFlight, the feedback and screenshots you choose to send. That data goes to Apple and is shared with us in App Store Connect under <a href="https://www.apple.com/legal/privacy/" rel="noopener">Apple's privacy policy</a>. We use it to fix bugs. The Mac app is distributed as a direct download and has no such channel.</p>
 
       <h2>This website</h2>
-      <p>getparker.dev is a static site hosted on Vercel, which keeps ordinary server logs (IP address, user agent, pages requested) for operating the service. The pages load the Geist typeface from Google Fonts, so your browser also requests those files from Google. The site uses Google Analytics to count visits: which pages are read, where visitors come from, and roughly which country — it never sees your notes, and the Parker apps contain no analytics at all. Google Analytics sets first-party cookies to tell returning visitors apart; in the European Economic Area, the UK and Switzerland it runs without cookies by default and sends only anonymous pings. Advertising features are off, and the data is not used for ads. Your theme choice is kept in your browser's local storage and never sent anywhere.</p>
+      <p>getparker.dev is a static site hosted on Vercel, which keeps ordinary server logs (IP address, user agent, pages requested) for operating the service. The pages load the Geist typeface from Google Fonts, so your browser also requests those files from Google. The site uses Google Analytics to count visits: which pages are read, where visitors come from, and roughly which country — it never sees your notes, and the Parker apps contain no analytics at all. Google Analytics sets first-party cookies to tell returning visitors apart; in the European Economic Area, the UK and Switzerland it runs without cookies by default and sends only anonymous pings. Advertising features are off, and the data is not used for ads. The site also uses Vercel Web Analytics, which counts page views without cookies: it identifies a visit by a hash of the request that is discarded within a day, and stores no IP addresses. Your theme choice is kept in your browser's local storage and never sent anywhere.</p>
 
       <h2>Children</h2>
       <p>Parker collects no personal information from anyone, of any age.</p>
@@ -136,7 +148,7 @@
       <h2>Contact</h2>
       <p>Questions about privacy: <a href="mailto:manoel.lemos@mac.com">manoel.lemos@mac.com</a>.</p>
 
-      <p class="prose-date">Last updated October 17, 2026: this website now uses Google Analytics.</p>
+      <p class="prose-date">Last updated October 24, 2026: this website now also uses Vercel Web Analytics.</p>
     </section>
   </main>
 
