@@ -700,6 +700,12 @@ pub fn dismiss(app: &tauri::AppHandle) {
     if let Ok(mut d) = state(app).dismissed.lock() {
         *d = hidden;
     }
+    // Hiding the windows alone leaves Parker the active app with nothing on
+    // screen: the keyboard goes nowhere, and anything that follows the front
+    // app (a keypad's per-app profile) still thinks you're in Parker. Hiding
+    // the app, as ⌘H does, hands both back to the app you came from.
+    #[cfg(target_os = "macos")]
+    let _ = app.hide();
 }
 
 /// Is Parker "up" — the focus target visible and holding the keyboard?
