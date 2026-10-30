@@ -711,11 +711,17 @@ pub fn dismiss(app: &tauri::AppHandle) {
 /// A window closed itself (it hides, never destroys). If that left nothing on
 /// screen, hide the app too, for the same reason a dismiss does: otherwise
 /// Parker stays the active app with no window, holding the keyboard.
-pub fn hide_app_if_bare(app: &tauri::AppHandle) {
+pub fn hide_app_if_bare<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    hide_app_if_bare_but(app, "");
+}
+
+/// The same, for a window that's about to close for real (About, Keyboard
+/// Shortcuts): it's still on screen when asked, so it doesn't count.
+pub fn hide_app_if_bare_but<R: tauri::Runtime>(app: &tauri::AppHandle<R>, closing: &str) {
     let bare = !app
         .webview_windows()
-        .values()
-        .any(|w| w.is_visible().unwrap_or(false));
+        .iter()
+        .any(|(label, w)| label != closing && w.is_visible().unwrap_or(false));
     #[cfg(target_os = "macos")]
     if bare {
         let _ = app.hide();

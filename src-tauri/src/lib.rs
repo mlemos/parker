@@ -2309,6 +2309,7 @@ fn toggle_settings_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Some(w) = app.get_webview_window("settings") {
         if w.is_visible().unwrap_or(false) && w.is_focused().unwrap_or(false) {
             let _ = w.hide();
+            windows::hide_app_if_bare(app);
             return;
         }
     }
@@ -2681,6 +2682,14 @@ pub fn run() {
                     api.prevent_close();
                     let _ = window.hide();
                     windows::hide_app_if_bare(window.app_handle());
+                }
+                return;
+            }
+            // About and Keyboard Shortcuts close for real; if one was the last
+            // window, the app goes too.
+            if matches!(window.label(), "about" | "help") {
+                if let tauri::WindowEvent::CloseRequested { .. } = event {
+                    windows::hide_app_if_bare_but(window.app_handle(), window.label());
                 }
                 return;
             }
