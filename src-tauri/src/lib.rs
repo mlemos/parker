@@ -1834,6 +1834,11 @@ pub(crate) fn finish_quit(app: &tauri::AppHandle) {
     // has flushed every save and remembered the windows, so the session
     // restores as it was.
     if RESTART_AFTER_QUIT.load(std::sync::atomic::Ordering::SeqCst) {
+        // restart() spawns the new Parker before this one is gone, and skips
+        // the Exit event that would close the single-instance socket: closed
+        // here, or the new process finds us still listening and leaves.
+        #[cfg(desktop)]
+        tauri_plugin_single_instance::destroy(app);
         app.restart();
     }
     app.exit(0);
@@ -2559,7 +2564,18 @@ fn rewatch_notes(app: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // One Parker at a time, and first among the plugins so a second copy
+    // leaves before it builds anything. The login item runs the binary
+    // directly, which LaunchServices doesn't count as Parker running: a Dock
+    // click or a restored session then started another, and two copies both
+    // answering ⌃⌥P meant one hid while the other came forward. A second
+    // launch now just summons the first.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        show_window(app);
+    }));
+    let builder = builder
         .plugin(tauri_plugin_opener::init())
         // Files opened from outside the notes folder (Finder, Open…). Managed
         // here rather than in setup: on macOS a double-clicked file arrives
