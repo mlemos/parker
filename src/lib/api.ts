@@ -226,6 +226,8 @@ export const api = {
   /** Hand this window's note back to the main window and close. */
   dockNote: (name: string, preview: boolean) => invoke<void>("dock_note", { name, preview }),
   closeNoteWindow: () => invoke<void>("close_note_window"),
+  /** The main window hid itself: if nothing else is on screen, Parker hides. */
+  mainWindowClosed: () => invoke<void>("main_window_closed"),
   /** Is the pointer outside this window right now? For the end of a drag. */
   pointerOutsideWindow: () => invoke<boolean>("pointer_outside_window"),
 };

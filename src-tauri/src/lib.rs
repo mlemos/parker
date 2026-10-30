@@ -2660,6 +2660,7 @@ pub fn run() {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                     api.prevent_close();
                     let _ = window.hide();
+                    windows::hide_app_if_bare(window.app_handle());
                 }
                 return;
             }
@@ -2749,6 +2750,7 @@ pub fn run() {
             statusbar::double_click_ms,
             statusbar::reveal_note,
             windows::close_note_window,
+            windows::main_window_closed,
             windows::pointer_outside_window,
         ])
         .build(tauri::generate_context!())

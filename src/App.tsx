@@ -1543,6 +1543,7 @@ export default function App({
           await flushAll();
         } finally {
           await win.hide();
+          await api.mainWindowClosed().catch(() => {});
         }
       })
       .then((u) => {

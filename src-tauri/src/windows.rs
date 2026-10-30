@@ -708,6 +708,28 @@ pub fn dismiss(app: &tauri::AppHandle) {
     let _ = app.hide();
 }
 
+/// A window closed itself (it hides, never destroys). If that left nothing on
+/// screen, hide the app too, for the same reason a dismiss does: otherwise
+/// Parker stays the active app with no window, holding the keyboard.
+pub fn hide_app_if_bare(app: &tauri::AppHandle) {
+    let bare = !app
+        .webview_windows()
+        .values()
+        .any(|w| w.is_visible().unwrap_or(false));
+    #[cfg(target_os = "macos")]
+    if bare {
+        let _ = app.hide();
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = bare;
+}
+
+/// The main window's red button: its frontend has flushed and hidden it.
+#[tauri::command]
+pub fn main_window_closed(app: tauri::AppHandle) {
+    hide_app_if_bare(&app);
+}
+
 /// Is Parker "up" — the focus target visible and holding the keyboard?
 pub fn is_front(app: &tauri::AppHandle) -> bool {
     focus_target(app)
@@ -937,6 +959,7 @@ pub fn pointer_outside_window(app: tauri::AppHandle, window: tauri::Window) -> b
 pub fn close_note_window(app: tauri::AppHandle, window: tauri::Window) {
     if is_note_label(window.label()) {
         park(&app, window.label());
+        hide_app_if_bare(&app);
     }
 }
 
