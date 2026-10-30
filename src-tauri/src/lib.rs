@@ -843,7 +843,11 @@ fn create_exclusive(dir: &std::path::Path, prefix: &str, ext: &str, content: &st
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    let tmp = parent.join(format!(".parker-new-{}-{nanos}.parker-tmp", std::process::id()));
+    // The clock alone isn't enough: macOS gives microseconds, so two creates
+    // in the same one would share a temp file and one note get the other's text.
+    static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let seq = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = parent.join(format!(".parker-new-{}-{nanos}-{seq}.parker-tmp", std::process::id()));
     fs::write(&tmp, content).map_err(|e| e.to_string())?;
     let result = claim_name(&tmp, dir, prefix, ext, content);
     let _ = fs::remove_file(&tmp);
